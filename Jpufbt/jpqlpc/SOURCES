@@ -1,0 +1,29 @@
+#
+# setup VisualC++ source browsing
+#
+#BROWSER_INFO=1
+BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
+
+MSC_WARNING_LEVEL=/W4 /Wp64
+
+INCLUDES=..\include
+
+C_DEFINES=/D_UNICODE /DUNICODE
+
+!if "$(DDKBUILDENV)"=="chk"
+DEBUG_CRTS=1
+!endif
+
+USER_C_FLAGS=/analyze
+
+USE_LIBCMT=1
+
+TARGETNAME=jpqlpc
+TARGETPATH=..\bin\$(DDKBUILDENV)
+TARGETTYPE=LIBRARY
+
+SOURCES=\
+	port.c \
+	transfer.c
+	
+LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

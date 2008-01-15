@@ -1,0 +1,7 @@
+EXPORTS
+	JpufbtAttachProcess
+	JpufbtDetachProcess
+	JpufbtInitializeTracing
+	JpufbtReadTrace
+	JpufbtShutdownTracing
+	JpufbtInstrumentProcedure
