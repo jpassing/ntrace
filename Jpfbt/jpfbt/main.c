@@ -6,7 +6,7 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
-#include "jpfbt.h"
+#include <jpfbt.h>
 #include "internal.h"
 
 #ifdef JPFBT_USERMODE

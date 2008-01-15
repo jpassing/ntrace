@@ -8,7 +8,7 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
-#include "jpfbt.h"
+#include <jpfbt.h>
 #include <hashtable.h>
 #ifdef JPFBT_USERMODE
 

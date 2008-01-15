@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(SDKBASE)\Include;..\include;..\..\Jpht\include
+INCLUDES=$(SDKBASE)\Include;..\..\include;..\..\..\Jpht\include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -23,7 +23,7 @@ USE_LIBCMT=1
 #!endif
 
 TARGETNAME=jpfbt_um
-TARGETPATH=..\bin\$(DDKBUILDENV)
+TARGETPATH=..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=LIBRARY
 
 SOURCES=\

@@ -26,7 +26,7 @@
 				BuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir) -cZ"
 				CleanCommandLine=""
-				Output="bin\chk\i386\um_test.exe"
+				Output="..\bin\chk\i386\um_test.exe"
 				PreprocessorDefinitions="_WIN32;DBG;_DEBUG;JPFBT_USERMODE"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -46,7 +46,7 @@
 				BuildCommandLine="ddkbuild -WLHXP free $(SolutionDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP free $(SolutionDir) -cZ"
 				CleanCommandLine=""
-				Output="bin\fre\i386\um_test.exe"
+				Output="..\bin\fre\i386\um_test.exe"
 				PreprocessorDefinitions="_WIN32;NDEBUG;JPFBT_USERMODE"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -179,7 +179,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\include\jpfbt.h"
+				RelativePath="..\include\jpfbt.h"
 				>
 			</File>
 		</Filter>

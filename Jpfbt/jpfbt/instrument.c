@@ -6,7 +6,7 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
-#include "jpfbt.h"
+#include <jpfbt.h>
 #include "internal.h"
 #include <stdlib.h>
 

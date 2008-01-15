@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=..\include;..\..\Jpfbt\include
+INCLUDES=..\include;..\..\include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -21,12 +21,12 @@ USE_LIBCMT=1
 UMTYPE=console
 UMENTRY=wmain
 
-TARGETLIBS=$(MAKEDIR)\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpqlpc.lib \
-		   $(MAKEDIR)\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib
+TARGETLIBS=$(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpqlpc.lib \
+		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib
 
 
 TARGETNAME=ufbttest
-TARGETPATH=..\bin\$(DDKBUILDENV)
+TARGETPATH=..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=PROGRAM
 SOURCES=test.c \
 		porttest.c \
