@@ -1,0 +1,42 @@
+#
+# setup VisualC++ source browsing
+#
+#BROWSER_INFO=1
+BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
+
+MSC_WARNING_LEVEL=/W4 /Wp64
+
+INCLUDES=$(SDKBASE)\Include;..\include;..\..\Jpht\include
+
+C_DEFINES=/D_UNICODE /DUNICODE
+
+!if "$(DDKBUILDENV)"=="chk"
+DEBUG_CRTS=1
+!endif
+
+USER_C_FLAGS=/wd4276 /analyze
+
+USE_LIBCMT=1
+
+#!if "$(DDKBUILDENV)"=="fre"
+#MSC_OPTIMIZATION=/O1
+#!endif
+
+TARGETNAME=jpfbt_um
+TARGETPATH=..\bin\$(DDKBUILDENV)
+TARGETTYPE=LIBRARY
+
+SOURCES=\
+	instrument.c \
+	main.c \
+	thunksup.c \
+	patchdb.c \
+	um_buffer.c \
+	um_dbgtrace.c \
+	um_memalloc.c \
+	um_patch.c \
+	um_threadenum.c
+
+I386_SOURCES=i386\thunks.asm
+
+LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

@@ -1,0 +1,58 @@
+
+
+
+
+
+
+
+
+	MsgBoxThunk proc
+		mov eax, offset MsgBoxWrapper
+		jmp JpfbtpFunctionCallThunk
+	MsgBoxThunk endp
+	
+	MsgBoxWrapper_Padding::
+		jmp MsgBoxThunk
+
+	MsgBoxWrapper proc
+		jmp MsgBoxWrapper_Padding
+		;mov esi, esi
+	MsgBoxWrapper_Body::
+		push ebp
+		mov ebp, esp
+		push 0
+		push [ebp+08h]
+		push [ebp+0Ch]
+		push 0
+		call MessageBoxA@16
+			
+		; retval
+		mov eax, 1
+		mov edx, 2
+		
+		mov esp, ebp
+		pop ebp
+		ret 8
+	MsgBoxWrapper endp
+	
+	TestMsgBox proc 
+		push ebp
+		mov ebp, esp
+				
+		; Call MsgBoxWrapper
+		mov ecx, 0F00h
+		mov ebx, 0BA2h
+		mov esi, 0DEADh
+		mov edi, 0BEEFh
+		lea eax, msgtext
+		push eax
+		lea eax, msgtitle
+		push eax
+		call MsgBoxWrapper
+		
+		mov esp, ebp
+		pop ebp
+		ret
+	TestMsgBox endp
+	
+	
