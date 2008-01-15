@@ -1,0 +1,33 @@
+#
+# setup VisualC++ source browsing
+#
+#BROWSER_INFO=1
+BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
+
+MSC_WARNING_LEVEL=/W4 /Wp64
+
+INCLUDES=..\include;..\..\include
+
+C_DEFINES=/D_UNICODE /DUNICODE
+
+!if "$(DDKBUILDENV)"=="chk"
+DEBUG_CRTS=1
+!endif
+
+USER_C_FLAGS=/wd4054 /wd4276 /analyze
+
+USE_LIBCMT=1
+
+UMTYPE=console
+UMENTRY=wmain
+
+TARGETLIBS=$(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfsv.lib
+
+
+TARGETNAME=fsvtest
+TARGETPATH=..\..\bin\$(DDKBUILDENV)
+TARGETTYPE=PROGRAM
+SOURCES=test.c \
+		psinfotest.c
+
+LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

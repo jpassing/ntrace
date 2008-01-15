@@ -1,0 +1,6 @@
+EXPORTS
+	JpfsvEnumProcesses
+	JpfsvEnumThreads
+	JpfsvEnumModules
+	JpfsvGetNextItem
+	JpfsvCloseEnum
