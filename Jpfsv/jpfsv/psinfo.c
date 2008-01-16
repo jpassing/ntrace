@@ -321,6 +321,16 @@ static HRESULT JpfsvsNextUserProcessModule(
 		return E_INVALIDARG;
 	}
 
+	if ( Enum->Data.ToolhelpEnum.ProcessId == 0 )
+	{
+		//
+		// Toolhelp returns modules of own process for id 0. 
+		// Enumerating modules for process 0 is futile anyway,
+		// so end the enumeration.
+		//
+		return S_FALSE;
+	}
+
 	Entry.dwSize = sizeof( MODULEENTRY32 );
 
 	if ( Enum->Data.ToolhelpEnum.FirstFetched )
