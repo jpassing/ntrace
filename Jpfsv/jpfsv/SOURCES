@@ -19,7 +19,8 @@ USER_C_FLAGS=/analyze
 USE_LIBCMT=1
 
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
-		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib
+		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib \
+		   $(SDK_LIB_PATH)\psapi.lib
 
 TARGETNAME=jpfsv
 TARGETPATH=..\..\bin\$(DDKBUILDENV)

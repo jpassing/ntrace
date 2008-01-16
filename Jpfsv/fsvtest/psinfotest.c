@@ -59,15 +59,25 @@ static void TestUserModuleEnum( DWORD ProcId )
 	TEST_OK( Hr );
 	TEST( Enum );
 
-	Mod.Size = 123;
+	Mod.Size = 0;
 	TEST( E_INVALIDARG == JpfsvGetNextItem( Enum, &Mod ) );
+
+	Mod.Size = 123;
+	TEST( ProcId == 0 || E_INVALIDARG == JpfsvGetNextItem( Enum, &Mod ) );
 
 	for ( ;; )
 	{
 		Mod.Size = sizeof( JPFSV_MODULE_INFO );
 		Hr = JpfsvGetNextItem( Enum, &Mod );
 
-		TEST( Count == 0 ? S_OK == Hr : SUCCEEDED( Hr ) );
+		if ( ProcId == 0 )
+		{
+			TEST( Hr == S_FALSE );
+		}
+		else
+		{
+			TEST( Count == 0 ? S_OK == Hr : SUCCEEDED( Hr ) );
+		}
 		Count++;
 
 		if ( S_FALSE == Hr )

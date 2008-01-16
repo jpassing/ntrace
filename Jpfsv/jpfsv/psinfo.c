@@ -9,6 +9,7 @@
 #include <jpfsv.h>
 #include <stdlib.h>
 #include <tlhelp32.h>
+#include <psapi.h>
 #include "internal.h"
 
 #pragma warning( push )
@@ -48,12 +49,20 @@ typedef struct _JPFSV_ENUM
 			BOOL FirstFetched;
 			DWORD ProcessId;
 		} ToolhelpEnum;
+
+		struct
+		{
+			HANDLE Process;
+			DWORD ModuleCount;
+			DWORD NextIndex;
+			HMODULE Modules[ ANYSIZE_ARRAY ];
+		} PsapiEnum;
 	} Data;
 } JPFSV_ENUM, *PJPFSV_ENUM;
 
 /*----------------------------------------------------------------------
  *
- * Privates.
+ * Toolhelp Helper functions.
  *
  */
 static HRESULT JpfsvsCloseToolhelpEnum(
@@ -301,9 +310,94 @@ HRESULT JpfsvEnumThreads(
 
 /*----------------------------------------------------------------------
  *
+ * Empty Enum.
+ *
+ */
+
+static HRESULT JpfsvsCloseEmptyEnum(
+	__in PJPFSV_ENUM Enum
+	)
+{
+	if ( ! Enum )
+	{
+		return E_INVALIDARG;
+	}
+
+	free( Enum );
+	
+	return S_OK;
+}
+
+static HRESULT JpfsvsNextEmptyEnum(
+	__in PJPFSV_ENUM Enum,
+	__out PVOID Item
+	)
+{
+	UNREFERENCED_PARAMETER( Item );
+	if ( ! Enum || 
+		 ! Item ||
+		 *( ( PDWORD ) Item ) == 0 )
+	{
+		return E_INVALIDARG;
+	}
+
+	//
+	// This enum is empty.
+	//
+	return S_FALSE;
+}
+
+static HRESULT JpfsvsCreateEmptyEnum(
+	__out JPFSV_ENUM_HANDLE *EnumHandle
+	)
+{
+	PJPFSV_ENUM Enum;
+
+	*EnumHandle = NULL;
+
+	//
+	// Allocate enum.
+	//
+	Enum = ( PJPFSV_ENUM ) malloc( sizeof( JPFSV_ENUM ) );
+	if ( ! Enum )
+	{
+		return E_OUTOFMEMORY;
+	}
+
+	//
+	// Initialize.
+	//
+	Enum->Signature = JPFSV_ENUM_SIGNATURE;
+	Enum->Routines.Close = JpfsvsCloseEmptyEnum;
+	Enum->Routines.NextItem = JpfsvsNextEmptyEnum;
+
+	*EnumHandle = Enum;
+
+	return S_OK;
+}
+/*----------------------------------------------------------------------
+ *
  * Module Enum.
  *
  */
+static HRESULT JpfsvsClosePsapiEnum(
+	__in PJPFSV_ENUM Enum
+	)
+{
+	if ( ! Enum )
+	{
+		return E_INVALIDARG;
+	}
+
+	if ( Enum->Data.PsapiEnum.Process )
+	{
+		VERIFY( CloseHandle( Enum->Data.PsapiEnum.Process ) );
+	}
+
+	free( Enum );
+	
+	return S_OK;
+}
 
 static HRESULT JpfsvsNextUserProcessModule(
 	__in PJPFSV_ENUM Enum,
@@ -311,9 +405,6 @@ static HRESULT JpfsvsNextUserProcessModule(
 	)
 {
 	PJPFSV_MODULE_INFO Module = ( PJPFSV_MODULE_INFO ) Item;
-	MODULEENTRY32 Entry;
-	BOOL Res;
-
 	if ( ! Enum || 
 		 ! Item ||
 		 Module->Size != sizeof( JPFSV_MODULE_INFO ) )
@@ -321,45 +412,58 @@ static HRESULT JpfsvsNextUserProcessModule(
 		return E_INVALIDARG;
 	}
 
-	if ( Enum->Data.ToolhelpEnum.ProcessId == 0 )
+	if ( Enum->Data.PsapiEnum.NextIndex < Enum->Data.PsapiEnum.ModuleCount )
+	{
+		MODULEINFO ModuleInfo;
+		HMODULE ModuleHandle = 
+			Enum->Data.PsapiEnum.Modules[ Enum->Data.PsapiEnum.NextIndex ];
+		
+		if ( ! GetModuleInformation(
+			Enum->Data.PsapiEnum.Process,
+			ModuleHandle,
+			&ModuleInfo,
+			sizeof( MODULEINFO ) ) )
+		{
+			DWORD Err = GetLastError();
+			return HRESULT_FROM_WIN32( Err );
+		}
+
+		Module->BaseAddress = ( DWORD_PTR ) ModuleInfo.lpBaseOfDll;
+		Module->ModuleSize = ModuleInfo.SizeOfImage;
+		
+		if ( ! GetModuleBaseName(
+			Enum->Data.PsapiEnum.Process,
+			ModuleHandle,
+			Module->ModuleName,
+			MAX_PATH ) )
+		{
+			DWORD Err = GetLastError();
+			return HRESULT_FROM_WIN32( Err );
+		}
+
+		if ( ! GetModuleFileNameEx(
+			Enum->Data.PsapiEnum.Process,
+			ModuleHandle,
+			Module->ModulePath,
+			MAX_PATH ) )
+		{
+			DWORD Err = GetLastError();
+			return HRESULT_FROM_WIN32( Err );
+		}
+
+		//
+		// Advance enum.
+		//
+		Enum->Data.PsapiEnum.NextIndex++;
+
+		return S_OK;
+	}
+	else
 	{
 		//
-		// Toolhelp returns modules of own process for id 0. 
-		// Enumerating modules for process 0 is futile anyway,
-		// so end the enumeration.
+		// End of enum.
 		//
 		return S_FALSE;
-	}
-
-	Entry.dwSize = sizeof( MODULEENTRY32 );
-
-	if ( Enum->Data.ToolhelpEnum.FirstFetched )
-	{
-		Res = Module32Next(
-			Enum->Data.ToolhelpEnum.Snapshot,
-			&Entry );
-	}
-	else
-	{
-		Res = Module32First(
-			Enum->Data.ToolhelpEnum.Snapshot,
-			&Entry );
-
-		Enum->Data.ToolhelpEnum.FirstFetched = TRUE;
-	}
-
-	if ( Res )
-	{
-		Module->BaseAddress = ( DWORD_PTR ) Entry.modBaseAddr;
-		Module->ModuleSize = Entry.modBaseSize;
-		return StringCchCopy(
-			Module->ModuleName,
-			MAX_PATH,
-			Entry.szModule );
-	}
-	else
-	{
-		return S_FALSE;	
 	}
 }
 
@@ -368,25 +472,82 @@ static HRESULT JpfsvEnumUserProcessModules(
 	__out JPFSV_ENUM_HANDLE *EnumHandle
 	)
 {
-	HANDLE Snapshot;
-	
-	ASSERT( EnumHandle );
+	DWORD SizeRequired = 0;
+	HANDLE Process;
+	HMODULE Dummy;
+	PJPFSV_ENUM Enum;
+	if ( ! EnumHandle )
+	{
+		return E_INVALIDARG;
+	}
 
-	Snapshot = CreateToolhelp32Snapshot(
-		TH32CS_SNAPMODULE,
+	if ( ProcessId == 0 )
+	{
+		//
+		// Process 0 cannot be enumerated, so return empty enum.
+		// 
+		return JpfsvsCreateEmptyEnum( EnumHandle );
+	}
+
+	Process = OpenProcess( 
+		PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+		FALSE, 
 		ProcessId );
-
-	if ( Snapshot == INVALID_HANDLE_VALUE )
+	if ( ! Process )
 	{
 		DWORD Err = GetLastError();
 		return HRESULT_FROM_WIN32( Err );
 	}
 
-	return JpfsvsCreateToolhelpEnum(
-		Snapshot,
-		ProcessId,
-		JpfsvsNextUserProcessModule,
-		EnumHandle );
+	if ( ! EnumProcessModules(
+		Process,
+		&Dummy,
+		sizeof( Dummy ),
+		&SizeRequired ) )
+	{
+		DWORD Err = GetLastError();
+		return HRESULT_FROM_WIN32( Err );
+	}
+
+	ASSERT( SizeRequired > 0 );
+	ASSERT( ( SizeRequired % sizeof( HMODULE ) ) == 0 );
+
+	//
+	// Allocate enum.
+	//
+	Enum = ( PJPFSV_ENUM ) malloc( 
+		RTL_SIZEOF_THROUGH_FIELD( 
+			JPFSV_ENUM,
+			Data.PsapiEnum.Modules[ ( SizeRequired / sizeof( HMODULE ) ) - 1 ] ) );
+	if ( ! Enum )
+	{
+		return E_OUTOFMEMORY;
+	}
+
+	//
+	// Initialize.
+	//
+	Enum->Signature = JPFSV_ENUM_SIGNATURE;
+	Enum->Routines.Close = JpfsvsClosePsapiEnum;
+	Enum->Routines.NextItem = JpfsvsNextUserProcessModule;
+
+	Enum->Data.PsapiEnum.ModuleCount = SizeRequired / sizeof( HMODULE );
+	Enum->Data.PsapiEnum.NextIndex = 0;
+	Enum->Data.PsapiEnum.Process = Process;
+
+	if ( ! EnumProcessModules(
+		Process,
+		Enum->Data.PsapiEnum.Modules,
+		SizeRequired,
+		&SizeRequired ) )
+	{
+		DWORD Err = GetLastError();
+		return HRESULT_FROM_WIN32( Err );
+	}
+
+	*EnumHandle = Enum;
+
+	return S_OK;
 }
 
 HRESULT JpfsvEnumModules(
