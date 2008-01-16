@@ -7,6 +7,11 @@ using System.Runtime.InteropServices;
 /// </summary>
 namespace WinTrc
 {
+    /*------------------------------------------------------------------
+     *
+     * Native Wrappers.
+     * 
+     */
     public static class Native
     {
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -25,8 +30,12 @@ namespace WinTrc
             public uint Size;
             public uint BaseAddress;
             public uint ModuleSize;
+            
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
             public string ModuleName;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string ModulePath;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -205,4 +214,97 @@ namespace WinTrc
             }
         }
     }
+
+    /*------------------------------------------------------------------
+     *
+     * Wrapper classes.
+     * 
+     */
+    public struct Process
+    {
+        private Native.ProcessInfo m_info;
+
+        public Process(Native.ProcessInfo info)
+        {
+            m_info = info;
+        }
+
+        public uint ProcessId
+        {
+            get
+            {
+                return m_info.ProcessId;
+            }
+        }
+
+        public string ExeName
+        {
+            get
+            {
+                return m_info.ExeName;
+            }
+        }
+    }
+
+    public struct Module
+    {
+        private Native.ModuleInfo m_info;
+
+        public Module(Native.ModuleInfo info)
+        {
+            m_info = info;
+        }
+
+        public uint BaseAddress
+        {
+            get
+            {
+                return m_info.BaseAddress;
+            }
+        }
+
+        public uint ModuleSize
+        {
+            get
+            {
+                return m_info.ModuleSize;
+            }
+        }
+
+        public string ModuleName
+        {
+            get
+            {
+                return m_info.ModuleName;
+            }
+        }
+
+        public string ModulePath
+        {
+            get
+            {
+                return m_info.ModulePath;
+            }
+        }
+    }
+
+    public struct Thread
+    {
+        private Native.ThreadInfo m_info;
+
+        public Thread(Native.ThreadInfo info)
+        {
+            m_info = info;
+        }
+
+        public uint ThreadId
+        {
+            get
+            {
+                return m_info.ThreadId;
+            }
+        }
+    }
+
+    
 }

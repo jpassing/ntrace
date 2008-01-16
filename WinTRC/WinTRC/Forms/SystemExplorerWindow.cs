@@ -20,9 +20,12 @@ namespace WinTrc
 
         public delegate void ModuleNodeSelectionChangedDelegate(ModuleNode mn);
         public delegate void ModuleNodeDoubleClickedDelegate(ModuleNode mn);
+        public delegate void PropertyRequestedDelegate(object o);
 
         public event ModuleNodeSelectionChangedDelegate ModuleNodeSelectionChanged;
         public event ModuleNodeDoubleClickedDelegate ModuleNodeDoubleClicked;
+        public event PropertyRequestedDelegate PropertyRequested;
+
         private TreeNode m_processesNode = 
             new TreeNode("Processes",ClosedFolderImageIndex, OpenFolderImageIndex);
 
@@ -51,7 +54,7 @@ namespace WinTrc
 
                 while (pe.NextItem(ref info))
                 {
-                    m_processesNode.Nodes.Add(new ProcessNode(info));
+                    m_processesNode.Nodes.Add(new ProcessNode(new Process(info)));
                 }
             }
         }
@@ -97,6 +100,14 @@ namespace WinTrc
                     OnModuleNodeDoubleClicked(mn);
                 }
             }
+            else if (e.KeyCode == Keys.F4)
+            {
+                ExplorerNode xn = m_tree.SelectedNode as ExplorerNode;
+                if (xn != null && xn.WrappedObject != null)
+                {
+                    OnPropertyRequested(xn.WrappedObject);
+                }
+            }
         }
 
         void m_tree_AfterSelect(object sender, System.Windows.Forms.TreeViewEventArgs e)
@@ -118,11 +129,11 @@ namespace WinTrc
         }
 
         
-        protected void OnModuleNodeSelectionChanged(ModuleNode mn)
+        protected void OnPropertyRequested(object o)
         {
-            if (ModuleNodeSelectionChanged != null)
+            if (PropertyRequested != null)
             {
-                ModuleNodeSelectionChanged(mn);
+                PropertyRequested(o);
             }
         }
 
@@ -133,13 +144,50 @@ namespace WinTrc
                 ModuleNodeDoubleClicked(mn);
             }
         }
+
+        protected void OnModuleNodeSelectionChanged(ModuleNode mn)
+        {
+            if (ModuleNodeSelectionChanged != null)
+            {
+                ModuleNodeSelectionChanged(mn);
+            }
+        }
     }
 
-    class DummyNode : TreeNode
+    /*------------------------------------------------------------------
+     * 
+     * Tree Node Classes.
+     * 
+     */
+
+    public class ExplorerNode : TreeNode
+    {
+        public ExplorerNode() : base()
+        {
+        }
+
+        public ExplorerNode(string text, int icon, int selIcon)
+            : base(text, icon, selIcon)
+        {
+        }
+
+        //
+        // Object that is to be shown in property window.
+        //
+        public virtual object WrappedObject 
+        { 
+            get
+            {
+                return null;
+            }
+        }
+    }
+
+    class DummyNode : ExplorerNode
     {
     }
 
-    class ErrorNode : TreeNode
+    class ErrorNode : ExplorerNode
     {
         public ErrorNode(string msg)
             : base("(" + msg + ")",
@@ -149,7 +197,7 @@ namespace WinTrc
         }
     }
 
-    class ModulesNode : TreeNode
+    class ModulesNode : ExplorerNode
     {
         private uint m_processId;
         private bool m_childrenLoaded = false;
@@ -183,7 +231,7 @@ namespace WinTrc
 
                     while (pe.NextItem(ref info))
                     {
-                        Nodes.Add(new ModuleNode(info));
+                        Nodes.Add(new ModuleNode(new Module(info)));
                     }
                 }
             }
@@ -195,7 +243,7 @@ namespace WinTrc
         }
     }
 
-    class ThreadsNode : TreeNode
+    class ThreadsNode : ExplorerNode
     {
         private uint m_processId;
         private bool m_childrenLoaded = false;
@@ -230,7 +278,7 @@ namespace WinTrc
 
                     while (pe.NextItem(ref info))
                     {
-                        Nodes.Add(new ThreadNode(info));
+                        Nodes.Add(new ThreadNode(new Thread(info)));
                     }
                 }
             }
@@ -242,11 +290,11 @@ namespace WinTrc
         }
     }
 
-    class ProcessNode : TreeNode
+    class ProcessNode : ExplorerNode
     {
-        private Native.ProcessInfo m_info;
+        private Process m_info;
 
-        public ProcessNode(Native.ProcessInfo info)
+        public ProcessNode(Process info)
             : base(info.ExeName + " (" + info.ProcessId + ")",
                    SystemExplorerWindow.ProcessImageIndex,
                    SystemExplorerWindow.ProcessImageIndex)
@@ -255,6 +303,14 @@ namespace WinTrc
 
             Nodes.Add(new ModulesNode(info.ProcessId));
             Nodes.Add(new ThreadsNode(info.ProcessId));
+        }
+
+        public override object WrappedObject
+        {
+            get
+            {
+                return m_info;
+            }
         }
 
         public uint Id
@@ -274,16 +330,24 @@ namespace WinTrc
         }
     }
 
-    public class ModuleNode : TreeNode
+    public class ModuleNode : ExplorerNode
     {
-        private Native.ModuleInfo m_info;
+        private Module m_info;
 
-        public ModuleNode(Native.ModuleInfo info)
+        public ModuleNode(Module info)
             : base(info.ModuleName,
                    SystemExplorerWindow.ModuleImageIndex,
                    SystemExplorerWindow.ModuleImageIndex)
         {
             m_info = info;
+        }
+
+        public override object WrappedObject
+        {
+            get
+            {
+                return m_info;
+            }
         }
 
         public string ModuleName
@@ -295,16 +359,24 @@ namespace WinTrc
         }
     }
 
-    class ThreadNode : TreeNode
+    class ThreadNode : ExplorerNode
     {
-        private Native.ThreadInfo m_info;
+        private Thread m_info;
 
-        public ThreadNode(Native.ThreadInfo info)
+        public ThreadNode(Thread info)
             : base(info.ThreadId.ToString(),
                    SystemExplorerWindow.ThreadImageIndex,
                    SystemExplorerWindow.ThreadImageIndex)
         {
             m_info = info;
+        }
+
+        public override object WrappedObject
+        {
+            get
+            {
+                return m_info;
+            }
         }
     }
 }

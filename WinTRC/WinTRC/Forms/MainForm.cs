@@ -17,12 +17,14 @@ namespace WinTrc
         private CommandWindow m_cmdWindow = new CommandWindow();
         private SystemExplorerWindow m_sysExplorer = new SystemExplorerWindow();
         private SymbolsWindow m_sym = null;
+        private PropertiesWindow m_prop = null;
 
         public MainForm()
         {
             InitializeComponent();
 
             m_sysExplorer.ModuleNodeDoubleClicked += new SystemExplorerWindow.ModuleNodeDoubleClickedDelegate(m_sysExplorer_ModuleNodeDoubleClicked);
+            m_sysExplorer.PropertyRequested += new SystemExplorerWindow.PropertyRequestedDelegate(m_sysExplorer_PropertyRequested);
         }
 
         public static MainForm Instance
@@ -70,11 +72,33 @@ namespace WinTrc
             }
         }
 
+        public PropertiesWindow Properties
+        {
+            get
+            {
+                if (m_prop == null)
+                {
+                    m_prop = new PropertiesWindow();
+                }
+                return m_prop;
+            }
+        }
+
         /*--------------------------------------------------------------
          * 
          * Events.
          * 
          */
+
+        void m_sysExplorer_PropertyRequested(object o)
+        {
+            Properties.SelectedObject = o;
+
+            if (!Properties.Visible)
+            {
+                Properties.Show(this.m_dockPanel, DockState.DockRight);
+            }
+        }
 
         void m_sysExplorer_ModuleNodeDoubleClicked(ModuleNode mn)
         {
