@@ -16,8 +16,9 @@ namespace WinTrc
         private OutputWindow m_outputWindow = new OutputWindow();
         private CommandWindow m_cmdWindow = new CommandWindow();
         private SystemExplorerWindow m_sysExplorer = new SystemExplorerWindow();
-        private SymbolsWindow m_sym = null;
+        //private SymbolsWindow m_sym = null;
         private PropertiesWindow m_prop = null;
+     
 
         public MainForm()
         {
@@ -64,13 +65,13 @@ namespace WinTrc
             }
         }
 
-        public SymbolsWindow Symbols
-        {
-            get
-            {
-                return m_sym;
-            }
-        }
+        //public SymbolsWindow Symbols
+        //{
+        //    get
+        //    {
+        //        return m_sym;
+        //    }
+        //}
 
         public PropertiesWindow Properties
         {
@@ -102,15 +103,15 @@ namespace WinTrc
 
         void m_sysExplorer_ModuleNodeDoubleClicked(ModuleNode mn)
         {
-            if (m_sym == null)
-            {
-                m_sym = new SymbolsWindow(mn);
-            }
+            //if (m_sym == null)
+            //{
+            //    m_sym = new SymbolsWindow(mn);
+            //}
                 
-            if (!Symbols.Visible)
-            {
-                Symbols.Show(this.m_dockPanel, DockState.DockRight);
-            }
+            //if (!Symbols.Visible)
+            //{
+            //    Symbols.Show(this.m_dockPanel, DockState.DockRight);
+            //}
         }
 
         private void MainForm_Load(object sender, EventArgs e)

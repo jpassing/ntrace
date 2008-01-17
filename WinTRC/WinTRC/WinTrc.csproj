@@ -135,6 +135,7 @@
     <Compile Include="Forms\SystemExplorerWindow.Designer.cs">
       <DependentUpon>SystemExplorerWindow.cs</DependentUpon>
     </Compile>
+    <Compile Include="PsWrappers.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\ICS client.ico" />
