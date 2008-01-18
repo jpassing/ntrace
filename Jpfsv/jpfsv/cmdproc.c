@@ -54,7 +54,9 @@ typedef struct _JPFSV_COMMAND_PROCESSOR
 static JPFSV_COMMAND JpfsvsBuiltInCommands[] =
 {
 	{ { L"echo" }, JpfsvpEchoCommand },
-	{ { L"|" }, JpfsvpListProcessesCommand }
+	{ { L"|" }, JpfsvpListProcessesCommand },
+	{ { L"lm" }, JpfsvpListModulesCommand },
+	{ { L"x" }, JpfsvpSearchSymbolCommand }
 };
 
 /*----------------------------------------------------------------------

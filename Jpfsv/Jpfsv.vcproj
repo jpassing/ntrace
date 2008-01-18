@@ -72,11 +72,15 @@
 				Name="jpfsv"
 				>
 				<File
+					RelativePath=".\jpfsv\cmdbasics.c"
+					>
+				</File>
+				<File
 					RelativePath=".\jpfsv\cmdproc.c"
 					>
 				</File>
 				<File
-					RelativePath=".\jpfsv\commands.c"
+					RelativePath=".\jpfsv\cmdsym.c"
 					>
 				</File>
 				<File

@@ -90,6 +90,11 @@ typedef VOID ( * JPFSV_COMMAND_ROUTINE ) (
  * Commands.
  *
  */
+VOID JpfsvpOutputError( 
+	__in HRESULT Hr,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);
+
 VOID JpfsvpEchoCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
@@ -99,6 +104,22 @@ VOID JpfsvpEchoCommand(
 	);
 
 VOID JpfsvpListProcessesCommand(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);
+
+VOID JpfsvpListModulesCommand(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);
+
+VOID JpfsvpSearchSymbolCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,

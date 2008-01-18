@@ -35,7 +35,8 @@ SOURCES=\
 	context.c \
 	cmdproc.c \
 	util.c \
-	commands.c \
+	cmdbasics.c \
+	cmdsym.c \
 	jpfsv.rc
 	
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH
