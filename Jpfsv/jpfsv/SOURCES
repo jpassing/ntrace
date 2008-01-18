@@ -32,8 +32,10 @@ TARGETTYPE=DYNLINK
 SOURCES=\
 	psinfo.c \
 	main.c \
-	symresolver.c \
+	context.c \
 	cmdproc.c \
+	util.c \
+	commands.c \
 	jpfsv.rc
 	
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

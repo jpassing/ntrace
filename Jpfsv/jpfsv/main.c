@@ -29,11 +29,11 @@ BOOL WINAPI DllMain(
 	{
 	case DLL_PROCESS_ATTACH:
 		InitializeCriticalSection( &JpfsvpDbghelpLock );
-		break;
+		return JpfsvpInitializeLoadedContextsHashtable();
 
 	case DLL_PROCESS_DETACH:
 		DeleteCriticalSection( &JpfsvpDbghelpLock );
-		break;
+		return JpfsvpDeleteLoadedContextsHashtable();
 
 	default:
 		break;

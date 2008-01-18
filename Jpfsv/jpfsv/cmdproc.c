@@ -14,19 +14,6 @@
 
 #define JPFSV_COMMAND_PROCESSOR_SIGNATURE 'PdmC'
 
-typedef struct _JPFSV_COMMAND_PROCESSOR_STATE
-{
-	DWORD Dummy;
-} JPFSV_COMMAND_PROCESSOR_STATE, *PJPFSV_COMMAND_PROCESSOR_STATE;
-
-typedef VOID ( * JPFSV_COMMAND_ROUTINE ) (
-	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
-	__in PWSTR CommandName,
-	__in UINT Argc,
-	__in PWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
-	);
-
 typedef struct _JPFSV_COMMAND
 {	
 	union
@@ -58,33 +45,16 @@ typedef struct _JPFSV_COMMAND_PROCESSOR
 	//
 	JPHT_HASHTABLE Commands;
 
+	//
+	// State accessible by commands.
+	//
 	JPFSV_COMMAND_PROCESSOR_STATE State;
 } JPFSV_COMMAND_PROCESSOR, *PJPFSV_COMMAND_PROCESSOR;
 
-static VOID JpfsvsEchoCommand(
-	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
-	__in PWSTR CommandName,
-	__in UINT Argc,
-	__in PWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
-	)
-{
-	UINT Index;
-
-	UNREFERENCED_PARAMETER( ProcessorState );
-	UNREFERENCED_PARAMETER( CommandName );
-
-	for ( Index = 0; Index < Argc; Index++ )
-	{
-		( OutputRoutine )( Argv[ Index ] );
-		( OutputRoutine )( L" " );
-	}
-	( OutputRoutine )( L"\n" );
-}
-
 static JPFSV_COMMAND JpfsvsBuiltInCommands[] =
 {
-	{ { L"echo" }, JpfsvsEchoCommand }
+	{ { L"echo" }, JpfsvpEchoCommand },
+	{ { L"|" }, JpfsvpListProcessesCommand }
 };
 
 /*----------------------------------------------------------------------
@@ -198,7 +168,7 @@ static JpfsvsUnegisterBuiltinCommands(
 
 static VOID JpfsvsDispatchCommand(
 	__in PJPFSV_COMMAND_PROCESSOR Processor,
-	__in PWSTR CommandName,
+	__in PCWSTR CommandName,
 	__in UINT Argc,
 	__in PWSTR* Argv,
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
@@ -230,14 +200,65 @@ static VOID JpfsvsDispatchCommand(
 	}
 }
 
-static VOID JpfsvsParseAndDisparchCommand(
+static BOOL JpfsvsParseCommandPrefix(
+	__in PCWSTR Command,
+	__out PCWSTR *RemainingCommand,
+	__out JPFSV_HANDLE *TempContext
+	)
+{
+	ASSERT( TempContext );
+	
+	*TempContext = NULL;
+	
+	if ( wcslen( Command ) >= 2 && Command[ 0 ] == L'|' )
+	{
+		PWSTR Remain;
+		DWORD Pid;
+		if ( JpfsvpParseInteger( &Command[ 1 ], &Remain, &Pid ) )
+		{
+			if ( SUCCEEDED( JpfsvLoadContext(
+				Pid,
+				NULL,
+				TempContext ) ) )
+			{
+				*RemainingCommand = Remain;
+				return TRUE;
+			}
+			else
+			{
+				return FALSE;
+			}
+		}
+		else
+		{
+			return FALSE;
+		}
+	}
+	else
+	{
+		*RemainingCommand = Command;
+		return TRUE;
+	}
+}
+
+static VOID JpfsvsParseAndDisparchCommandLine(
 	__in PJPFSV_COMMAND_PROCESSOR Processor,
-	__in PWSTR CommandLine,
+	__in PCWSTR CommandLine,
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	)
 {
 	INT TokenCount;
-	PWSTR* Tokens = CommandLineToArgvW( CommandLine, &TokenCount );
+	PWSTR* Tokens;
+	
+	if ( JpfsvpIsWhitespaceOnly( CommandLine ) )
+	{
+		return;
+	}
+
+	//
+	// We use CommandLineToArgvW for convenience. 
+	//
+	Tokens = CommandLineToArgvW( CommandLine, &TokenCount );
 	if ( ! Tokens )
 	{
 		( OutputRoutine )( L"Parsing command line failed.\n" );
@@ -248,15 +269,76 @@ static VOID JpfsvsParseAndDisparchCommand(
 	}
 	else
 	{
-		JpfsvsDispatchCommand(
-			Processor,
+		PWSTR RemainingCommand;
+		JPFSV_HANDLE TempCtx;
+		if ( JpfsvsParseCommandPrefix( 
 			Tokens[ 0 ],
-			TokenCount - 1,
-			&Tokens[ 1 ],
-			OutputRoutine );
+			&RemainingCommand,
+			&TempCtx ) )
+		{
+			PWSTR *Argv = &Tokens[ 1 ];
+			UINT Argc = TokenCount - 1;
+			JPFSV_HANDLE SavedContext = NULL;
+
+			if ( JpfsvpIsWhitespaceOnly( RemainingCommand ) )
+			{
+				//
+				// First token was prefix only -> Shift.
+				//
+				if ( Argc > 0 )
+				{
+					RemainingCommand = Tokens[ 1 ];
+					Argc--;
+					Argv++;
+				}
+				else
+				{
+					//
+					// Senseless command like '|123'.
+					//
+					( OutputRoutine )( L"Invalid command.\n" );
+					return;
+				}
+			}
+			else if ( 0 == wcscmp( RemainingCommand, L"s" ) )
+			{
+				//
+				// Swap contexts.
+				//
+				Processor->State.Context = TempCtx;
+				return;
+			}
+			
+			if ( TempCtx )
+			{
+				//
+				// Temporarily swap contexts.
+				//
+				SavedContext = Processor->State.Context;
+				Processor->State.Context = TempCtx;
+			}
+
+			JpfsvsDispatchCommand(
+				Processor,
+				RemainingCommand,
+				Argc,
+				Argv,
+				OutputRoutine );
+
+			if ( TempCtx )
+			{
+				//
+				// Restore, but do not unload context.
+				//
+				Processor->State.Context = SavedContext;
+			}
+		}
+		else
+		{
+			( OutputRoutine ) ( L"Invalid command prefix.\n" );
+		}
 	}
 }
-
 
 /*----------------------------------------------------------------------
  * 
@@ -268,7 +350,10 @@ HRESULT JpfsvCreateCommandProcessor(
 	__out JPFSV_HANDLE *ProcessorHandle
 	)
 {
-	PJPFSV_COMMAND_PROCESSOR Processor;
+	PJPFSV_COMMAND_PROCESSOR Processor = NULL;
+	JPFSV_HANDLE CurrentContext = NULL;
+	HRESULT Hr = E_UNEXPECTED;
+
 	if ( ! ProcessorHandle )
 	{
 		return E_INVALIDARG;
@@ -283,6 +368,18 @@ HRESULT JpfsvCreateCommandProcessor(
 		return E_OUTOFMEMORY;
 	}
 
+	//
+	// Use context of current process by default.
+	//
+	Hr = JpfsvLoadContext(
+		GetCurrentProcessId(),
+		NULL,
+		&CurrentContext );
+	if ( FAILED( Hr ) )
+	{
+		goto Cleanup;
+	}
+
 	if ( ! JphtInitializeHashtable(
 		&Processor->Commands,
 		JpfsvsAllocateHashtableMemory,
@@ -291,17 +388,32 @@ HRESULT JpfsvCreateCommandProcessor(
 		JpfsvsEqualsCommandName,
 		_countof( JpfsvsBuiltInCommands ) * 2 - 1 ) )
 	{
-		free( Processor );
-		return E_OUTOFMEMORY;
+		Hr = E_OUTOFMEMORY;
+		goto Cleanup;
 	}
 
 	Processor->Signature = JPFSV_COMMAND_PROCESSOR_SIGNATURE;
+	Processor->State.Context = CurrentContext;
 	InitializeCriticalSection( &Processor->Lock );
 
 	JpfsvsRegisterBuiltinCommands( Processor );
 
 	*ProcessorHandle = Processor;
-	return S_OK;
+	Hr = S_OK;
+
+Cleanup:
+	if ( FAILED( Hr ) )
+	{
+		if ( CurrentContext )
+		{
+			VERIFY( SUCCEEDED( JpfsvUnloadContext( CurrentContext ) ) );
+		}
+		if ( Processor )
+		{
+			free( Processor );
+		}
+	}
+	return Hr;
 }
 
 HRESULT JpfsvCloseCommandProcessor(
@@ -315,6 +427,8 @@ HRESULT JpfsvCloseCommandProcessor(
 		return E_INVALIDARG;
 	}
 
+	VERIFY( S_OK == JpfsvUnloadContext( Processor->State.Context ) );
+
 	DeleteCriticalSection( &Processor->Lock );
 	JpfsvsUnegisterBuiltinCommands( Processor );
 	JphtDeleteHashtable( &Processor->Commands );
@@ -323,9 +437,26 @@ HRESULT JpfsvCloseCommandProcessor(
 	return S_OK;
 }
 
+JPFSV_HANDLE JpfsvGetCurrentContextCommandProcessor(
+	__in JPFSV_HANDLE ProcessorHandle
+	)
+{
+	PJPFSV_COMMAND_PROCESSOR Processor = ( PJPFSV_COMMAND_PROCESSOR ) ProcessorHandle;
+
+	if ( Processor &&
+		 Processor->Signature == JPFSV_COMMAND_PROCESSOR_SIGNATURE )
+	{
+		return Processor->State.Context;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
 HRESULT JpfsvProcessCommand(
 	__in JPFSV_HANDLE ProcessorHandle,
-	__in PWSTR CommandLine,
+	__in PCWSTR CommandLine,
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	)
 {
@@ -341,7 +472,7 @@ HRESULT JpfsvProcessCommand(
 
 	EnterCriticalSection( &Processor->Lock );
 
-	JpfsvsParseAndDisparchCommand(
+	JpfsvsParseAndDisparchCommandLine(
 		Processor,
 		CommandLine,
 		OutputRoutine );
