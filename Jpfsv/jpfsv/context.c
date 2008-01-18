@@ -79,8 +79,17 @@ static HRESULT JpfsvsCreateContext(
 		DWORD Err = GetLastError();
 		Hr = HRESULT_FROM_WIN32( Err );
 	}
+	else
+	{
+		Hr = S_OK;
+	}
 
 	LeaveCriticalSection( &JpfsvpDbghelpLock );
+
+	if ( FAILED( Hr ) )
+	{
+		return Hr;
+	}
 
 	//
 	// Create and initialize object.

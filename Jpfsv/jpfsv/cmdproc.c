@@ -12,6 +12,12 @@
 #include <shellapi.h>
 #include "internal.h"
 
+#pragma warning( push )
+#pragma warning( disable: 6011; disable: 6387 )
+#include <strsafe.h>
+#pragma warning( pop )
+
+
 #define JPFSV_COMMAND_PROCESSOR_SIGNATURE 'PdmC'
 
 typedef struct _JPFSV_COMMAND
@@ -26,6 +32,8 @@ typedef struct _JPFSV_COMMAND
 	// Routine that implements the logic.
 	//
 	JPFSV_COMMAND_ROUTINE Routine;
+
+	PWSTR Documentation;
 } JPFSV_COMMAND, *PJPFSV_COMMAND;
 
 C_ASSERT( FIELD_OFFSET( JPFSV_COMMAND, u.Name ) == 
@@ -51,12 +59,21 @@ typedef struct _JPFSV_COMMAND_PROCESSOR
 	JPFSV_COMMAND_PROCESSOR_STATE State;
 } JPFSV_COMMAND_PROCESSOR, *PJPFSV_COMMAND_PROCESSOR;
 
+static VOID JpfsvsHelp(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);
+
 static JPFSV_COMMAND JpfsvsBuiltInCommands[] =
 {
-	{ { L"echo" }, JpfsvpEchoCommand },
-	{ { L"|" }, JpfsvpListProcessesCommand },
-	{ { L"lm" }, JpfsvpListModulesCommand },
-	{ { L"x" }, JpfsvpSearchSymbolCommand }
+	{ { L"?" }		, JpfsvsHelp					, L"Help" },
+	{ { L"echo" }	, JpfsvpEchoCommand				, L"Echo a string" },
+	{ { L"|" }		, JpfsvpListProcessesCommand	, L"List processes" },
+	{ { L"lm" }		, JpfsvpListModulesCommand		, L"List modules" },
+	{ { L"x" }		, JpfsvpSearchSymbolCommand		, L"Search symbol" }
 };
 
 /*----------------------------------------------------------------------
@@ -114,6 +131,36 @@ static VOID JpfsvsFreeHashtableMemory(
  * Privates.
  *
  */
+
+static VOID JpfsvsHelp(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	)
+{
+	UINT Index;
+	WCHAR Buffer[ 100 ];
+
+	UNREFERENCED_PARAMETER( ProcessorState );
+	UNREFERENCED_PARAMETER( CommandName );
+	UNREFERENCED_PARAMETER( Argc );
+	UNREFERENCED_PARAMETER( Argv );
+
+	for ( Index = 0; Index < _countof( JpfsvsBuiltInCommands); Index++ )
+	{
+		if ( SUCCEEDED( StringCchPrintf(
+			Buffer,
+			_countof( Buffer ),
+			L"%-10s: %s\n",
+			JpfsvsBuiltInCommands[ Index ].u.Name,
+			JpfsvsBuiltInCommands[ Index ].Documentation ) ) )
+		{
+			( OutputRoutine ) ( Buffer );
+		}
+	}
+}
 
 static JpfsvsRegisterBuiltinCommands(
 	__in PJPFSV_COMMAND_PROCESSOR Processor
@@ -202,7 +249,7 @@ static VOID JpfsvsDispatchCommand(
 	}
 }
 
-static BOOL JpfsvsParseCommandPrefix(
+static HRESULT JpfsvsParseCommandPrefix(
 	__in PCWSTR Command,
 	__out PCWSTR *RemainingCommand,
 	__out JPFSV_HANDLE *TempContext
@@ -218,28 +265,29 @@ static BOOL JpfsvsParseCommandPrefix(
 		DWORD Pid;
 		if ( JpfsvpParseInteger( &Command[ 1 ], &Remain, &Pid ) )
 		{
-			if ( SUCCEEDED( JpfsvLoadContext(
+			HRESULT Hr = JpfsvLoadContext(
 				Pid,
 				NULL,
-				TempContext ) ) )
+				TempContext );
+			if ( SUCCEEDED( Hr ) )
 			{
 				*RemainingCommand = Remain;
-				return TRUE;
+				return S_OK;
 			}
 			else
 			{
-				return FALSE;
+				return Hr;
 			}
 		}
 		else
 		{
-			return FALSE;
+			return E_INVALIDARG;
 		}
 	}
 	else
 	{
 		*RemainingCommand = Command;
-		return TRUE;
+		return S_OK;
 	}
 }
 
@@ -273,10 +321,11 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 	{
 		PWSTR RemainingCommand;
 		JPFSV_HANDLE TempCtx;
-		if ( JpfsvsParseCommandPrefix( 
+		HRESULT Hr = JpfsvsParseCommandPrefix( 
 			Tokens[ 0 ],
 			&RemainingCommand,
-			&TempCtx ) )
+			&TempCtx );
+		if ( SUCCEEDED( Hr ) )
 		{
 			PWSTR *Argv = &Tokens[ 1 ];
 			UINT Argc = TokenCount - 1;
@@ -337,7 +386,7 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 		}
 		else
 		{
-			( OutputRoutine ) ( L"Invalid command prefix.\n" );
+			JpfsvpOutputError( Hr, OutputRoutine );
 		}
 	}
 }

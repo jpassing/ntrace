@@ -23,14 +23,28 @@ VOID JpfsvpOutputError(
 	WCHAR Msg[ 255 ];
 	WCHAR Err[ 200 ] = { 0 };
 
-	( VOID ) FormatMessage(
+	if ( FormatMessage(
 		FORMAT_MESSAGE_FROM_SYSTEM,
 		NULL,
 		Hr,
 		0,
 		Err,
 		_countof( Err ),
-		NULL );
+		NULL ) )
+	{
+		//
+		// Remove line breaks.
+		//
+		UINT Index = 0;
+		for ( ; Index < wcslen( Err ); Index++ )
+		{
+			if ( Err[ Index ] == L'\r' ||
+				 Err[ Index ] == L'\n' )
+			{
+				Err[ Index ] = L' ';
+			}
+		}
+	}
 
 	if ( SUCCEEDED( StringCchPrintf(
 		Msg,
@@ -94,8 +108,9 @@ VOID JpfsvpListProcessesCommand(
 	for ( ;; )
 	{
 		WCHAR Buffer[ 100 ];
-		WCHAR LoadStateInfo[ 100 ];
 		BOOL LoadState;
+		HANDLE Process;
+		BOOL Wow64 = FALSE;
 
 		Hr = JpfsvGetNextItem( Enum, &Proc );
 		if ( S_FALSE == Hr )
@@ -108,15 +123,28 @@ VOID JpfsvpListProcessesCommand(
 			break;
 		}
 
+		//
+		// Check if Wow64.
+		//
+		Process = OpenProcess(
+			PROCESS_QUERY_INFORMATION,
+			FALSE,
+			Proc.ProcessId );
+		if ( Process )
+		{
+			( VOID ) IsWow64Process( Process, &Wow64 );
+			VERIFY( CloseHandle( Process ) );
+		}
+
 		if ( SUCCEEDED( StringCchPrintf(
 			Buffer,
 			_countof( Buffer ),
 			Proc.ProcessId == CurrentProcessId
-				? L" . id:%-8x %-20s"
-				: L"   id:%-8x %-20s",
+				? L" . id:%-8x %-20s %s"
+				: L"   id:%-8x %-20s %s",
 			Proc.ProcessId,
 			Proc.ExeName,
-			LoadStateInfo ) ) )
+			Wow64 ? L" (32) " : L"       " ) ) )
 		{
 			( OutputRoutine ) ( Buffer );
 		}
