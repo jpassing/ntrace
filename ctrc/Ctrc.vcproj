@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="Jpfsv"
-	ProjectGUID="{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}"
+	Name="Ctrc"
+	ProjectGUID="{21179D38-9725-4A24-8865-84CF7EA230C0}"
 	RootNamespace="Jpfbt"
 	Keyword="MakeFileProj"
 	>
@@ -46,7 +46,7 @@
 				BuildCommandLine="ddkbuild -WLHXP free $(SolutionDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP free $(SolutionDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\fre\i386\fsvtest.exe"
+				Output="..\bin\fre\i386\ctrc.exe"
 				PreprocessorDefinitions="_WIN32;NDEBUG;JPFBT_USERMODE"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -65,85 +65,21 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\DIRS"
+				RelativePath=".\ctrc\ctrc.rc"
 				>
 			</File>
-			<Filter
-				Name="jpfsv"
+			<File
+				RelativePath=".\ctrc\main.c"
 				>
-				<File
-					RelativePath=".\jpfsv\cmdproc.c"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\commands.c"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\context.c"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\internal.h"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\jpfsv.def"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\jpfsv.rc"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\main.c"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\psinfo.c"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\resource.h"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\SOURCES"
-					>
-				</File>
-				<File
-					RelativePath=".\jpfsv\util.c"
-					>
-				</File>
-			</Filter>
-			<Filter
-				Name="fsvtest"
+			</File>
+			<File
+				RelativePath=".\ctrc\resource.h"
 				>
-				<File
-					RelativePath=".\fsvtest\cmdproctest.c"
-					>
-				</File>
-				<File
-					RelativePath=".\fsvtest\contexttest.c"
-					>
-				</File>
-				<File
-					RelativePath=".\fsvtest\psinfotest.c"
-					>
-				</File>
-				<File
-					RelativePath=".\fsvtest\SOURCES"
-					>
-				</File>
-				<File
-					RelativePath=".\fsvtest\test.c"
-					>
-				</File>
-				<File
-					RelativePath=".\fsvtest\test.h"
-					>
-				</File>
-			</Filter>
+			</File>
+			<File
+				RelativePath=".\ctrc\SOURCES"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Shared Header Files"
@@ -154,10 +90,6 @@
 				RelativePath="..\include\jpfsv.h"
 				>
 			</File>
-			<File
-				RelativePath="..\include\jpufbt.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -165,6 +97,10 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 		</Filter>
+		<File
+			RelativePath=".\DIRS"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

@@ -1,0 +1,11 @@
+BUILD: Computing Include file dependencies:
+BUILD: Examining d:\dev\wdev\fbt\ctrc directory tree for files to compile.
+before AssemblyIdentity_AfterReadAllSources
+after AssemblyIdentity_AfterReadAllSources
+skipping post pass 0 command
+Compiling and Linking d:\dev\wdev\fbt\ctrc\ctrc *************
+'nmake.exe /nologo BUILDMSG=Stop. -i /nologo /f c:\winddk\6000\bin\makefile.def BUILD_PASS=PASS2 LINKONLY=1 NOPASS0=1 MAKEDIR_RELATIVE_TO_BASEDIR= MAKEDIR_LOWERCASE=d:\dev\wdev\fbt\ctrc\ctrc'
+d:\dev\wdev\fbt\ctrc\ctrc: TARGETPATH is ..\..\bin\fre
+BUILDMSG: _NT_TARGET_VERSION SET TO WINXP
+	cl.exe @d:\dev\wdev\fbt\ctrc\ctrc\objfre_wxp_x86\i386\cl.rsp
+	link.exe /out:..\..\bin\fre\i386\ctrc.exe /machine:ix86 @C:\Users\jp\AppData\Local\Temp\nm52E9.tmp

@@ -138,44 +138,68 @@ HRESULT JpfsvCloseEnum(
 
 /*++
 	Routine Description:
-		Obtains the symbol resolver.
+		Loads the context for the given process, s.t. dbghelp
+		functions can be used.
+		If the context is already loaded, a cached object is returned.
+		In this case, UserSearchPath is ignored.
 
 	Parameters:
-		Process		   - Target process.
+		ProcessId	   - Target process ID.
 		UserSearchPath - Search path or NULL to use system-defined
 						 search path. 
-		Resolver	   - Handle. Close with JpfsvCloseSymbolResolver.
+		Context	   - Handle. Close with JpfsvUnloadContext.
 --*/
-HRESULT JpfsvCreateSymbolResolver(
-	__in HANDLE Process,
-	__in_opt PWSTR UserSearchPath,
-	__out JPFSV_HANDLE *Resolver
+HRESULT JpfsvLoadContext(
+	__in DWORD ProcessId,
+	__in_opt PCWSTR UserSearchPath,
+	__out JPFSV_HANDLE *Context
 	);
 
 /*++
 	Routine Description:
-		Deletes a symbol resolver.
---*/
-HRESULT JpfsvCloseSymbolResolver(
-	__in JPFSV_HANDLE Resolver 
-	);
-
-/*++
-	Routine Description:
-		Loads a module for symbol analysis.
+		Determines if the context has already been loaded and is cached.
 
 	Parameters:
-		Resolver	- Resolver obtained from JpfsvGetSymbolResolver.
-		ModulePath  - Path to DLL/EXE.
-		LoadAddress - Load address in target process.
-		SizeOfDll   - Size of DLL. If NULL, it will be auto-determined.
+		ProcessId	    - Target process ID.
+		Loaded			- Result.
 --*/
-HRESULT JpfsvLoadModule(
-	__in JPFSV_HANDLE Resolver,
-	__in PWSTR ModulePath,
-	__in DWORD_PTR LoadAddress,
-	__in_opt DWORD SizeOfDll
+HRESULT JpfsvIsContextLoaded(
+	__in DWORD ProcessId,
+	__out PBOOL Loaded
 	);
+
+/*++
+	Routine Description:
+		Unloads the context.
+--*/
+HRESULT JpfsvUnloadContext(
+	__in JPFSV_HANDLE Context
+	);
+
+/*++
+	Routine Description:
+		Retrieves the process handle of the given context.
+--*/
+HANDLE JpfsvGetProcessHandleContext(
+	__in JPFSV_HANDLE Context
+	);
+
+///*++
+//	Routine Description:
+//		Loads a module for symbol analysis.
+//
+//	Parameters:
+//		Resolver	- Resolver obtained from JpfsvGetSymbolResolver.
+//		ModulePath  - Path to DLL/EXE.
+//		LoadAddress - Load address in target process.
+//		SizeOfDll   - Size of DLL. If NULL, it will be auto-determined.
+//--*/
+//HRESULT JpfsvLoadModule(
+//	__in JPFSV_HANDLE Resolver,
+//	__in PWSTR ModulePath,
+//	__in DWORD_PTR LoadAddress,
+//	__in_opt DWORD SizeOfDll
+//	);
 
 ///*++
 //	Routine Description:
@@ -210,6 +234,20 @@ HRESULT JpfsvCreateCommandProcessor(
 
 /*++
 	Routine Description:
+		Ontain current context. The returned handle is only guaranteed
+		to be valid until the next call to JpfsvCloseCommandProcessor or
+		JpfsvProcessCommand.
+
+	Parameters:
+		Processor   - Processor handle.
+		Context		- Context handle.
+--*/
+JPFSV_HANDLE JpfsvGetCurrentContextCommandProcessor(
+	__in JPFSV_HANDLE Processor
+	);
+
+/*++
+	Routine Description:
 		Destroy a command processor.
 
 	Parameters:
@@ -220,7 +258,7 @@ HRESULT JpfsvCloseCommandProcessor(
 	);
 
 typedef VOID ( CALLBACK *JPFSV_OUTPUT_ROUTINE ) (
-	__in PWSTR Output
+	__in PCWSTR Output
 	);
 
 /*++
@@ -232,7 +270,7 @@ typedef VOID ( CALLBACK *JPFSV_OUTPUT_ROUTINE ) (
 --*/
 HRESULT JpfsvProcessCommand(
 	__in JPFSV_HANDLE Processor,
-	__in PWSTR CommandLine,
+	__in PCWSTR CommandLine,
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	);
 	
