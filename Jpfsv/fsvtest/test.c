@@ -2,6 +2,8 @@
 
 int __cdecl wmain()
 {
+	TestCmdProc();
+	TestSymResolver();
 	TestPsInfoEnums();
 
 	_CrtDumpMemoryLeaks();

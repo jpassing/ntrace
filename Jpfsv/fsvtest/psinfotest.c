@@ -85,7 +85,7 @@ static void TestUserModuleEnum( DWORD ProcId )
 			break;
 		}
 
-		TEST( Mod.BaseAddress );
+		TEST( Mod.LoadAddress );
 		TEST( wcslen( Mod.ModuleName ) );
 		OutputDebugString( L"  " );
 		OutputDebugString( Mod.ModuleName );

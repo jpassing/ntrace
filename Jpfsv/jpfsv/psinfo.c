@@ -428,7 +428,7 @@ static HRESULT JpfsvsNextUserProcessModule(
 			return HRESULT_FROM_WIN32( Err );
 		}
 
-		Module->BaseAddress = ( DWORD_PTR ) ModuleInfo.lpBaseOfDll;
+		Module->LoadAddress = ( DWORD_PTR ) ModuleInfo.lpBaseOfDll;
 		Module->ModuleSize = ModuleInfo.SizeOfImage;
 		
 		if ( ! GetModuleBaseName(

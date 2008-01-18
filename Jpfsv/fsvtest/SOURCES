@@ -28,6 +28,8 @@ TARGETNAME=fsvtest
 TARGETPATH=..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=PROGRAM
 SOURCES=test.c \
-		psinfotest.c
+		psinfotest.c \
+		cmdproctest.c \
+		symresvtest.c
 
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

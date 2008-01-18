@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(SDKBASE)\Include;..\include;..\..\include
+INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\Jpht\Include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -19,8 +19,11 @@ USER_C_FLAGS=/analyze
 USE_LIBCMT=1
 
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
+		   $(SDK_LIB_PATH)\shell32.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib \
-		   $(SDK_LIB_PATH)\psapi.lib
+		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
+		   $(SDK_LIB_PATH)\psapi.lib \
+		   $(MAKEDIR)\..\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib
 
 TARGETNAME=jpfsv
 TARGETPATH=..\..\bin\$(DDKBUILDENV)
@@ -28,6 +31,9 @@ TARGETTYPE=DYNLINK
 
 SOURCES=\
 	psinfo.c \
+	main.c \
+	symresolver.c \
+	cmdproc.c \
 	jpfsv.rc
 	
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

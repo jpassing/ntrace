@@ -18,3 +18,5 @@
 #define TEST_OK( expr ) TEST( S_OK == ( expr ) )
 
 void TestPsInfoEnums();
+void TestSymResolver();
+void TestCmdProc();

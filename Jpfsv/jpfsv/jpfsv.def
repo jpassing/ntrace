@@ -4,3 +4,9 @@ EXPORTS
 	JpfsvEnumModules
 	JpfsvGetNextItem
 	JpfsvCloseEnum
+	JpfsvCreateSymbolResolver
+	JpfsvCloseSymbolResolver
+	JpfsvLoadModule
+	JpfsvCreateCommandProcessor
+	JpfsvCloseCommandProcessor
+	JpfsvProcessCommand

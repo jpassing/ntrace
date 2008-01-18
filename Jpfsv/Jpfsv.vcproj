@@ -72,6 +72,10 @@
 				Name="jpfsv"
 				>
 				<File
+					RelativePath=".\jpfsv\cmdproc.c"
+					>
+				</File>
+				<File
 					RelativePath=".\jpfsv\internal.h"
 					>
 				</File>
@@ -81,6 +85,10 @@
 				</File>
 				<File
 					RelativePath=".\jpfsv\jpfsv.rc"
+					>
+				</File>
+				<File
+					RelativePath=".\jpfsv\main.c"
 					>
 				</File>
 				<File
@@ -95,16 +103,28 @@
 					RelativePath=".\jpfsv\SOURCES"
 					>
 				</File>
+				<File
+					RelativePath=".\jpfsv\symresolver.c"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="fsvtest"
 				>
+				<File
+					RelativePath=".\fsvtest\cmdproctest.c"
+					>
+				</File>
 				<File
 					RelativePath=".\fsvtest\psinfotest.c"
 					>
 				</File>
 				<File
 					RelativePath=".\fsvtest\SOURCES"
+					>
+				</File>
+				<File
+					RelativePath=".\fsvtest\symresvtest.c"
 					>
 				</File>
 				<File

@@ -219,11 +219,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\include\jpqlpc.h"
+				RelativePath="..\include\jpfbt.h"
 				>
 			</File>
 			<File
-				RelativePath=".\include\jpufbt.h"
+				RelativePath="..\include\jpufbt.h"
 				>
 			</File>
 			<File

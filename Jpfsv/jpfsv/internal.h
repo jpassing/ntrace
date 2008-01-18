@@ -7,6 +7,7 @@
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
+#include <jpfsv.h>
 #include <crtdbg.h>
 
 #define ASSERT _ASSERTE
@@ -17,3 +18,5 @@
 #define VERIFY( x ) ( x )
 #endif
 #endif
+
+extern CRITICAL_SECTION JpfsvpDbghelpLock;
