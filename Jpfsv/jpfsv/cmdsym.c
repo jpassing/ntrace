@@ -149,7 +149,7 @@ static BOOL JpfsvsOutputSymbol(
 	return TRUE;
 }
 
-VOID JpfsvpSearchSymbolCommand(
+BOOL JpfsvpSearchSymbolCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -165,14 +165,15 @@ VOID JpfsvpSearchSymbolCommand(
 	if ( Argc < 1 )
 	{
 		( OutputRoutine ) ( L"Usage: x <mask>\n" );
-		return;
+		return FALSE;
 	}
 
 #ifdef DBG
 	SymSetOptions( SymGetOptions() | SYMOPT_DEBUG );
+#endif
+
 	Ctx.OutputRoutine = OutputRoutine;
 	Ctx.Process = Process;
-#endif
 
 	if ( ! SymEnumSymbols(
 		Process,
@@ -183,6 +184,8 @@ VOID JpfsvpSearchSymbolCommand(
 	{
 		DWORD Err = GetLastError();
 		JpfsvpOutputError( HRESULT_FROM_WIN32( Err ), OutputRoutine );
-		return;
+		return FALSE;
 	}
+
+	return TRUE;
 }

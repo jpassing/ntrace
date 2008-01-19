@@ -59,7 +59,7 @@ typedef struct _JPFSV_COMMAND_PROCESSOR
 	JPFSV_COMMAND_PROCESSOR_STATE State;
 } JPFSV_COMMAND_PROCESSOR, *PJPFSV_COMMAND_PROCESSOR;
 
-static VOID JpfsvsHelp(
+static BOOL JpfsvsHelp(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -132,7 +132,7 @@ static VOID JpfsvsFreeHashtableMemory(
  *
  */
 
-static VOID JpfsvsHelp(
+static BOOL JpfsvsHelp(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -160,6 +160,8 @@ static VOID JpfsvsHelp(
 			( OutputRoutine ) ( Buffer );
 		}
 	}
+
+	return TRUE;
 }
 
 static JpfsvsRegisterBuiltinCommands(
@@ -215,7 +217,7 @@ static JpfsvsUnegisterBuiltinCommands(
 		NULL );
 }
 
-static VOID JpfsvsDispatchCommand(
+static BOOL JpfsvsDispatchCommand(
 	__in PJPFSV_COMMAND_PROCESSOR Processor,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -236,7 +238,7 @@ static VOID JpfsvsDispatchCommand(
 
 		ASSERT( 0 == wcscmp( CommandEntry->u.Name, CommandName ) );
 
-		( CommandEntry->Routine )(
+		return ( CommandEntry->Routine )(
 			&Processor->State,
 			CommandName,
 			Argc,
@@ -246,6 +248,7 @@ static VOID JpfsvsDispatchCommand(
 	else
 	{
 		( OutputRoutine )( L"Unrecognized command.\n" );
+		return FALSE;
 	}
 }
 
@@ -291,7 +294,7 @@ static HRESULT JpfsvsParseCommandPrefix(
 	}
 }
 
-static VOID JpfsvsParseAndDisparchCommandLine(
+static BOOL JpfsvsParseAndDisparchCommandLine(
 	__in PJPFSV_COMMAND_PROCESSOR Processor,
 	__in PCWSTR CommandLine,
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
@@ -302,7 +305,7 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 	
 	if ( JpfsvpIsWhitespaceOnly( CommandLine ) )
 	{
-		return;
+		return FALSE;
 	}
 
 	//
@@ -312,10 +315,12 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 	if ( ! Tokens )
 	{
 		( OutputRoutine )( L"Parsing command line failed.\n" );
+		return FALSE;
 	}
 	else if ( TokenCount == 0 )
 	{
 		( OutputRoutine )( L"Invalid command.\n" );
+		return FALSE;
 	}
 	else
 	{
@@ -330,7 +335,7 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 			PWSTR *Argv = &Tokens[ 1 ];
 			UINT Argc = TokenCount - 1;
 			JPFSV_HANDLE SavedContext = NULL;
-
+			BOOL Success = FALSE;
 			if ( JpfsvpIsWhitespaceOnly( RemainingCommand ) )
 			{
 				//
@@ -348,7 +353,7 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 					// Senseless command like '|123'.
 					//
 					( OutputRoutine )( L"Invalid command.\n" );
-					return;
+					return FALSE;
 				}
 			}
 			else if ( 0 == wcscmp( RemainingCommand, L"s" ) )
@@ -357,7 +362,7 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 				// Swap contexts.
 				//
 				Processor->State.Context = TempCtx;
-				return;
+				return TRUE;
 			}
 			
 			if ( TempCtx )
@@ -369,7 +374,7 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 				Processor->State.Context = TempCtx;
 			}
 
-			JpfsvsDispatchCommand(
+			Success = JpfsvsDispatchCommand(
 				Processor,
 				RemainingCommand,
 				Argc,
@@ -383,10 +388,13 @@ static VOID JpfsvsParseAndDisparchCommandLine(
 				//
 				Processor->State.Context = SavedContext;
 			}
+
+			return Success;
 		}
 		else
 		{
 			JpfsvpOutputError( Hr, OutputRoutine );
+			return FALSE;
 		}
 	}
 }
@@ -512,7 +520,7 @@ HRESULT JpfsvProcessCommand(
 	)
 {
 	PJPFSV_COMMAND_PROCESSOR Processor = ( PJPFSV_COMMAND_PROCESSOR ) ProcessorHandle;
-
+	HRESULT Hr;
 	if ( ! Processor ||
 		 Processor->Signature != JPFSV_COMMAND_PROCESSOR_SIGNATURE ||
 		 ! CommandLine ||
@@ -523,12 +531,19 @@ HRESULT JpfsvProcessCommand(
 
 	EnterCriticalSection( &Processor->Lock );
 
-	JpfsvsParseAndDisparchCommandLine(
+	if ( JpfsvsParseAndDisparchCommandLine(
 		Processor,
 		CommandLine,
-		OutputRoutine );
+		OutputRoutine ) )
+	{
+		Hr = S_OK;
+	}
+	else
+	{
+		Hr = JPFSV_E_COMMAND_FAILED;
+	}
 
 	LeaveCriticalSection( &Processor->Lock );
 
-	return S_OK;
+	return Hr;
 }

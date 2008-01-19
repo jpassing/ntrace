@@ -35,7 +35,11 @@ typedef struct _JPFSV_CONTEXT
 C_ASSERT( FIELD_OFFSET( JPFSV_CONTEXT, u.ProcessId ) == 
 		  FIELD_OFFSET( JPFSV_CONTEXT, u.HashtableEntry ) );
 
-static JPHT_HASHTABLE JpfsvsLoadedContexts;
+static struct
+{
+	JPHT_HASHTABLE Table;
+	CRITICAL_SECTION Lock;
+} JpfsvsLoadedContexts;
 
 /*----------------------------------------------------------------------
  * 
@@ -50,6 +54,7 @@ static HRESULT JpfsvsCreateContext(
 {
 	HRESULT Hr = E_UNEXPECTED;
 	HANDLE ProcessHandle;
+	UINT Trials;
 
 	if ( ! ProcessId || ! Context )
 	{
@@ -71,17 +76,25 @@ static HRESULT JpfsvsCreateContext(
 	//
 	EnterCriticalSection( &JpfsvpDbghelpLock );
 	
-	if ( ! SymInitialize( 
-		ProcessHandle,
-		UserSearchPath,
-		TRUE ) )
+	//
+	// SymInitialize somethimes fails for no reason, retrying helps.
+	//
+	for ( Trials = 0; Trials < 3; Trials++ )
 	{
-		DWORD Err = GetLastError();
-		Hr = HRESULT_FROM_WIN32( Err );
-	}
-	else
-	{
-		Hr = S_OK;
+		if ( ! SymInitialize( 
+			ProcessHandle,
+			UserSearchPath,
+			TRUE ) )
+		{
+			DWORD Err = GetLastError();
+			Hr = HRESULT_FROM_WIN32( Err );
+			Sleep( 1 );
+		}
+		else
+		{
+			Hr = S_OK;
+			break;
+		}
 	}
 
 	LeaveCriticalSection( &JpfsvpDbghelpLock );
@@ -165,8 +178,9 @@ static VOID JpfsvsFreeHashtableMemory(
 
 BOOL JpfsvpInitializeLoadedContextsHashtable()
 {
+	InitializeCriticalSection( &JpfsvsLoadedContexts.Lock );
 	return JphtInitializeHashtable(
-		&JpfsvsLoadedContexts,
+		&JpfsvsLoadedContexts.Table,
 		JpfsvsAllocateHashtableMemory,
 		JpfsvsFreeHashtableMemory,
 		JpfsvsHashProcessId,
@@ -207,11 +221,14 @@ BOOL JpfsvpDeleteLoadedContextsHashtable()
 	//
 	// Delete all entries from hashtable.
 	//
+	// Called during unload, so no lock required.
+	//
 	JphtEnumerateEntries(
-		&JpfsvsLoadedContexts,
+		&JpfsvsLoadedContexts.Table,
 		JpfsvsUnloadContextFromHashtableCallback,
 		NULL );
-	JphtDeleteHashtable( &JpfsvsLoadedContexts );
+	JphtDeleteHashtable( &JpfsvsLoadedContexts.Table );
+	DeleteCriticalSection( &JpfsvsLoadedContexts.Lock );
 	return TRUE;
 }
 
@@ -238,7 +255,12 @@ HRESULT JpfsvLoadContext(
 	//
 	// Try to get cached object.
 	//
-	Entry = JphtGetEntryHashtable( &JpfsvsLoadedContexts, ProcessId );
+	EnterCriticalSection( &JpfsvsLoadedContexts.Lock );
+
+	Entry = JphtGetEntryHashtable( &JpfsvsLoadedContexts.Table, ProcessId );
+
+	LeaveCriticalSection( &JpfsvsLoadedContexts.Lock );
+
 	if ( Entry )
 	{
 		Context = CONTAINING_RECORD(
@@ -262,10 +284,15 @@ HRESULT JpfsvLoadContext(
 			return Hr;
 		}
 
+		EnterCriticalSection( &JpfsvsLoadedContexts.Lock );
+	
 		JphtPutEntryHashtable(
-			&JpfsvsLoadedContexts,
+			&JpfsvsLoadedContexts.Table,
 			&Context->u.HashtableEntry,
 			&OldEntry );
+
+		LeaveCriticalSection( &JpfsvsLoadedContexts.Lock );
+
 		if ( OldEntry != NULL )
 		{
 			//
@@ -299,10 +326,15 @@ HRESULT JpfsvUnloadContext(
 	if ( 0 == InterlockedDecrement( &Context->ReferenceCount ) )
 	{
 		PJPHT_HASHTABLE_ENTRY OldEntry;
+		
+		EnterCriticalSection( &JpfsvsLoadedContexts.Lock );
+
 		JphtRemoveEntryHashtable(
-			&JpfsvsLoadedContexts,
+			&JpfsvsLoadedContexts.Table,
 			Context->u.HashtableEntry.Key,
 			&OldEntry );
+
+		LeaveCriticalSection( &JpfsvsLoadedContexts.Lock );
 
 		ASSERT( OldEntry == &Context->u.HashtableEntry );
 
@@ -329,7 +361,12 @@ HRESULT JpfsvIsContextLoaded(
 	//
 	// Try to get cached object.
 	//
-	Entry = JphtGetEntryHashtable( &JpfsvsLoadedContexts, ProcessId );
+	EnterCriticalSection( &JpfsvsLoadedContexts.Lock );
+
+	Entry = JphtGetEntryHashtable( &JpfsvsLoadedContexts.Table, ProcessId );
+
+	LeaveCriticalSection( &JpfsvsLoadedContexts.Lock );
+
 	*Loaded = ( Entry != NULL );
 
 	return S_OK;

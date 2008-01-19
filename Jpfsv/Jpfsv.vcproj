@@ -26,7 +26,7 @@
 				BuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\chk\i386\ctrc.exe"
+				Output="..\bin\chk\i386\fsvtest.exe"
 				PreprocessorDefinitions="_WIN32;DBG;_DEBUG;JPFBT_USERMODE"
 				IncludeSearchPath=""
 				ForcedIncludes=""

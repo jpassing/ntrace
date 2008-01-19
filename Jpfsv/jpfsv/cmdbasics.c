@@ -57,7 +57,7 @@ VOID JpfsvpOutputError(
 	}
 }
 
-VOID JpfsvpEchoCommand(
+BOOL JpfsvpEchoCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -76,9 +76,11 @@ VOID JpfsvpEchoCommand(
 		( OutputRoutine )( L" " );
 	}
 	( OutputRoutine )( L"\n" );
+
+	return TRUE;
 }
 
-VOID JpfsvpListProcessesCommand(
+BOOL JpfsvpListProcessesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -91,6 +93,7 @@ VOID JpfsvpListProcessesCommand(
 	HRESULT Hr;
 	DWORD CurrentProcessId = GetProcessId( 
 		JpfsvGetProcessHandleContext( ProcessorState->Context ) );
+	BOOL ExitStatus = TRUE;
 	
 	UNREFERENCED_PARAMETER( CommandName );
 	UNREFERENCED_PARAMETER( Argc );
@@ -102,7 +105,7 @@ VOID JpfsvpListProcessesCommand(
 	if ( FAILED( Hr ) )
 	{
 		JpfsvpOutputError( Hr, OutputRoutine );
-		return;
+		return FALSE;
 	}
 
 	for ( ;; )
@@ -120,6 +123,7 @@ VOID JpfsvpListProcessesCommand(
 		else if ( FAILED( Hr ) )
 		{
 			JpfsvpOutputError( Hr, OutputRoutine );
+			ExitStatus = FALSE;
 			break;
 		}
 
@@ -167,9 +171,11 @@ VOID JpfsvpListProcessesCommand(
 	}
 
 	VERIFY( S_OK == JpfsvCloseEnum( Enum ) );
+
+	return ExitStatus;
 }
 
-VOID JpfsvpListModulesCommand(
+BOOL JpfsvpListModulesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -182,7 +188,8 @@ VOID JpfsvpListModulesCommand(
 	HRESULT Hr;
 	DWORD CurrentProcessId = GetProcessId( 
 		JpfsvGetProcessHandleContext( ProcessorState->Context ) );
-	
+	BOOL ExitStatus = TRUE;
+
 	UNREFERENCED_PARAMETER( CommandName );
 	UNREFERENCED_PARAMETER( Argc );
 	UNREFERENCED_PARAMETER( Argv );
@@ -193,7 +200,7 @@ VOID JpfsvpListModulesCommand(
 	if ( FAILED( Hr ) )
 	{
 		JpfsvpOutputError( Hr, OutputRoutine );
-		return;
+		return FALSE;
 	}
 
 	( OutputRoutine ) ( L"Start    Size     Name\n" );
@@ -210,6 +217,7 @@ VOID JpfsvpListModulesCommand(
 		else if ( FAILED( Hr ) )
 		{
 			JpfsvpOutputError( Hr, OutputRoutine );
+			ExitStatus = FALSE;
 			break;
 		}
 
@@ -226,4 +234,6 @@ VOID JpfsvpListModulesCommand(
 	}
 
 	VERIFY( S_OK == JpfsvCloseEnum( Enum ) );
+
+	return ExitStatus;
 }

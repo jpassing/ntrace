@@ -77,7 +77,7 @@ typedef struct _JPFSV_COMMAND_PROCESSOR_STATE
 	JPFSV_HANDLE Context;
 } JPFSV_COMMAND_PROCESSOR_STATE, *PJPFSV_COMMAND_PROCESSOR_STATE;
 
-typedef VOID ( * JPFSV_COMMAND_ROUTINE ) (
+typedef BOOL ( * JPFSV_COMMAND_ROUTINE ) (
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -95,7 +95,7 @@ VOID JpfsvpOutputError(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	);
 
-VOID JpfsvpEchoCommand(
+BOOL JpfsvpEchoCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -103,7 +103,7 @@ VOID JpfsvpEchoCommand(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	);
 
-VOID JpfsvpListProcessesCommand(
+BOOL JpfsvpListProcessesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -111,7 +111,7 @@ VOID JpfsvpListProcessesCommand(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	);
 
-VOID JpfsvpListModulesCommand(
+BOOL JpfsvpListModulesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
@@ -119,7 +119,7 @@ VOID JpfsvpListModulesCommand(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	);
 
-VOID JpfsvpSearchSymbolCommand(
+BOOL JpfsvpSearchSymbolCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
