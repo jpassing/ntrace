@@ -279,6 +279,16 @@ VOID PatchAndTestAllProcsSinglethreaded()
 		ProcedureExit,
 		ProcessBuffer,
 		NULL) );
+
+	//
+	// Clear counters.
+	//
+	for ( Index = 0; Index < ProcSet->SampleProcCount; Index++ )
+	{
+		ProcSet->SampleProcs[ Index ].EntryThunkCallCount = 0;
+		ProcSet->SampleProcs[ Index ].ExitThunkCallCount = 0;
+		*ProcSet->SampleProcs[ Index ].CallCount = 0;
+	}
 	
 	TEST( PatchAll() );
 
@@ -313,6 +323,8 @@ VOID PatchAndTestAllProcsSinglethreaded()
 static volatile LONG DriversCalled = 0;
 static volatile LONG CallProcsThreadsActive = 0;
 
+static HANDLE ProcsCalled;
+
 static DWORD CALLBACK CallProcsThreadProc( __in PVOID PvIterations )
 {
 	PUINT TotalIterations = ( PUINT ) PvIterations;
@@ -333,31 +345,42 @@ static DWORD CALLBACK CallProcsThreadProc( __in PVOID PvIterations )
 			Sleep( 0 );
 			InterlockedIncrement( &DriversCalled );
 		}
+
+		//
+		// Signalize that I have done sth.
+		//
+		TEST( SetEvent( ProcsCalled ) );
 	}
 
 	InterlockedDecrement( &CallProcsThreadsActive );
 
+	TEST( SetEvent( ProcsCalled ) );
 	return 0;
 }
 
-static DWORD CALLBACK PatchUnpatchThreadProc( __in PVOID PvIterations )
+static DWORD CALLBACK PatchUnpatchThreadProc( __in PVOID Unused )
 {
-	PUINT TotalIterations = ( PUINT ) PvIterations;
-	UINT Iteration = 0;
+	UNREFERENCED_PARAMETER( Unused );
 
-	while ( Iteration++ < *TotalIterations )
+	while ( CallProcsThreadsActive > 0 )
 	{
-		BOOL Patched = PatchAll();
+		BOOL Patched;
+		LONG DriversCalledBefore;
+		
+		TEST( ResetEvent( ProcsCalled ) );
+
+		DriversCalledBefore = DriversCalled;
+
+		Patched = PatchAll();
 		
 		//
 		// Give other threads some time.
 		//
-		LONG DriversCalledBefore = DriversCalled;
-		Sleep( 1000 );
+		TEST( WAIT_OBJECT_0 == WaitForSingleObject( ProcsCalled, INFINITE ) );
 
 		if ( Patched )
 		{
-			TEST( ( CallProcsThreadsActive > 0 ) == ( DriversCalledBefore < DriversCalled ) );
+			TEST( ( CallProcsThreadsActive == 0 ) || ( DriversCalledBefore < DriversCalled ) );
 	
 			OutputDebugString( L"Patching succeeded - now unpatching\n" );
 			UnpatchAll();
@@ -375,9 +398,9 @@ static DWORD CALLBACK PatchUnpatchThreadProc( __in PVOID PvIterations )
 VOID PatchAndTestAllProcsMultithreaded()
 {
 	#define CALLER_THREAD_COUNT 10
-	#define PATCHUNPATCH_THREAD_COUNT 10
+	#define PATCHUNPATCH_THREAD_COUNT 5
 
-	UINT Iterations = 20;
+	UINT Iterations = 50;
 
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
 	UINT Index;
@@ -406,7 +429,7 @@ VOID PatchAndTestAllProcsMultithreaded()
 
 	for ( Index = 0; Index < CALLER_THREAD_COUNT; Index++ )
 	{
-		HANDLE Thread = CreateThread(
+		HANDLE Thread = CfixCreateThread(
 			NULL,
 			0,
 			CallProcsThreadProc,
@@ -419,11 +442,11 @@ VOID PatchAndTestAllProcsMultithreaded()
 
 	for ( Index = 0; Index < PATCHUNPATCH_THREAD_COUNT; Index++ )
 	{
-		HANDLE Thread = CreateThread(
+		HANDLE Thread = CfixCreateThread(
 			NULL,
 			0,
 			PatchUnpatchThreadProc,
-			&Iterations,
+			NULL,
 			0,
 			NULL );
 		TEST( Thread );
@@ -448,3 +471,22 @@ VOID PatchAndTestAllProcsMultithreaded()
 
 	TEST_SUCCESS( JpfbtUninitialize() );
 }
+
+
+void Setup()
+{
+	ProcsCalled = CreateEvent( NULL, TRUE, FALSE, NULL );
+	TEST( ProcsCalled );
+}
+
+void Teardown()
+{
+	TEST( CloseHandle( ProcsCalled ) );
+}
+
+BEGIN_FIXTURE(ConcurrentPatching)
+	FIXTURE_SETUP( Setup )
+	FIXTURE_TEARDOWN( Teardown )
+	FIXTURE_ENTRY( PatchAndTestAllProcsSinglethreaded )
+	FIXTURE_ENTRY( PatchAndTestAllProcsMultithreaded )
+END_FIXTURE()

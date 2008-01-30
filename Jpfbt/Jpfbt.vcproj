@@ -26,7 +26,7 @@
 				BuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\chk\i386\um_test.exe"
+				Output=""
 				PreprocessorDefinitions="_WIN32;DBG;_DEBUG;JPFBT_USERMODE"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -145,18 +145,18 @@
 				</Filter>
 			</Filter>
 			<Filter
-				Name="um_test"
+				Name="testfbt_um"
 				>
 				<File
 					RelativePath=".\um_test\SOURCES"
 					>
 				</File>
 				<File
-					RelativePath=".\um_test\test.c"
+					RelativePath=".\um_test\test.h"
 					>
 				</File>
 				<File
-					RelativePath=".\um_test\test.h"
+					RelativePath=".\um_test\testfbt_um.def"
 					>
 				</File>
 				<File
