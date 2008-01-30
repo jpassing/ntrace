@@ -132,7 +132,7 @@ void TestInvalidRequests(
 	TEST( sizeof( NTSTATUS ) == Msg->Header.PayloadSize );
 }
 
-void UfagTestServer()
+static void TestServer()
 {
 	WCHAR PortName[ 100 ] = { 0 };
 	HMODULE UfagDll;
@@ -263,3 +263,7 @@ void UfagTestServer()
 
 	FreeLibrary( UfagDll );
 }
+
+BEGIN_FIXTURE( UfagServer )
+	FIXTURE_ENTRY( TestServer )
+END_FIXTURE()

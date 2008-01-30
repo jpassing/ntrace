@@ -6,14 +6,14 @@
 #include <strsafe.h>
 #pragma warning( pop )
 
-void Output(
+static void Output(
 	__in PCWSTR Text
 	)
 {
 	wprintf( L"%s", Text );
 }
 
-void TestCmdProc()
+static void TestCmdProc()
 {
 	JPFSV_HANDLE Processor;
 	WCHAR Buffer[ 50 ];
@@ -51,3 +51,7 @@ void TestCmdProc()
 
 	TEST_OK( JpfsvCloseCommandProcessor( Processor ) );
 }
+
+BEGIN_FIXTURE( CmdProc )
+	FIXTURE_ENTRY( TestCmdProc )
+END_FIXTURE()

@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=..\include;..\..\include
+INCLUDES=..\include;..\..\include;..\..\..\cfix\include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -21,15 +21,16 @@ USE_LIBCMT=1
 UMTYPE=console
 UMENTRY=wmain
 
-TARGETLIBS=$(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpqlpc.lib \
-		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib
+TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
+		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpqlpc.lib \
+		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib \
+		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfix.lib
 
 
-TARGETNAME=ufbttest
+TARGETNAME=testufbt
 TARGETPATH=..\..\bin\$(DDKBUILDENV)
-TARGETTYPE=PROGRAM
-SOURCES=test.c \
-		porttest.c \
+TARGETTYPE=DYNLINK
+SOURCES=porttest.c \
 		transfertest.c \
 		ufagserver.c \
 		ufbt.c

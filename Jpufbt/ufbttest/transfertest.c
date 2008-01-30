@@ -135,7 +135,7 @@ DWORD ClientProc( PVOID PvPort )
 }
 
 
-void QlpcTestTransfer()
+static void TestTransfer()
 {
 	BOOL OpenedExisting;
 	JPQLPC_PORT_HANDLE Server, Client;
@@ -178,3 +178,7 @@ void QlpcTestTransfer()
 
 	WaitForMultipleObjects( _countof( Threads ), Threads, TRUE, INFINITE );
 }
+
+BEGIN_FIXTURE( QlpcTransfer )
+	FIXTURE_ENTRY( TestTransfer )
+END_FIXTURE()

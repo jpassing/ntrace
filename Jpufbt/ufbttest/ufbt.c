@@ -43,7 +43,7 @@ static VOID ProcessEvents(
 	TEST( ContextArg );
 }
 
-void UfbtTest()
+static void TestUfbt()
 {
 	JPUFBT_HANDLE Session;
 	HMODULE UfbtMod = GetModuleHandle( L"jpufbt.dll" );
@@ -185,3 +185,7 @@ void UfbtTest()
 	Sleep( 1000 );
 	FreeLibrary( GetModuleHandle( L"jpufag.dll" ) );
 }
+
+BEGIN_FIXTURE( Ufbt )
+	FIXTURE_ENTRY( TestUfbt )
+END_FIXTURE()

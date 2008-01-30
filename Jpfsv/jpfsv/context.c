@@ -54,7 +54,6 @@ static HRESULT JpfsvsCreateContext(
 {
 	HRESULT Hr = E_UNEXPECTED;
 	HANDLE ProcessHandle;
-	UINT Trials;
 
 	if ( ! ProcessId || ! Context )
 	{
@@ -76,25 +75,17 @@ static HRESULT JpfsvsCreateContext(
 	//
 	EnterCriticalSection( &JpfsvpDbghelpLock );
 	
-	//
-	// SymInitialize somethimes fails for no reason, retrying helps.
-	//
-	for ( Trials = 0; Trials < 3; Trials++ )
+	if ( ! SymInitialize( 
+		ProcessHandle,
+		UserSearchPath,
+		TRUE ) )
 	{
-		if ( ! SymInitialize( 
-			ProcessHandle,
-			UserSearchPath,
-			TRUE ) )
-		{
-			DWORD Err = GetLastError();
-			Hr = HRESULT_FROM_WIN32( Err );
-			Sleep( 1 );
-		}
-		else
-		{
-			Hr = S_OK;
-			break;
-		}
+		DWORD Err = GetLastError();
+		Hr = HRESULT_FROM_WIN32( Err );
+	}
+	else
+	{
+		Hr = S_OK;
 	}
 
 	LeaveCriticalSection( &JpfsvpDbghelpLock );

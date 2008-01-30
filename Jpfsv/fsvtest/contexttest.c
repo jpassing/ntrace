@@ -60,6 +60,11 @@ static void TestLoadModules()
 	PROCESS_INFORMATION pi;
 	LaunchNotepad( &pi );
 
+	//
+	// Give notepad some time to start...
+	//
+	Sleep( 1000 );
+
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &ResolverNp ) );
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &ResolverNp ) );
 	TEST_OK( JpfsvLoadContext( GetCurrentProcessId(), NULL, &ResolverOwn ) );
@@ -86,7 +91,6 @@ static void TestLoadModules()
 	Sleep( 1000 );
 }
 
-void TestSymResolver()
-{
-	TestLoadModules();
-}
+BEGIN_FIXTURE( SymResolver )
+	FIXTURE_ENTRY( TestLoadModules )
+END_FIXTURE()

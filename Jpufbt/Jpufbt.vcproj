@@ -26,7 +26,7 @@
 				BuildCommandLine="ddkbuild -WLHXP checked $(ProjectDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP checked $(ProjectDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\chk\i386\ufbttest.exe"
+				Output="..\bin\chk\i386\testufbt.dll"
 				PreprocessorDefinitions="WIN32;_DEBUG;DBG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -46,7 +46,7 @@
 				BuildCommandLine="ddkbuild -WLHXP free $(ProjectDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP free $(ProjectDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\fre\i386\ufbttest.exe"
+				Output="..\bin\fre\i386\testufbt.dll"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -96,11 +96,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\ufbttest\test.c"
+					RelativePath=".\ufbttest\test.h"
 					>
 				</File>
 				<File
-					RelativePath=".\ufbttest\test.h"
+					RelativePath=".\ufbttest\testufbt.def"
 					>
 				</File>
 				<Filter

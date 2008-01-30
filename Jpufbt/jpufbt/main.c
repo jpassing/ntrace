@@ -22,10 +22,22 @@ BOOL WINAPI DllMain(
 {
 	UNREFERENCED_PARAMETER( Reserved );
 
-	if ( Reason == DLL_PROCESS_ATTACH )
+	switch ( Reason )
 	{
+	case DLL_PROCESS_ATTACH:
 		JpufbtpModuleHandle = DllHandle;
+		break;
+
+	case DLL_PROCESS_DETACH:
+		#ifdef DBG
+		_CrtDumpMemoryLeaks();
+		#endif
+		break;
+
+	default:
+		break;
 	}
+
 
 	return TRUE;
 }

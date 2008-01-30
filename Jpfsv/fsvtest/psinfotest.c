@@ -138,8 +138,6 @@ static void TestProcessEnum()
 	TEST_OK( JpfsvCloseEnum( Enum ) );
 }
 
-
-void TestPsInfoEnums()
-{
-	TestProcessEnum();
-}
+BEGIN_FIXTURE( PsInfoEnum )
+	FIXTURE_ENTRY( TestProcessEnum )
+END_FIXTURE()

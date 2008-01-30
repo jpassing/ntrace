@@ -49,7 +49,7 @@ static struct _PARAM_HANDLE
 	{ &Handle,		STATUS_SUCCESS }
 };
 
-void QlpcTestPort()
+static void TestPort()
 {
 	BOOL Existed;
 	JPQLPC_PORT_HANDLE ExPort;
@@ -112,3 +112,7 @@ void QlpcTestPort()
 	TEST( CloseHandle( CliEv ) );
 	JpqlpcClosePort( ExPort );
 }
+
+BEGIN_FIXTURE( QlpcPort )
+	FIXTURE_ENTRY( TestPort )
+END_FIXTURE()

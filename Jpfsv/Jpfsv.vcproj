@@ -26,7 +26,7 @@
 				BuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\chk\i386\fsvtest.exe"
+				Output="..\bin\chk\i386\testfsv.dll"
 				PreprocessorDefinitions="_WIN32;DBG;_DEBUG;JPFBT_USERMODE"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -46,7 +46,7 @@
 				BuildCommandLine="ddkbuild -WLHXP free $(SolutionDir)"
 				ReBuildCommandLine="ddkbuild -WLHXP free $(SolutionDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\fre\i386\fsvtest.exe"
+				Output="..\bin\fre\i386\testfsv.dll"
 				PreprocessorDefinitions="_WIN32;NDEBUG;JPFBT_USERMODE"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -140,11 +140,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\fsvtest\test.c"
+					RelativePath=".\fsvtest\test.h"
 					>
 				</File>
 				<File
-					RelativePath=".\fsvtest\test.h"
+					RelativePath=".\fsvtest\testfsv.def"
 					>
 				</File>
 			</Filter>

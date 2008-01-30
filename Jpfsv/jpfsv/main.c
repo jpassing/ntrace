@@ -5,6 +5,8 @@
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
+#include <crtdbg.h>
+#include <stdlib.h>
 #include "internal.h"
 
 //
@@ -22,6 +24,7 @@ BOOL WINAPI DllMain(
     __in PVOID Reserved    
 )
 {
+	BOOL Ret;
 	UNREFERENCED_PARAMETER( DllHandle );
 	UNREFERENCED_PARAMETER( Reserved );
 
@@ -33,7 +36,11 @@ BOOL WINAPI DllMain(
 
 	case DLL_PROCESS_DETACH:
 		DeleteCriticalSection( &JpfsvpDbghelpLock );
-		return JpfsvpDeleteLoadedContextsHashtable();
+		Ret = JpfsvpDeleteLoadedContextsHashtable();
+#ifdef DBG
+		_CrtDumpMemoryLeaks();
+#endif
+		return Ret;
 
 	default:
 		break;
