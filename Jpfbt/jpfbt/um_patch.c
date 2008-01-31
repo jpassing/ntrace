@@ -11,6 +11,15 @@
 #include "list.h"
 #include "um_internal.h"
 
+//
+// Using TRACE is dangerous here as OutputDebugString enters a CS which
+// may be owned by a suspended thread. Enable this macro with care and
+// only temporarily.
+//
+//#define RISKY_TRACE TRACE
+#define RISKY_TRACE( x ) 
+
+
 typedef struct _SUSPEND_CONTEXT
 {
 	//
@@ -46,7 +55,7 @@ static NTSTATUS JpfbtsSuspendThread(
 	}
 	else
 	{
-		TRACE( ( "Patch: Suspending thread 0x%x failed: %d\n", 
+		RISKY_TRACE( ( "Patch: Suspending thread 0x%x failed: %d\n", 
 			Thread, GetLastError() ) );
 		return STATUS_FBT_THR_SUSPEND_FAILURE;
 	}
@@ -78,7 +87,7 @@ static NTSTATUS JpfbtsResumeThread(
 	}
 	else
 	{
-		TRACE( ( "Patch: Resuming thread 0x%x failed: %d\n", 
+		RISKY_TRACE( ( "Patch: Resuming thread 0x%x failed: %d\n", 
 			Thread, GetLastError() ) );
 		return STATUS_FBT_THR_SUSPEND_FAILURE;
 	}
@@ -100,7 +109,7 @@ static NTSTATUS JpfbtsUpdateThreadContext(
 	ThreadContext.ContextFlags = CONTEXT_CONTROL;
 	if ( ! GetThreadContext( Thread, &ThreadContext ) )
 	{
-		TRACE( ( "Patch: Unable to obtain context for thread 0x%x: %d\n", 
+		RISKY_TRACE( ( "Patch: Unable to obtain context for thread 0x%x: %d\n", 
 			Thread, GetLastError() ) );
 		return STATUS_FBT_THR_CTXUPD_FAILURE;
 	}
@@ -108,12 +117,12 @@ static NTSTATUS JpfbtsUpdateThreadContext(
 	JpfbtpTakeThreadOutOfCodePatch( Patch, &ThreadContext, &Updated );
 	if ( Updated )
 	{
-		TRACE( ( "Patch: IP update required for thread 0x%x: EIP:%xh\n", 
+		RISKY_TRACE( ( "Patch: IP update required for thread 0x%x: EIP:%xh\n", 
 			Thread, ThreadContext.Eip ) );
 
 		if ( ! SetThreadContext( Thread, &ThreadContext ) )
 		{
-			TRACE( ( "Patch: Unable to update context for thread 0x%x: %d\n", 
+			RISKY_TRACE( ( "Patch: Unable to update context for thread 0x%x: %d\n", 
 				Thread, GetLastError() ) );
 		
 			return STATUS_FBT_THR_CTXUPD_FAILURE;
@@ -121,7 +130,7 @@ static NTSTATUS JpfbtsUpdateThreadContext(
 	}
 	else
 	{
-		TRACE( ( "Patch: No IP update required for thread 0x%x: \n", 
+		RISKY_TRACE( ( "Patch: No IP update required for thread 0x%x: \n", 
 			Thread) );
 	}
 
@@ -176,7 +185,7 @@ NTSTATUS JpfbtpPatchCode(
 			//
 			// No real harm done yet.
 			//
-			TRACE( ( "VirtualProtect on %p failed\n", 
+			RISKY_TRACE( ( "VirtualProtect on %p failed\n", 
 				Patches[ PatchIndex ]->Target ) );
 			Status = STATUS_ACCESS_VIOLATION;
 			goto Cleanup;
@@ -198,7 +207,7 @@ NTSTATUS JpfbtpPatchCode(
 				Patches[ PatchIndex ] );
 			if ( ! NT_SUCCESS( Status ) )
 			{
-				TRACE( ( "Thread enumeration failed: 0x%x\n", Status ) );
+				RISKY_TRACE( ( "Thread enumeration failed: 0x%x\n", Status ) );
 				goto Cleanup;
 			}
 		}

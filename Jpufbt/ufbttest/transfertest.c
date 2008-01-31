@@ -177,6 +177,9 @@ static void TestTransfer()
 
 
 	WaitForMultipleObjects( _countof( Threads ), Threads, TRUE, INFINITE );
+
+	TEST( CloseHandle( Threads[ 0 ] ) );
+	TEST( CloseHandle( Threads[ 1 ] ) );
 }
 
 BEGIN_FIXTURE( QlpcTransfer )

@@ -1,5 +1,6 @@
 #include "test.h"
 #include <jpufbtmsgdef.h>
+#include <shlwapi.h>
 
 PJPUFAG_MESSAGE UfagSendEmptyMessage(
 	__in JPQLPC_PORT_HANDLE CliPort,
@@ -140,6 +141,11 @@ static void TestServer()
 	BOOL OpenedExisting;
 	PJPUFAG_MESSAGE Msg;
 	UINT Iteration;
+	WCHAR UfadDllPath[ MAX_PATH ];
+
+	TEST( GetModuleFileName( GetModuleHandle( L"testufbt" ), UfadDllPath, _countof( UfadDllPath ) ) );
+	TEST( PathRemoveFileSpec( UfadDllPath ) );
+	TEST( PathAppend( UfadDllPath, L"jpufag.dll" ) );
 
 	TEST( JpufagpConstructPortName( 
 		GetCurrentProcessId(),
@@ -149,7 +155,8 @@ static void TestServer()
 
 	TEST( wcslen( PortName ) );
 
-	UfagDll = LoadLibrary( L"jpufag" );
+	CFIX_LOG( UfadDllPath );
+	UfagDll = LoadLibrary( UfadDllPath );
 	TEST( UfagDll );
 
 	for ( Iteration = 0; Iteration < 2; Iteration++ )

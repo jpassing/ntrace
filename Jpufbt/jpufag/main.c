@@ -8,6 +8,8 @@
 
 #include "internal.h"
 
+HMODULE JpufagpModule;
+
 /*++
 	Routine Description:
 		Initialize library. Called by DllMain.
@@ -24,6 +26,17 @@ BOOL JpufagpInitialize()
 	{
 		return FALSE;
 	}
+
+	//
+	// As long as the server thread runs, the module needs to be locked
+	// into memory, so increment load count. It will be decremented
+	// in JpufagpServerProc.
+	//
+	if ( 0 == GetModuleHandleEx( 0, L"jpufag", &JpufagpModule ) )
+	{
+		return FALSE;
+	}
+
 
 	//
 	// Start worker thread.
@@ -45,7 +58,11 @@ BOOL JpufagpInitialize()
 	}
 	else
 	{
+		//
+		// Failure occured.
+		//
 		JpqlpcClosePort( ServerPort );
+		FreeLibrary( JpufagpModule );
 		return FALSE;
 	}
 }

@@ -11,6 +11,8 @@
 #include <jpqlpc.h>
 #include "internal.h"
 
+extern HMODULE JpufagpModule;
+
 /*----------------------------------------------------------------------
  *
  * QLPC Server.
@@ -198,5 +200,9 @@ DWORD CALLBACK JpufagpServerProc(
 	//
 	JpqlpcClosePort( State.ServerPort );
 
-	return 0;
+	//
+	// On thread termination, decrement the module's load count
+	// (see JpufagpInitialize).
+	//
+	FreeLibraryAndExitThread( JpufagpModule, 0 );
 }

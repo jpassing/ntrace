@@ -16,7 +16,7 @@
 
 #include "internal.h"
 
-VOID JpufbtDbgPrint(
+VOID __cdecl JpufbtDbgPrint(
 	__in PSZ Format,
 	...
 	)
