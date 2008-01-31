@@ -55,7 +55,11 @@ typedef struct _JPFSV_ENUM
 			HANDLE Process;
 			DWORD ModuleCount;
 			DWORD NextIndex;
-			HMODULE Modules[ ANYSIZE_ARRAY ];
+			union
+			{
+				HMODULE UserModules[ ANYSIZE_ARRAY ];
+				PVOID Drivers[ ANYSIZE_ARRAY ];
+			} Modules;
 		} PsapiEnum;
 	} Data;
 } JPFSV_ENUM, *PJPFSV_ENUM;
@@ -290,6 +294,10 @@ HRESULT JpfsvEnumThreads(
 	{
 		return E_INVALIDARG;
 	}
+	else if ( ProcessId == JPFSV_KERNEL )
+	{
+		return E_NOTIMPL;
+	}
 
 	Snapshot = CreateToolhelp32Snapshot(
 		TH32CS_SNAPTHREAD,
@@ -377,7 +385,7 @@ static HRESULT JpfsvsCreateEmptyEnum(
 }
 /*----------------------------------------------------------------------
  *
- * Module Enum.
+ * User Process Module Enumeration.
  *
  */
 static HRESULT JpfsvsClosePsapiEnum(
@@ -415,8 +423,10 @@ static HRESULT JpfsvsNextUserProcessModule(
 	if ( Enum->Data.PsapiEnum.NextIndex < Enum->Data.PsapiEnum.ModuleCount )
 	{
 		MODULEINFO ModuleInfo;
-		HMODULE ModuleHandle = 
-			Enum->Data.PsapiEnum.Modules[ Enum->Data.PsapiEnum.NextIndex ];
+		HMODULE ModuleHandle;
+		
+		#pragma warning( suppress : 6385 )
+		ModuleHandle = Enum->Data.PsapiEnum.Modules.UserModules[ Enum->Data.PsapiEnum.NextIndex ];
 		
 		if ( ! GetModuleInformation(
 			Enum->Data.PsapiEnum.Process,
@@ -467,16 +477,98 @@ static HRESULT JpfsvsNextUserProcessModule(
 	}
 }
 
-static HRESULT JpfsvEnumUserProcessModules(
+/*----------------------------------------------------------------------
+ *
+ * Drivers Enumeration.
+ *
+ */
+
+static HRESULT JpfsvsNextDriver(
+	__in PJPFSV_ENUM Enum,
+	__out PVOID Item
+	)
+{
+	PJPFSV_MODULE_INFO Module = ( PJPFSV_MODULE_INFO ) Item;
+	if ( ! Enum || 
+		 ! Item ||
+		 Module->Size != sizeof( JPFSV_MODULE_INFO ) )
+	{
+		return E_INVALIDARG;
+	}
+
+	for ( ;; )
+	{
+		if ( Enum->Data.PsapiEnum.NextIndex < Enum->Data.PsapiEnum.ModuleCount )
+		{
+			#pragma warning( suppress : 6385 )
+			PVOID ImageBase = Enum->Data.PsapiEnum.Modules.Drivers[ Enum->Data.PsapiEnum.NextIndex ];
+
+			if ( ImageBase == NULL )
+			{
+				//
+				// Whatever that is supposed to mean, psapi!
+				//
+				Enum->Data.PsapiEnum.NextIndex++;
+				continue;
+			}
+
+			Module->LoadAddress = ( DWORD_PTR ) ImageBase;
+
+			//
+			// Size is unknown.
+			//
+			Module->ModuleSize = 0;
+
+			if ( ! GetDeviceDriverBaseName(
+				ImageBase,
+				Module->ModuleName,
+				MAX_PATH ) )
+			{
+				DWORD Err = GetLastError();
+				return HRESULT_FROM_WIN32( Err );
+			}
+
+			if ( ! GetDeviceDriverFileName(
+				ImageBase,
+				Module->ModulePath,
+				MAX_PATH ) )
+			{
+				DWORD Err = GetLastError();
+				return HRESULT_FROM_WIN32( Err );
+			}
+			
+			//
+			// Advance enum.
+			//
+			Enum->Data.PsapiEnum.NextIndex++;
+
+			return S_OK;
+		}
+		else
+		{
+			//
+			// End of enum.
+			//
+			return S_FALSE;
+		}
+	}
+}
+
+HRESULT JpfsvEnumModules(
+	__reserved PVOID Reserved,
 	__in DWORD ProcessId,
 	__out JPFSV_ENUM_HANDLE *EnumHandle
 	)
 {
-	DWORD SizeRequired = 0;
-	HANDLE Process;
+	DWORD ElemsRequired = 0;
+	SIZE_T BytesRequired;
+	HANDLE Process = NULL;
 	HMODULE Dummy;
 	PJPFSV_ENUM Enum;
-	if ( ! EnumHandle )
+	BOOL Suc;
+
+	if ( Reserved != NULL ||
+		 ! EnumHandle )
 	{
 		return E_INVALIDARG;
 	}
@@ -488,37 +580,65 @@ static HRESULT JpfsvEnumUserProcessModules(
 		// 
 		return JpfsvsCreateEmptyEnum( EnumHandle );
 	}
+	else if ( ProcessId == JPFSV_KERNEL )
+	{
+		//
+		// Kernel modules/drivers.
+		//
+		Suc = EnumDeviceDrivers(
+			&Dummy,
+			sizeof( Dummy ),
+			&ElemsRequired );
+	}
+	else
+	{
+		//
+		// User process modules.
+		//
+		Process = OpenProcess( 
+			PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+			FALSE, 
+			ProcessId );
+		if ( ! Process )
+		{
+			DWORD Err = GetLastError();
+			return HRESULT_FROM_WIN32( Err );
+		}
 
-	Process = OpenProcess( 
-		PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-		FALSE, 
-		ProcessId );
-	if ( ! Process )
+		Suc = EnumProcessModules(
+			Process,
+			&Dummy,
+			sizeof( Dummy ),
+			&ElemsRequired );
+	}
+
+	if ( ! Suc )
 	{
 		DWORD Err = GetLastError();
 		return HRESULT_FROM_WIN32( Err );
 	}
 
-	if ( ! EnumProcessModules(
-		Process,
-		&Dummy,
-		sizeof( Dummy ),
-		&SizeRequired ) )
-	{
-		DWORD Err = GetLastError();
-		return HRESULT_FROM_WIN32( Err );
-	}
+	ASSERT( ElemsRequired > 0 );
 
-	ASSERT( SizeRequired > 0 );
-	ASSERT( ( SizeRequired % sizeof( HMODULE ) ) == 0 );
+	if ( ProcessId == JPFSV_KERNEL )
+	{
+		ASSERT( ( ElemsRequired % sizeof( PVOID ) ) == 0 );
+		BytesRequired = RTL_SIZEOF_THROUGH_FIELD( 
+			JPFSV_ENUM,
+			Data.PsapiEnum.Modules.Drivers[ ( ElemsRequired / sizeof( PVOID ) ) - 1 ] );
+	}
+	else
+	{
+		ASSERT( ( ElemsRequired % sizeof( HMODULE ) ) == 0 );
+		BytesRequired = RTL_SIZEOF_THROUGH_FIELD( 
+			JPFSV_ENUM,
+			Data.PsapiEnum.Modules.UserModules[ ( ElemsRequired / sizeof( HMODULE ) ) - 1 ] );
+	}
 
 	//
 	// Allocate enum.
 	//
-	Enum = ( PJPFSV_ENUM ) malloc( 
-		RTL_SIZEOF_THROUGH_FIELD( 
-			JPFSV_ENUM,
-			Data.PsapiEnum.Modules[ ( SizeRequired / sizeof( HMODULE ) ) - 1 ] ) );
+	Enum = ( PJPFSV_ENUM ) malloc( BytesRequired );
 	if ( ! Enum )
 	{
 		return E_OUTOFMEMORY;
@@ -529,48 +649,42 @@ static HRESULT JpfsvEnumUserProcessModules(
 	//
 	Enum->Signature = JPFSV_ENUM_SIGNATURE;
 	Enum->Routines.Close = JpfsvsClosePsapiEnum;
-	Enum->Routines.NextItem = JpfsvsNextUserProcessModule;
+	Enum->Routines.NextItem = ( ProcessId == JPFSV_KERNEL )
+		? JpfsvsNextDriver
+		: JpfsvsNextUserProcessModule;
 
-	Enum->Data.PsapiEnum.ModuleCount = SizeRequired / sizeof( HMODULE );
+	Enum->Data.PsapiEnum.ModuleCount = ElemsRequired / sizeof( HMODULE );
 	Enum->Data.PsapiEnum.NextIndex = 0;
 	Enum->Data.PsapiEnum.Process = Process;
 
-	if ( ! EnumProcessModules(
-		Process,
-		Enum->Data.PsapiEnum.Modules,
-		SizeRequired,
-		&SizeRequired ) )
+	if ( ProcessId == JPFSV_KERNEL )
+	{
+		Suc = EnumDeviceDrivers(
+			Enum->Data.PsapiEnum.Modules.Drivers,
+			ElemsRequired,
+			&ElemsRequired );
+	}
+	else
+	{
+		Suc = EnumProcessModules(
+			Process,
+			Enum->Data.PsapiEnum.Modules.UserModules,
+			ElemsRequired,
+			&ElemsRequired );
+	}
+
+	if ( ! Suc )
 	{
 		DWORD Err = GetLastError();
+
+		JpfsvsClosePsapiEnum( Enum );
+		
 		return HRESULT_FROM_WIN32( Err );
 	}
 
 	*EnumHandle = Enum;
 
 	return S_OK;
-}
-
-HRESULT JpfsvEnumModules(
-	__reserved PVOID Reserved,
-	__in DWORD ProcessId,
-	__out JPFSV_ENUM_HANDLE *EnumHandle
-	)
-{
-	if ( Reserved != NULL ||
-		 ! EnumHandle )
-	{
-		return E_INVALIDARG;
-	}
-
-	if ( ProcessId == JPFSV_KERNEL )
-	{
-		ASSERT(! "NIY" );
-		return E_NOTIMPL;
-	}
-	else
-	{
-		return JpfsvEnumUserProcessModules( ProcessId, EnumHandle );
-	}
 }
 
 /*----------------------------------------------------------------------

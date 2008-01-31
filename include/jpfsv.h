@@ -34,7 +34,11 @@ HRESULT JpfsvInitializeTracing(
 	__in UINT BufferSize
 	);
 
-
+/*----------------------------------------------------------------------
+ *
+ * Process Information.
+ *
+ */
 typedef struct _JPFSV_PROCESS_INFO
 {
 	DWORD Size;
@@ -137,6 +141,12 @@ HRESULT JpfsvCloseEnum(
 	__in JPFSV_ENUM_HANDLE EnumHandle
 	);
 
+
+/*----------------------------------------------------------------------
+ *
+ * Context management.
+ *
+ */
 /*++
 	Routine Description:
 		Loads the context for the given process, s.t. dbghelp
@@ -218,6 +228,12 @@ HANDLE JpfsvGetProcessHandleContext(
 //	__out JPFSV_ENUM_HANDLE *EnumHandle
 //	);
 
+
+/*----------------------------------------------------------------------
+ *
+ * Command processor.
+ *
+ */
 /*++
 	Routine Description:
 		Create a command processor.

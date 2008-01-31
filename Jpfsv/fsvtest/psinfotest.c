@@ -1,7 +1,9 @@
 #include <jpfsv.h>
 #include "test.h"
 
-static void TestThreadEnum( DWORD ProcId )
+static void TestThreadEnum( 
+	__in DWORD ProcId 
+	)
 {
 	JPFSV_ENUM_HANDLE Enum;
 	JPFSV_THREAD_INFO Thr;
@@ -36,27 +38,15 @@ static void TestThreadEnum( DWORD ProcId )
 	TEST_OK( JpfsvCloseEnum( Enum ) );
 }
 
-static void TestUserModuleEnum( DWORD ProcId )
+static void EnumModules( 
+	__in DWORD ProcId,
+	__in JPFSV_ENUM_HANDLE Enum 
+	)
 {
-	JPFSV_ENUM_HANDLE Enum;
 	JPFSV_MODULE_INFO Mod;
 	UINT Count = 0;
 	HRESULT Hr;
 
-	Hr = JpfsvEnumModules( 0, ProcId, &Enum );
-	if ( E_ACCESSDENIED == Hr )
-	{
-		OutputDebugString( L"  Access denied\n" );
-		return;
-	}
-	else if ( 0x8007012b == Hr )
-	{
-		OutputDebugString( L"  Access failed\n" );
-		return;
-	}
-	
-
-	TEST_OK( Hr );
 	TEST( Enum );
 
 	Mod.Size = 0;
@@ -98,6 +88,25 @@ static void TestUserModuleEnum( DWORD ProcId )
 	TEST_OK( JpfsvCloseEnum( Enum ) );
 }
 
+static void TestUserModuleEnum( DWORD ProcId )
+{
+	JPFSV_ENUM_HANDLE Enum;
+	HRESULT Hr;
+
+	Hr = JpfsvEnumModules( 0, ProcId, &Enum );
+	if ( E_ACCESSDENIED == Hr )
+	{
+		OutputDebugString( L"  Access denied\n" );
+		return;
+	}
+	else if ( 0x8007012b == Hr )
+	{
+		OutputDebugString( L"  Access failed\n" );
+		return;
+	}
+	
+	EnumModules( ProcId, Enum );
+}
 
 static void TestProcessEnum()
 {
@@ -138,6 +147,22 @@ static void TestProcessEnum()
 	TEST_OK( JpfsvCloseEnum( Enum ) );
 }
 
+static void TestDriverEnum()
+{
+	JPFSV_ENUM_HANDLE Enum;
+	HRESULT Hr;
+
+	Hr = JpfsvEnumModules( 0, JPFSV_KERNEL, &Enum );
+	if ( E_ACCESSDENIED == Hr )
+	{
+		OutputDebugString( L"  Access denied\n" );
+		return;
+	}
+	
+	EnumModules( JPFSV_KERNEL, Enum );
+}
+
 BEGIN_FIXTURE( PsInfoEnum )
 	FIXTURE_ENTRY( TestProcessEnum )
+	FIXTURE_ENTRY( TestDriverEnum )
 END_FIXTURE()
