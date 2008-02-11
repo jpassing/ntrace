@@ -8,11 +8,12 @@
 #include "internal.h"
 
 #define DBGHELP_TRANSLATE_TCHAR
+#include <jpfbtdef.h>
 #include <dbghelp.h>
 #include <stdlib.h>
 #include <hashtable.h>
 
-#define JPFSV_CONTEXT_SIGNATURE 'RmyS'
+#define JPFSV_CONTEXT_SIGNATURE 'txtC'
 
 typedef struct _JPFSV_CONTEXT
 {
@@ -30,6 +31,11 @@ typedef struct _JPFSV_CONTEXT
 	// Required by dbghelp.
 	//
 	HANDLE ProcessHandle;
+
+	//
+	// Trace session. NULL until attached.
+	//
+	PJPFSV_TRACE_SESSION TraceSession;
 } JPFSV_CONTEXT, *PJPFSV_CONTEXT;
 
 C_ASSERT( FIELD_OFFSET( JPFSV_CONTEXT, u.ProcessId ) == 
@@ -43,10 +49,28 @@ static struct
 	// Lock guarding the hashtable.
 	//
 	// Important: If both JpgsvpDbghelpLock and this lock are required,
-	// this lock has to acquired last!
+	// this lock has to be acquired last!
 	//
 	CRITICAL_SECTION Lock;
 } JpfsvsLoadedContexts;
+
+
+
+/*++
+	Routine description:
+		Wrapper for InterlockedExchangePointer that avoids various
+		warnings when compiled with /W4. 
+--*/
+static PVOID JpfsvsInterlockedExchangePointer(
+    __inout PVOID volatile *Target,
+    __in    PVOID Value
+    )
+{
+#pragma warning( push )
+#pragma warning( disable : 4311; disable : 4312 )
+	return InterlockedExchangePointer( Target, Value );
+#pragma warning( pop ) 
+}
 
 /*----------------------------------------------------------------------
  * 
@@ -195,10 +219,11 @@ static HRESULT JpfsvsCreateContext(
 		goto Cleanup;
 	}
 
-	TempContext->Signature = JPFSV_CONTEXT_SIGNATURE;
-	TempContext->u.ProcessId = ProcessId;
-	TempContext->ProcessHandle = ProcessHandle;
+	TempContext->Signature		= JPFSV_CONTEXT_SIGNATURE;
+	TempContext->u.ProcessId	= ProcessId;
+	TempContext->ProcessHandle	= ProcessHandle;
 	TempContext->ReferenceCount = 0;
+	TempContext->TraceSession	= NULL;
 
 	//
 	// Load dbghelp stuff.
@@ -633,4 +658,109 @@ HRESULT JpfsvLoadModuleContext(
 	}
 
 	return S_OK;
+}
+
+HRESULT JpfsvAttachContext(
+	__in JPFSV_HANDLE ContextHandle
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+	PJPFSV_TRACE_SESSION TraceSession;
+	PJPFSV_TRACE_SESSION OldTraceSession;
+	HRESULT Hr;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE )
+	{
+		return E_INVALIDARG;
+	}
+
+	if ( Context->TraceSession )
+	{
+		//
+		// There is already a session -> that's ok.
+		//
+		return S_FALSE;
+	}
+
+	//
+	// Create a new session.
+	//
+	if ( Context->ProcessHandle == KERNEL_PSEUDO_HANDLE )
+	{
+		//
+		// Kernel context.
+		//
+		Hr = JpfsvpCreateKernelTracingSession(
+			ContextHandle,
+			&TraceSession );
+	}
+	else
+	{
+		//
+		// Usermode/Process context.
+		//
+		Hr = JpfsvpCreateProcessTracingSession(
+			ContextHandle,
+			&TraceSession );
+	}
+
+	if ( FAILED( Hr ) )
+	{
+		return Hr;
+	}
+
+	//
+	// Set it.
+	//
+	OldTraceSession = JpfsvsInterlockedExchangePointer( 
+		&Context->TraceSession,
+		TraceSession );
+
+	if ( OldTraceSession != NULL )
+	{
+		//
+		// Highly unlikely, but possible.
+		//
+		VERIFY( S_OK == OldTraceSession->Delete( OldTraceSession ) );
+		return S_FALSE;
+	}
+
+	return S_OK;
+}
+
+
+HRESULT JpfsvDetachContext(
+	__in JPFSV_HANDLE ContextHandle
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+	PJPFSV_TRACE_SESSION TraceSession;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE )
+	{
+		return E_INVALIDARG;
+	}
+
+	if ( Context->TraceSession == NULL )
+	{
+		return E_UNEXPECTED;
+	}
+
+	TraceSession = JpfsvsInterlockedExchangePointer( 
+		&Context->TraceSession,
+		NULL );
+
+	if ( TraceSession )
+	{
+		return TraceSession->Delete( TraceSession );
+	}
+	else
+	{
+		//
+		// Highly unlikely, but possible.
+		//
+		return E_UNEXPECTED;
+	}
 }

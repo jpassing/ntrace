@@ -223,6 +223,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\include\jpfbtdef.h"
+				>
+			</File>
+			<File
 				RelativePath="..\include\jpufbt.h"
 				>
 			</File>

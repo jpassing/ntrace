@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\Jpht\Include
+INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\Jpht\Include;..\..\..\cfix\include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -23,7 +23,9 @@ TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib \
 		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(SDK_LIB_PATH)\psapi.lib \
-		   $(MAKEDIR)\..\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib
+		   $(MAKEDIR)\..\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib \
+		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpdiag.lib
+
 
 TARGETNAME=jpfsv
 TARGETPATH=..\..\bin\$(DDKBUILDENV)
@@ -37,6 +39,8 @@ SOURCES=\
 	util.c \
 	cmdbasics.c \
 	cmdsym.c \
+	traceprocess.c \
+	tracekern.c \
 	jpfsv.rc
 	
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

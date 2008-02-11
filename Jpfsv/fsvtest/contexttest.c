@@ -1,7 +1,7 @@
 #include <jpfsv.h>
 #include "test.h"
 
-static void LaunchNotepad(
+void LaunchNotepad(
 	__out PPROCESS_INFORMATION ppi
 	)
 {
@@ -24,33 +24,6 @@ static void LaunchNotepad(
 		&si,
 		ppi ) );
 }
-
-//static void LoadAllModulesOfProcess(
-//	__in DWORD ProcId,
-//	__in JPFSV_HANDLE Resolver
-//	)
-//{
-//	JPFSV_ENUM_HANDLE Enum;
-//	HRESULT Hr = E_UNEXPECTED;
-//
-//	TEST_OK( JpfsvEnumModules( 0, ProcId, &Enum ) );
-//
-//	do
-//	{
-//		JPFSV_MODULE_INFO Mod;
-//		Mod.Size = sizeof( JPFSV_MODULE_INFO );
-//		Hr = JpfsvGetNextItem( Enum, &Mod );
-//		
-//		TEST( SUCCEEDED( Hr ) );
-//
-//		TEST_OK( JpfsvLoadModule( 
-//			Resolver, 
-//			Mod.ModulePath,  
-//			Mod.LoadAddress,
-//			Mod.ModuleSize ) );
-//	}
-//	while ( S_OK == Hr );
-//}
 
 static void TestLoadModules()
 {

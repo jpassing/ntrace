@@ -12,19 +12,10 @@
  *		CRT functions like malloc etc.
  */
 
+#include <jpfbtdef.h>
 #include <jpqlpc.h>
 #include <crtdbg.h>
 #include "jpufbtmsgdef.h"
-
-#define ASSERT _ASSERTE
-
-#define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
-
-#define STATUS_SUCCESS                   ((NTSTATUS)0x00000000L)
-#define STATUS_UNSUCCESSFUL              ((NTSTATUS)0xC0000001L)
-#define STATUS_NOT_IMPLEMENTED           ((NTSTATUS)0xC0000002L)
-#define STATUS_INVALID_PARAMETER         ((NTSTATUS)0xC000000DL)
-
 
 #define INVALID_MESSAGE_ID ( ( DWORD ) -1 )
 

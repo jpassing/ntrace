@@ -78,7 +78,7 @@ static NTSTATUS JpufbtsInjectAgentDll(
 	)
 {
 	WCHAR AgentDllPath[ MAX_PATH ];
-	PVOID RemoteMemory;
+	PVOID RemoteMemory = NULL;
 	HANDLE RemoteThread;
 	NTSTATUS Status;
 	PTHREAD_START_ROUTINE LoadLibraryProc;
@@ -120,19 +120,29 @@ static NTSTATUS JpufbtsInjectAgentDll(
 	{
 		if ( ERROR_ACCESS_DENIED == GetLastError() )
 		{
-			return STATUS_ACCESS_VIOLATION;
+			Status = STATUS_ACCESS_VIOLATION;
 		}
 		else
 		{
-			return STATUS_NO_MEMORY;
+			Status = STATUS_NO_MEMORY;
 		}
+		goto Cleanup;
 	}
 
-	CopyMemory(
+	//
+	// Write the full path of the DLL to remote memoty s.t. we can
+	// use the memory as argument to LoadLibrary.
+	//
+	if ( ! WriteProcessMemory(
+		Process,
 		RemoteMemory,
 		AgentDllPath,
-		( wcslen( AgentDllPath ) + 1 ) * sizeof( WCHAR ) );
-
+		( wcslen( AgentDllPath ) + 1 ) * sizeof( WCHAR ),
+		NULL ) )
+	{
+		Status = NTSTATUS_UFBT_INJECTION_FAILED;
+		goto Cleanup;
+	}
 
 	//
 	// Create a remote thread that will load the DLL.
@@ -147,19 +157,26 @@ static NTSTATUS JpufbtsInjectAgentDll(
 		NULL );
 	if ( ! RemoteThread )
 	{
-		return NTSTATUS_UFBT_INJECTION_FAILED;
+		Status = NTSTATUS_UFBT_INJECTION_FAILED;
+		goto Cleanup;
 	}
 
 	( VOID ) WaitForSingleObject( RemoteThread, INFINITE );
 	VERIFY( CloseHandle( RemoteThread ) );
 
-	VERIFY( VirtualFreeEx(
-		Process, 
-		RemoteMemory, 
-		0, 
-		MEM_RELEASE ) );
+	Status = STATUS_SUCCESS;
 
-	return STATUS_SUCCESS;
+Cleanup:
+	if ( RemoteMemory )
+	{
+		VERIFY( VirtualFreeEx(
+			Process, 
+			RemoteMemory, 
+			0, 
+			MEM_RELEASE ) );
+	}
+
+	return Status;
 }
 
 /*----------------------------------------------------------------------
@@ -169,7 +186,7 @@ static NTSTATUS JpufbtsInjectAgentDll(
  */
 
 NTSTATUS JpufbtAttachProcess(
-	__in HANDLE Process,
+	__in HANDLE ProcessHandle,
 	__out JPUFBT_HANDLE *SessionHandle
 	)
 {
@@ -177,17 +194,47 @@ NTSTATUS JpufbtAttachProcess(
 	PJPUFBT_SESSION Session;
 	WCHAR QlpcPortName[ 100 ];
 	BOOL OpenedExisting;
+	HANDLE DupProcessHandle;
 
-	if ( ! Process || ! SessionHandle )
+	if ( ! ProcessHandle || ! SessionHandle )
 	{
 		return STATUS_INVALID_PARAMETER;
+	}
+
+	//
+	// Duplicate the process handle for 2 reasons:
+	//  1) Stabilize the handle, s.t. we can store it in the session.
+	//  2) Request required access rights.
+	//
+	if ( ! DuplicateHandle(
+		GetCurrentProcess(),
+		ProcessHandle,
+		GetCurrentProcess(),
+		&DupProcessHandle,
+		PROCESS_CREATE_THREAD
+			| PROCESS_QUERY_INFORMATION
+			| PROCESS_VM_OPERATION
+			| PROCESS_VM_WRITE
+			| PROCESS_VM_READ,
+		FALSE,
+		0 ) )
+	{
+		DWORD Err = GetLastError();
+		if ( ERROR_ACCESS_DENIED == Err )
+		{
+			return STATUS_ACCESS_VIOLATION;
+		}
+		else
+		{
+			return NTSTATUS_UFBT_INVALID_HANDLE;
+		}
 	}
 	
 	//
 	// Generate port name.
 	//
 	if ( ! JpufagpConstructPortName(
-		GetProcessId( Process ),
+		GetProcessId( DupProcessHandle ),
 		TRUE,
 		_countof( QlpcPortName ),
 		QlpcPortName ) )
@@ -206,13 +253,13 @@ NTSTATUS JpufbtAttachProcess(
 	}
 
 	Session->Signature = JPUFBT_SESSION_SIGNATURE;
-	Session->Process = Process;
+	Session->Process = DupProcessHandle;
 	InitializeCriticalSection( &Session->Qlpc.Lock );
 
 	//
 	// Inject DLL into target process.
 	//
-	Status = JpufbtsInjectAgentDll( Process );
+	Status = JpufbtsInjectAgentDll( DupProcessHandle );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		goto Cleanup;
@@ -254,6 +301,8 @@ Cleanup:
 		}
 
 		DeleteCriticalSection( &Session->Qlpc.Lock );
+
+		CloseHandle( DupProcessHandle );
 
 		free( Session );
 	}
@@ -299,6 +348,8 @@ NTSTATUS JpufbtDetachProcess(
 	}
 
 	DeleteCriticalSection( &Session->Qlpc.Lock );
+
+	CloseHandle( Session->Process );
 
 	free( Session );
 

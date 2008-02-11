@@ -31,6 +31,7 @@ TARGETPATH=..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DYNLINK
 SOURCES=psinfotest.c \
 		cmdproctest.c \
-		contexttest.c
+		contexttest.c \
+		trcsession.c
 
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

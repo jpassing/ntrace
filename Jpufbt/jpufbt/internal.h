@@ -8,19 +8,10 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
+#include <jpfbtdef.h>
 #include <jpqlpc.h>
 #include <crtdbg.h>
 #include "jpufbtmsgdef.h"
-
-#define ASSERT _ASSERTE
-
-#ifndef VERIFY
-#if defined(DBG) || defined( DBG )
-#define VERIFY ASSERT
-#else
-#define VERIFY( x ) ( x )
-#endif
-#endif
 
 #if DBG
 #define TRACE( Args ) JpufbtDbgPrint##Args

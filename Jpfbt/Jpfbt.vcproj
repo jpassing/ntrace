@@ -182,6 +182,10 @@
 				RelativePath="..\include\jpfbt.h"
 				>
 			</File>
+			<File
+				RelativePath="..\include\jpfbtdef.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

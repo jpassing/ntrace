@@ -8,6 +8,7 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 #include <windows.h>
+#include <jpdiag.h>
 
 typedef PVOID JPFSV_HANDLE;
 
@@ -16,23 +17,60 @@ typedef PVOID JPFSV_HANDLE;
 
 #define JPFSV_KERNEL	( ( DWORD ) -1 )
 
-HRESULT JpfsvAttach(
-	__reserved PVOID Reserved,
-	__in DWORD ProcessId,
-	__out JPFSV_HANDLE *Session
+/*++
+	Routine Description:
+		Attach to context, i.e. attach to the process s.t. tracing
+		can be used.
+
+	Parameters:
+		ContextHandle	Context to attach to.
+--*/
+HRESULT JpfsvAttachContext(
+	__in JPFSV_HANDLE ContextHandle
 	);
 
-HRESULT JpfsvDetach(
-	__reserved PVOID Reserved,
-	__in JPFSV_HANDLE Session
+/*++
+	Routine Description:
+		Detach from a context, i.e. free all resources. Any tracing
+		must have been stopped before.
+
+	Parameters:
+		ContextHandle	Context to attach to.
+--*/
+HRESULT JpfsvDetachContext(
+	__in JPFSV_HANDLE ContextHandle
 	);
 
 
-HRESULT JpfsvInitializeTracing(
-	__reserved PVOID Reserved,
-	__in JPFSV_HANDLE Session,
+/*++
+	Routine Description:
+		Start tracing. The process must have been attached previously.
+		After tracing has been started, procedures may be instrumented.
+
+		Note that any output is handled with severity
+		JpdiagTraceSeverity.
+
+	Parameters;
+		ContextHandle	Context.
+		BufferCount		(See jpufbt).
+		BufferSize		(See jpufbt).
+		Session			jpdiag-Session to route output to.
+--*/
+HRESULT JpfsvStartTraceContext(
+	__in JPFSV_HANDLE ContextHandle,
 	__in UINT BufferCount,
-	__in UINT BufferSize
+	__in UINT BufferSize,
+	__in JPDIAG_SESSION_HANDLE Session
+	);
+
+/*++
+	Routine Description:
+		Stop tracing. 
+
+		Auto-deinstrument?
+--*/
+HRESULT JpfsvStopTraceContext(
+	__in JPFSV_HANDLE *ContextHandle
 	);
 
 /*----------------------------------------------------------------------

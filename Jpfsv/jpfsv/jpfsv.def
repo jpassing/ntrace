@@ -8,8 +8,11 @@ EXPORTS
 	JpfsvUnloadContext
 	JpfsvIsContextLoaded
 	JpfsvGetProcessHandleContext
+	JpfsvGetProcessIdContext
 	JpfsvCreateCommandProcessor
 	JpfsvCloseCommandProcessor
 	JpfsvGetCurrentContextCommandProcessor
 	JpfsvProcessCommand
 	JpfsvLoadModuleContext
+	JpfsvAttachContext
+	JpfsvDetachContext

@@ -9,9 +9,9 @@
 #include <stdlib.h>
 #include "internal.h"
 
-//
-// Lock protecting all dbghelp activity (dbghelp is not threadsafe).
-//
+/*++
+	Lock protecting all dbghelp activity (dbghelp is not threadsafe).
+--*/
 CRITICAL_SECTION JpfsvpDbghelpLock;
 
 /*++

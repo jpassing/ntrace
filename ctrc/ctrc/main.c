@@ -45,9 +45,7 @@ INT __cdecl wmain(
 	{
 		JPFSV_HANDLE CurrentContext = 
 			JpfsvGetCurrentContextCommandProcessor( CmdProc );
-		HANDLE CurrentProcess = 
-			JpfsvGetProcessHandleContext( CurrentContext );
-		DWORD ProcessId = GetProcessId( CurrentProcess );
+		DWORD ProcessId = JpfsvGetProcessIdContext( CurrentContext );
 
 		wprintf( L"0x%x> ", ProcessId );
 

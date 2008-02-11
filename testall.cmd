@@ -2,7 +2,7 @@
 
 pushd bin\chk\i386
 echo i386 checked
-cfix32 -f -u -z .
+cfix32 -op testrun.log -u -z .
 if ERRORLEVEL 2 (
 	echo.
 	echo Errors occured [i386 checked]
@@ -14,7 +14,7 @@ popd
 
 pushd bin\fre\i386
 echo i386 free
-cfix32 -f -u -z .
+cfix32 -op testrun.log -u -z .
 if ERRORLEVEL 2 (
 	echo.
 	echo Errors occured [i386 free]

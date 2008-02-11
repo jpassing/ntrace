@@ -9,47 +9,20 @@
  */
 
 #include <jpfbt.h>
+#include <crtdbg.h>
 #include <hashtable.h>
-#ifdef JPFBT_USERMODE
-
-//
-// Definitions unavailable in user mode.
-//
-#define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
-
-#define STATUS_SUCCESS                   ((NTSTATUS)0x00000000L)
-#define STATUS_UNSUCCESSFUL              ((NTSTATUS)0xC0000001L)
-#define STATUS_NOT_IMPLEMENTED           ((NTSTATUS)0xC0000002L)
-#define STATUS_INVALID_PARAMETER         ((NTSTATUS)0xC000000DL)
-
-#endif // JPFBT_USERMODE
-
-#ifndef VERIFY
-#if defined(DBG) || defined( DBG )
-#define VERIFY ASSERT
-#else
-#define VERIFY( x ) ( x )
-#endif
-#endif
 
 #ifdef JPFBT_USERMODE
+
+#include <jpfbtdef.h>
+
 //#if DBG
 #define TRACE( Args ) JpfbtDbgPrint##Args
 //#endif
-#else
+
+#else	// JPFBT_USERMODE
 #define TRACE KdPrint
-#endif // JPFBT_USERMODE
-
-#if DBG
-#include <crtdbg.h>
-#define ASSERT _ASSERTE
-//#define ASSERT( expr ) ( !! ( expr ) || \
-//	( JpfbtDbgPrint( #expr "\n" ), DebugBreak(), 0 ) )
-#else
-#define ASSERT( x ) ( ( void ) 0 )
-#endif
-
-
+#endif	// JPFBT_USERMODE
 
 /*++
 	Routine Description:

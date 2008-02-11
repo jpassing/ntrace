@@ -86,7 +86,49 @@ __inline BOOL JpfsvpIsCriticalSectionHeld(
 #endif
 }
 
+/*----------------------------------------------------------------------
+ *
+ * Tracing.
+ *
+ */
 
+/*++
+	Structure Description:
+		Defines an interface. May be implemented for either
+		user mode- or kernel mode tracing.
+--*/
+typedef struct _JPFSV_TRACE_SESSION
+{
+	HRESULT ( *Start )(
+		__in UINT BufferCount,
+		__in UINT BufferSize,
+		__in JPDIAG_SESSION_HANDLE Session
+		);
+
+	HRESULT ( *Stop )();
+
+	HRESULT ( *Delete )();
+} JPFSV_TRACE_SESSION, *PJPFSV_TRACE_SESSION;
+
+/*++
+	Routine Description:
+		Create a session for user mode tracing. To be called by
+		context.
+--*/
+HRESULT JpfsvpCreateProcessTracingSession(
+	__in JPFSV_HANDLE ContextHandle,
+	__out PJPFSV_TRACE_SESSION *Session
+	);
+
+/*++
+	Routine Description:
+		Create a session for kernel mode tracing. To be called by
+		context.
+--*/
+HRESULT JpfsvpCreateKernelTracingSession(
+	__in JPFSV_HANDLE ContextHandle,
+	__out PJPFSV_TRACE_SESSION *Session
+	);
 
 /*----------------------------------------------------------------------
  *
