@@ -38,6 +38,13 @@ C_ASSERT( FIELD_OFFSET( JPFSV_CONTEXT, u.ProcessId ) ==
 static struct
 {
 	JPHT_HASHTABLE Table;
+
+	//
+	// Lock guarding the hashtable.
+	//
+	// Important: If both JpgsvpDbghelpLock and this lock are required,
+	// this lock has to acquired last!
+	//
 	CRITICAL_SECTION Lock;
 } JpfsvsLoadedContexts;
 
@@ -46,73 +53,221 @@ static struct
  * Context creation/deletion.
  *
  */
+
+//
+// Used as pseudo process handle for dbghelp.
+//
+#define KERNEL_PSEUDO_HANDLE ( ( HANDLE ) ( DWORD_PTR ) 0xF0F0F0F0 )
+
+/*++
+	Routine Description:
+		Load kernel modules. For the kernel, SymInitialize
+		with fInvadeProcess = TRUE cannot be used, so this routine
+		manually loads all symbols for the kernel.
+--*/
+static HRESULT JpfsvsLoadKernelModules(
+	__in JPFSV_HANDLE KernelContextHandle
+	)
+{
+	JPFSV_ENUM_HANDLE Enum;
+	HRESULT Hr;
+	HRESULT HrFail = 0;
+	JPFSV_MODULE_INFO Module;
+	UINT ModulesLoaded = 0;
+	UINT ModulesFailed = 0;
+
+	//
+	// Enumerate all kernel modules.
+	//
+	Hr = JpfsvEnumModules( 0, JPFSV_KERNEL, &Enum );
+	if ( FAILED( Hr ) )
+	{
+		return Hr;
+	}
+	
+	for ( ;; )
+	{
+		Module.Size = sizeof( JPFSV_MODULE_INFO );
+		Hr = JpfsvGetNextItem( Enum, &Module );
+		if ( S_OK != Hr )
+		{
+			break;
+		}
+
+		//
+		// Load module.
+		//
+		Hr = JpfsvLoadModuleContext(
+			KernelContextHandle,
+			Module.ModulePath,
+			Module.LoadAddress,
+			Module.ModuleSize );
+		if ( SUCCEEDED( Hr ) )
+		{
+			ModulesLoaded++;
+		}
+		else
+		{
+			//
+			// Do not immediately give up - it is normal that
+			// some modules fail.
+			//
+			ModulesFailed++;
+
+			if ( HrFail == 0 )
+			{
+				HrFail = Hr;
+			}
+		}
+	}
+
+	JpfsvCloseEnum( Enum );
+
+	if ( ModulesLoaded == 0 )
+	{
+		//
+		// All failed, bad.
+		//
+		return HrFail;
+	}
+	else
+	{
+		//
+		// At least some succeeded - consider it a success.
+		//
+		return S_OK;
+	}
+}
+
 static HRESULT JpfsvsCreateContext(
 	__in DWORD ProcessId,
 	__in_opt PCWSTR UserSearchPath,
 	__out PJPFSV_CONTEXT *Context
 	)
 {
+	BOOL AutoLoadModules;
 	HRESULT Hr = E_UNEXPECTED;
-	HANDLE ProcessHandle;
+	HANDLE ProcessHandle = NULL;
+	BOOL SymInitialized = FALSE;
+	PJPFSV_CONTEXT TempContext;
 
 	if ( ! ProcessId || ! Context )
 	{
 		return E_INVALIDARG;
 	}
 
-	ProcessHandle = OpenProcess( 
-		PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-		FALSE, 
-		ProcessId );
-	if ( ! ProcessHandle )
+	if ( ProcessId == JPFSV_KERNEL )
 	{
-		DWORD Err = GetLastError();
-		return HRESULT_FROM_WIN32( Err );
+		//
+		// Use a pseudo-handle.
+		//
+		ProcessHandle = KERNEL_PSEUDO_HANDLE;
+		AutoLoadModules = FALSE;
+	}
+	else
+	{
+		//
+		// Use the process handle for dbghelp, that makes life easier.
+		//
+		// N.B. Handle is closed in JpfsvsDeleteContext.
+		//
+		ProcessHandle = OpenProcess( 
+			PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+			FALSE, 
+			ProcessId );
+		if ( ! ProcessHandle )
+		{
+			DWORD Err = GetLastError();
+			return HRESULT_FROM_WIN32( Err );
+		}
+
+		AutoLoadModules = TRUE;
 	}
 
 	//
-	// Lazily create resolver if neccessary.
+	// Create and initialize object.
+	//
+	TempContext = ( PJPFSV_CONTEXT ) malloc( sizeof( JPFSV_CONTEXT ) );
+
+	if ( ! TempContext )
+	{
+		Hr = E_OUTOFMEMORY;
+		goto Cleanup;
+	}
+
+	TempContext->Signature = JPFSV_CONTEXT_SIGNATURE;
+	TempContext->u.ProcessId = ProcessId;
+	TempContext->ProcessHandle = ProcessHandle;
+	TempContext->ReferenceCount = 0;
+
+	//
+	// Load dbghelp stuff.
 	//
 	EnterCriticalSection( &JpfsvpDbghelpLock );
 	
 	if ( ! SymInitialize( 
 		ProcessHandle,
 		UserSearchPath,
-		TRUE ) )
+		AutoLoadModules ) )
 	{
 		DWORD Err = GetLastError();
 		Hr = HRESULT_FROM_WIN32( Err );
 	}
 	else
 	{
+		SymInitialized = TRUE;
 		Hr = S_OK;
+	}
+
+	if ( SUCCEEDED( Hr ) && ! AutoLoadModules )
+	{
+		//
+		// Manually load kernel modules/symbols.
+		//
+		Hr = JpfsvsLoadKernelModules( TempContext );
+		if ( Hr == E_HANDLE )
+		{
+			BOOL Wow64;
+			if ( IsWow64Process( GetCurrentProcess(), &Wow64 ) && Wow64 )
+			{
+				//
+				// Failed because of WOW64.
+				//
+				Hr = JPFSV_E_UNSUP_ON_WOW64;
+			}
+		}
 	}
 
 	LeaveCriticalSection( &JpfsvpDbghelpLock );
 
-	if ( FAILED( Hr ) )
+Cleanup:
+
+	if ( SUCCEEDED( Hr ) )
 	{
-		return Hr;
-	}
-
-	//
-	// Create and initialize object.
-	//
-	*Context = malloc( sizeof( JPFSV_CONTEXT ) );
-
-	if ( *Context )
-	{
-		( *Context )->Signature = JPFSV_CONTEXT_SIGNATURE;
-		( *Context )->u.ProcessId = ProcessId;
-		( *Context )->ProcessHandle = ProcessHandle;
-		( *Context )->ReferenceCount = 0;
-
-		return S_OK;
+		*Context = TempContext;
 	}
 	else
 	{
-		return E_OUTOFMEMORY;
+		if ( ProcessHandle )
+		{
+			if ( SymInitialized )
+			{
+				SymCleanup( ProcessHandle );
+			}
+
+			if ( ProcessHandle != KERNEL_PSEUDO_HANDLE )
+			{
+				CloseHandle( ProcessHandle );
+			}
+		}
+
+		if ( TempContext )
+		{
+			free( TempContext );
+		}
 	}
+
+	return Hr;
 }
 
 static HRESULT JpfsvsDeleteContext(
@@ -125,8 +280,14 @@ static HRESULT JpfsvsDeleteContext(
 		return E_INVALIDARG;
 	}
 
-	VERIFY( SymCleanup( Context->ProcessHandle ) );
-	VERIFY( CloseHandle( Context->ProcessHandle ) );
+	ASSERT( JpfsvpIsCriticalSectionHeld( &JpfsvpDbghelpLock ) );
+
+	SymCleanup( Context->ProcessHandle );
+
+	if ( KERNEL_PSEUDO_HANDLE != Context->ProcessHandle )
+	{
+		CloseHandle( Context->ProcessHandle );
+	} 
 
 	free( Context );
 
@@ -207,6 +368,9 @@ static JpfsvsUnloadContextFromHashtableCallback(
 	VERIFY( S_OK == JpfsvsDeleteContext( Context ) );
 }
 
+/*++
+	Called from DllMain.
+--*/
 BOOL JpfsvpDeleteLoadedContextsHashtable()
 {
 	//
@@ -214,11 +378,15 @@ BOOL JpfsvpDeleteLoadedContextsHashtable()
 	//
 	// Called during unload, so no lock required.
 	//
+	EnterCriticalSection( &JpfsvpDbghelpLock );
+	
 	JphtEnumerateEntries(
 		&JpfsvsLoadedContexts.Table,
 		JpfsvsUnloadContextFromHashtableCallback,
 		NULL );
 	JphtDeleteHashtable( &JpfsvsLoadedContexts.Table );
+
+	LeaveCriticalSection( &JpfsvpDbghelpLock );
 	DeleteCriticalSection( &JpfsvsLoadedContexts.Lock );
 	return TRUE;
 }
@@ -317,19 +485,26 @@ HRESULT JpfsvUnloadContext(
 	if ( 0 == InterlockedDecrement( &Context->ReferenceCount ) )
 	{
 		PJPHT_HASHTABLE_ENTRY OldEntry;
-		
+		HRESULT Hr = E_UNEXPECTED;
+
+		//
+		// Note lock ordering.
+		//
+		EnterCriticalSection( &JpfsvpDbghelpLock );
 		EnterCriticalSection( &JpfsvsLoadedContexts.Lock );
 
 		JphtRemoveEntryHashtable(
 			&JpfsvsLoadedContexts.Table,
 			Context->u.HashtableEntry.Key,
 			&OldEntry );
-
-		LeaveCriticalSection( &JpfsvsLoadedContexts.Lock );
-
 		ASSERT( OldEntry == &Context->u.HashtableEntry );
 
-		return JpfsvsDeleteContext( Context );
+		Hr = JpfsvsDeleteContext( Context );
+
+		LeaveCriticalSection( &JpfsvsLoadedContexts.Lock );
+		LeaveCriticalSection( &JpfsvpDbghelpLock );
+		
+		return Hr;
 	}
 	else
 	{	
@@ -380,59 +555,82 @@ HANDLE JpfsvGetProcessHandleContext(
 	}
 }
 
-//HRESULT JpfsvLoadModule(
-//	__in JPFSV_HANDLE ResolverHandle,
-//	__in PWSTR ModulePath,
-//	__in DWORD_PTR LoadAddress,
-//	__in_opt DWORD SizeOfDll
-//	)
-//{
-//	PJPFSV_SYM_RESOLVER Resolver = ( PJPFSV_SYM_RESOLVER ) ResolverHandle;
-//	CHAR ModulePathAnsi[ MAX_PATH ];
-//	DWORD64 ImgLoadAddress;
-//
-//	if ( ! Resolver ||
-//		 Resolver->Signature != JPFSV_SYM_RESOLVER_SIGNATURE ||
-//		 ! ModulePath ||
-//		 ! LoadAddress )
-//	{
-//		return E_INVALIDARG;
-//	}
-//
-//	//
-//	// Dbghelp wants ANSI :(
-//	//
-//	if ( 0 == WideCharToMultiByte(
-//		CP_ACP,
-//		0,
-//		ModulePath,
-//		-1,
-//		ModulePathAnsi,
-//		sizeof( ModulePathAnsi ),
-//		NULL,
-//		NULL ) )
-//	{
-//		DWORD Err = GetLastError();
-//		return HRESULT_FROM_WIN32( Err );
-//	}
-//
-//	EnterCriticalSection( &JpfsvpDbghelpLock );
-//
-//	ImgLoadAddress = SymLoadModule64(
-//		Resolver->ProcessHandle,
-//		NULL,
-//		ModulePathAnsi,
-//		NULL,
-//		LoadAddress,
-//		SizeOfDll );
-//
-//	LeaveCriticalSection( &JpfsvpDbghelpLock );
-//
-//	if ( 0 == ImgLoadAddress )
-//	{
-//		DWORD Err = GetLastError();
-//		return HRESULT_FROM_WIN32( Err );
-//	}
-//
-//	return S_OK;
-//}
+DWORD JpfsvGetProcessIdContext(
+	__in JPFSV_HANDLE ContextHandle
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+
+	ASSERT( Context && Context->Signature == JPFSV_CONTEXT_SIGNATURE );
+	if ( Context && Context->Signature == JPFSV_CONTEXT_SIGNATURE )
+	{
+		if ( Context->ProcessHandle == KERNEL_PSEUDO_HANDLE )
+		{
+			//
+			// Kernel context.
+			//
+			return JPFSV_KERNEL;
+		}
+		else
+		{
+			return GetProcessId( Context->ProcessHandle );
+		}
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+HRESULT JpfsvLoadModuleContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in PWSTR ModulePath,
+	__in DWORD_PTR LoadAddress,
+	__in_opt DWORD SizeOfDll
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+	DWORD64 ImgLoadAddress;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE ||
+		 ! ModulePath ||
+		 ! LoadAddress )
+	{
+		return E_INVALIDARG;
+	}
+
+	EnterCriticalSection( &JpfsvpDbghelpLock );
+
+	ImgLoadAddress = SymLoadModuleEx(
+		Context->ProcessHandle,
+		NULL,
+		ModulePath,
+		NULL,
+		LoadAddress,
+		SizeOfDll,
+		NULL,
+		0 );
+
+	LeaveCriticalSection( &JpfsvpDbghelpLock );
+
+	if ( 0 == ImgLoadAddress )
+	{
+		DWORD Err = GetLastError();
+		
+		if ( ERROR_SUCCESS == Err )
+		{
+			//
+			// This seems to mean that the module has already been
+			// loaded.
+			//
+			return S_FALSE;
+		}
+		else
+		{
+			return HRESULT_FROM_WIN32( Err );
+		}
+	}
+
+	return S_OK;
+}

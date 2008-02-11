@@ -12,6 +12,7 @@
 typedef PVOID JPFSV_HANDLE;
 
 #define JPFSV_E_COMMAND_FAILED	MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 1 )
+#define JPFSV_E_UNSUP_ON_WOW64	MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 2 )
 
 #define JPFSV_KERNEL	( ( DWORD ) -1 )
 
@@ -195,22 +196,36 @@ HANDLE JpfsvGetProcessHandleContext(
 	__in JPFSV_HANDLE Context
 	);
 
-///*++
-//	Routine Description:
-//		Loads a module for symbol analysis.
-//
-//	Parameters:
-//		Resolver	- Resolver obtained from JpfsvGetSymbolResolver.
-//		ModulePath  - Path to DLL/EXE.
-//		LoadAddress - Load address in target process.
-//		SizeOfDll   - Size of DLL. If NULL, it will be auto-determined.
-//--*/
-//HRESULT JpfsvLoadModule(
-//	__in JPFSV_HANDLE Resolver,
-//	__in PWSTR ModulePath,
-//	__in DWORD_PTR LoadAddress,
-//	__in_opt DWORD SizeOfDll
-//	);
+/*++
+	Routine Description:
+		Retrieves the process handle of the given context.
+		For a kernel context, JPFSV_KERNEL is returned.
+--*/
+DWORD JpfsvGetProcessIdContext(
+	__in JPFSV_HANDLE ContextHandle
+	);
+
+/*++
+	Routine Description:
+		Loads a module for symbol analysis.
+
+	Parameters:
+		Resolver	- Resolver obtained from JpfsvGetSymbolResolver.
+		ModulePath  - Path to DLL/EXE.
+		LoadAddress - Load address in target process.
+		SizeOfDll   - Size of DLL. If NULL, it will be auto-determined.
+
+	Return Values:
+		S_OK if loaded.
+		S_FALSE if module has been loaded already.
+		(any failure HRESULT)
+--*/
+HRESULT JpfsvLoadModuleContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in PWSTR ModulePath,
+	__in DWORD_PTR LoadAddress,
+	__in_opt DWORD SizeOfDll
+	);
 
 ///*++
 //	Routine Description:

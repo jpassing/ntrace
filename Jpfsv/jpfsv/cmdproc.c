@@ -266,8 +266,30 @@ static HRESULT JpfsvsParseCommandPrefix(
 	{
 		PWSTR Remain;
 		DWORD Pid;
-		if ( JpfsvpParseInteger( &Command[ 1 ], &Remain, &Pid ) )
+		if ( Command[ 1 ] == L'#' )
 		{
+			//
+			// Kernel context.
+			//
+			HRESULT Hr = JpfsvLoadContext(
+				JPFSV_KERNEL,
+				NULL,
+				TempContext );
+			if ( SUCCEEDED( Hr ) )
+			{
+				*RemainingCommand = &Command[ 2 ];
+				return S_OK;
+			}
+			else
+			{
+				return Hr;
+			}
+		}
+		else if ( JpfsvpParseInteger( &Command[ 1 ], &Remain, &Pid ) )
+		{
+			//
+			// Process context.
+			//
 			HRESULT Hr = JpfsvLoadContext(
 				Pid,
 				NULL,

@@ -55,6 +55,26 @@
 				CompileAsManaged=""
 			/>
 		</Configuration>
+		<Configuration
+			Name="Debug with ctrc|Win32"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="0"
+			>
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir)"
+				ReBuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir) -cZ"
+				CleanCommandLine=""
+				Output="..\bin\chk\i386\testfsv.dll"
+				PreprocessorDefinitions="_WIN32;DBG;_DEBUG;JPFBT_USERMODE"
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
+		</Configuration>
 	</Configurations>
 	<References>
 	</References>

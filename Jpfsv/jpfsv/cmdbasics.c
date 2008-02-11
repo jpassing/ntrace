@@ -80,6 +80,46 @@ BOOL JpfsvpEchoCommand(
 	return TRUE;
 }
 
+static VOID JpfsvsOutputProcessListEntry(
+	__in DWORD CurrentProcessId,
+	__in PJPFSV_PROCESS_INFO Proc,
+	__in BOOL Wow64,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	)
+{
+	WCHAR Buffer[ 100 ];
+	BOOL LoadState;
+		
+	if ( SUCCEEDED( StringCchPrintf(
+		Buffer,
+		_countof( Buffer ),
+		Proc->ProcessId == CurrentProcessId
+			? L" . id:%-8x %-20s %s"
+			: L"   id:%-8x %-20s %s",
+		Proc->ProcessId,
+		Proc->ExeName,
+		Wow64 ? L" (32) " : L"       " ) ) )
+	{
+		( OutputRoutine ) ( Buffer );
+	}
+
+	if ( SUCCEEDED( JpfsvIsContextLoaded( Proc->ProcessId, &LoadState ) ) )
+	{
+		if ( LoadState )
+		{
+			( OutputRoutine ) ( L"(loaded)\n" );
+		}
+		else
+		{
+			( OutputRoutine ) ( L"\n" );
+		}
+	}
+	else
+	{
+		( OutputRoutine ) ( L"(unknwon load state)\n" );
+	}
+}
+
 BOOL JpfsvpListProcessesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
@@ -91,9 +131,14 @@ BOOL JpfsvpListProcessesCommand(
 	JPFSV_ENUM_HANDLE Enum;
 	JPFSV_PROCESS_INFO Proc;
 	HRESULT Hr;
-	DWORD CurrentProcessId = GetProcessId( 
-		JpfsvGetProcessHandleContext( ProcessorState->Context ) );
+	DWORD CurrentProcessId = JpfsvGetProcessIdContext( ProcessorState->Context );
 	BOOL ExitStatus = TRUE;
+	JPFSV_PROCESS_INFO Kernel = 
+	{ 
+		sizeof( JPFSV_PROCESS_INFO ), 
+		JPFSV_KERNEL, 
+		L"(Kernel)" 
+	};
 	
 	UNREFERENCED_PARAMETER( CommandName );
 	UNREFERENCED_PARAMETER( Argc );
@@ -110,8 +155,6 @@ BOOL JpfsvpListProcessesCommand(
 
 	for ( ;; )
 	{
-		WCHAR Buffer[ 100 ];
-		BOOL LoadState;
 		HANDLE Process;
 		BOOL Wow64 = FALSE;
 
@@ -140,37 +183,23 @@ BOOL JpfsvpListProcessesCommand(
 			VERIFY( CloseHandle( Process ) );
 		}
 
-		if ( SUCCEEDED( StringCchPrintf(
-			Buffer,
-			_countof( Buffer ),
-			Proc.ProcessId == CurrentProcessId
-				? L" . id:%-8x %-20s %s"
-				: L"   id:%-8x %-20s %s",
-			Proc.ProcessId,
-			Proc.ExeName,
-			Wow64 ? L" (32) " : L"       " ) ) )
-		{
-			( OutputRoutine ) ( Buffer );
-		}
-
-		if ( SUCCEEDED( JpfsvIsContextLoaded( Proc.ProcessId, &LoadState ) ) )
-		{
-			if ( LoadState )
-			{
-				( OutputRoutine ) ( L"(loaded)\n" );
-			}
-			else
-			{
-				( OutputRoutine ) ( L"\n" );
-			}
-		}
-		else
-		{
-			( OutputRoutine ) ( L"(unknwon load state)\n" );
-		}
+		JpfsvsOutputProcessListEntry( 
+			CurrentProcessId, 
+			&Proc, 
+			Wow64,
+			OutputRoutine );
 	}
 
 	VERIFY( S_OK == JpfsvCloseEnum( Enum ) );
+
+	//
+	// Kernel.
+	//
+	JpfsvsOutputProcessListEntry( 
+		CurrentProcessId, 
+		&Kernel, 
+		FALSE,
+		OutputRoutine );
 
 	return ExitStatus;
 }
@@ -186,8 +215,7 @@ BOOL JpfsvpListModulesCommand(
 	JPFSV_ENUM_HANDLE Enum;
 	JPFSV_MODULE_INFO Mod;
 	HRESULT Hr;
-	DWORD CurrentProcessId = GetProcessId( 
-		JpfsvGetProcessHandleContext( ProcessorState->Context ) );
+	DWORD CurrentProcessId = JpfsvGetProcessIdContext( ProcessorState->Context );
 	BOOL ExitStatus = TRUE;
 
 	UNREFERENCED_PARAMETER( CommandName );

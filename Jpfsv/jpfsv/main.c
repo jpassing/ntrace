@@ -35,8 +35,8 @@ BOOL WINAPI DllMain(
 		return JpfsvpInitializeLoadedContextsHashtable();
 
 	case DLL_PROCESS_DETACH:
-		DeleteCriticalSection( &JpfsvpDbghelpLock );
 		Ret = JpfsvpDeleteLoadedContextsHashtable();
+		DeleteCriticalSection( &JpfsvpDbghelpLock );
 #ifdef DBG
 		_CrtDumpMemoryLeaks();
 #endif

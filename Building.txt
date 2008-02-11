@@ -1,0 +1,9 @@
+Required:
+ * WDK 6000
+ * Windows SDK 6.0 (Svr03 R2 is contains an outdated dbghelp)
+   * must be installed to a path not containing spaces or an appropriate link must be created (e.g. c:\winsdk)
+   * Env. Variable SDKBASE must point to base directory of SDK (i.e. directory containing bin, include, etc)
+ * ddkbuild (Hollis Tech)
+ 
+For testing:
+ * cfix

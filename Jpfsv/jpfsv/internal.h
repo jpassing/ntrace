@@ -30,7 +30,6 @@ extern CRITICAL_SECTION JpfsvpDbghelpLock;
 BOOL JpfsvpInitializeLoadedContextsHashtable();
 BOOL JpfsvpDeleteLoadedContextsHashtable();
 
-
 /*----------------------------------------------------------------------
  *
  * Util routines.
@@ -62,6 +61,32 @@ BOOL JpfsvpParseInteger(
 BOOL JpfsvpIsWhitespaceOnly(
 	__in PCWSTR String
 	);
+
+
+__inline BOOL JpfsvpIsCriticalSectionHeld(
+	__in PCRITICAL_SECTION Cs
+	)
+{
+#if DBG
+	if ( TryEnterCriticalSection( Cs ) )
+	{
+		BOOL WasAlreadyHeld = Cs->RecursionCount > 1;
+		
+		LeaveCriticalSection( Cs );
+
+		return WasAlreadyHeld;
+	}
+	else
+	{
+		return FALSE;
+	}
+#else
+	UNREFERENCED_PARAMETER( Cs );
+	return TRUE;
+#endif
+}
+
+
 
 /*----------------------------------------------------------------------
  *

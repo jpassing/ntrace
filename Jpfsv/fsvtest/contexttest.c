@@ -91,6 +91,70 @@ static void TestLoadModules()
 	Sleep( 1000 );
 }
 
+static void TestLoadKernelModules()
+{
+	JPFSV_HANDLE Kctx;
+	JPFSV_ENUM_HANDLE Enum;
+	JPFSV_MODULE_INFO Mod;
+	BOOL Wow64;
+	HRESULT Hr;
+
+	TEST( IsWow64Process( GetCurrentProcess(), &Wow64 ) );
+	if ( Wow64 )
+	{
+		CFIX_INCONCLUSIVE( L"Kernel context loading cannot be used on "
+			L"WOW64 - need to run natievely." );
+	}
+
+	//
+	// Get a module.
+	//
+	TEST_OK( JpfsvEnumModules( 0, JPFSV_KERNEL, &Enum ) );
+	
+	Mod.Size = sizeof( JPFSV_MODULE_INFO );
+	TEST_OK( JpfsvGetNextItem( Enum, &Mod ) );
+
+	//
+	// Load Ctx.
+	//
+	TEST_OK( JpfsvLoadContext( JPFSV_KERNEL, NULL, &Kctx ) );
+
+	Hr = JpfsvLoadModuleContext(
+		Kctx,
+		Mod.ModulePath,
+		Mod.LoadAddress,
+		Mod.ModuleSize );
+	TEST( S_OK == Hr || S_FALSE == Hr );	// depends on testcase order.
+
+	TEST( S_FALSE == JpfsvLoadModuleContext(
+		Kctx,
+		Mod.ModulePath,
+		Mod.LoadAddress,
+		Mod.ModuleSize ) );
+
+	TEST_OK( JpfsvUnloadContext( Kctx ) );
+}
+
+static void TestKernelContext()
+{
+	JPFSV_HANDLE Kctx;
+	BOOL Wow64;
+
+	TEST( IsWow64Process( GetCurrentProcess(), &Wow64 ) );
+
+	if ( Wow64 )
+	{
+		TEST( JPFSV_E_UNSUP_ON_WOW64 == JpfsvLoadContext( JPFSV_KERNEL, NULL, &Kctx ) );
+	}
+	else
+	{
+		TEST_OK( JpfsvLoadContext( JPFSV_KERNEL, NULL, &Kctx ) );
+		TEST_OK( JpfsvUnloadContext( Kctx ) );
+	}
+}
+
 BEGIN_FIXTURE( SymResolver )
 	FIXTURE_ENTRY( TestLoadModules )
+	FIXTURE_ENTRY( TestLoadKernelModules )
+	FIXTURE_ENTRY( TestKernelContext )
 END_FIXTURE()

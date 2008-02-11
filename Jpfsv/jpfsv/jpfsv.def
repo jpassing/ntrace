@@ -12,3 +12,4 @@ EXPORTS
 	JpfsvCloseCommandProcessor
 	JpfsvGetCurrentContextCommandProcessor
 	JpfsvProcessCommand
+	JpfsvLoadModuleContext

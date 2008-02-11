@@ -5,10 +5,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jpfsv", "Jpfsv.vcproj", "{2
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug with ctrc|Win32 = Debug with ctrc|Win32
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug with ctrc|Win32.ActiveCfg = Debug with ctrc|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug with ctrc|Win32.Build.0 = Debug with ctrc|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Win32.ActiveCfg = Debug|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Win32.Build.0 = Debug|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Release|Win32.ActiveCfg = Release|Win32
