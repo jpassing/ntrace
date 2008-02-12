@@ -2,6 +2,112 @@
 #include <jpdiag.h>
 #include "test.h"
 
+#define DBGHELP_TRANSLATE_TCHAR
+#include <dbghelp.h>
+
+/*----------------------------------------------------------------------
+ *
+ * Helpers.
+ *
+ */
+
+typedef struct _PROC_SET
+{
+	HANDLE Process;
+	DWORD_PTR Procedures[ 16 ];
+	UINT Count;
+} PROC_SET, *PPROC_SET;
+
+static BOOL AddProcedureSymCallback(
+	__in PSYMBOL_INFO SymInfo,
+	__in ULONG SymbolSize,
+	__in PVOID UserContext
+	)
+{
+	PPROC_SET Set = ( PPROC_SET ) UserContext;
+
+	UNREFERENCED_PARAMETER( SymbolSize );
+
+	if ( Set->Count < _countof( Set->Procedures ) &&
+		 SymInfo->Flags & ( SYMFLAG_FUNCTION | SYMFLAG_EXPORT ) )
+	{
+		BOOL Hotpatchable;
+		UINT PaddingSize;
+		UINT Index;
+
+		TEST_OK( JpfbtIsHotpatchable(
+			Set->Process,
+			( DWORD_PTR ) SymInfo->Address,
+			&Hotpatchable ) );
+
+		if ( ! Hotpatchable )
+		{
+			return TRUE;
+		}
+
+		TEST_OK( JpfbtGetFunctionPaddingSize(
+			Set->Process,
+			( DWORD_PTR ) SymInfo->Address,
+			&PaddingSize ) );
+		if ( PaddingSize < 5 )
+		{
+			return TRUE;
+		}
+
+		////
+		//// Make sure we do not generate duplicates.
+		////
+		//for ( Index = 0; Index < Set->Count; Index++ )
+		//{
+		//	if ( Set->Procedures[ Index ] == ( DWORD_PTR ) SymInfo->Address )
+		//	{
+		//		return TRUE;
+		//	}
+		//}
+
+		//
+		// Patchable.
+		//
+		Set->Procedures[ Set->Count++ ] = ( DWORD_PTR ) SymInfo->Address;
+	}
+
+	return TRUE;
+}
+
+static VOID TraceProcedures(
+	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_TRACE_ACTION Action
+	)
+{
+	PROC_SET Set;
+	DWORD_PTR FailedProc;
+
+	Set.Count = 0;
+	Set.Process = JpfsvGetProcessHandleContext( ContextHandle );
+
+	TEST( Set.Process );
+
+	//
+	// Get some procedures.
+	//
+	TEST( SymEnumSymbols(
+		Set.Process,
+		0,
+		L"user32!*",
+		AddProcedureSymCallback,
+		&Set ) );
+
+	TEST( Set.Count > 0 );
+
+	TEST_OK( JpfsvConfigureTraceContext(
+		ContextHandle,
+		Action,
+		Set.Count,
+		Set.Procedures,
+		&FailedProc ) );
+	TEST( FailedProc == 0 );
+}
+
 static BOOL HasUfagBeenLoaded(
 	__in DWORD ProcessId 
 	)
@@ -33,7 +139,13 @@ static BOOL HasUfagBeenLoaded(
 	return UfagLoaded;
 }
 
-VOID TestAttachDetachNotepad()
+/*----------------------------------------------------------------------
+ *
+ * Test cases.
+ *
+ */
+
+static VOID TestAttachDetachNotepad()
 {
 	PROCESS_INFORMATION pi;
 	JPFSV_HANDLE NpCtx;
@@ -86,7 +198,7 @@ VOID TestAttachDetachNotepad()
 	Sleep( 1000 );
 }
 
-VOID TestTraceNotepad()
+static VOID TestTraceNotepad()
 {
 	PROCESS_INFORMATION pi;
 	JPFSV_HANDLE NpCtx;
@@ -121,13 +233,21 @@ VOID TestTraceNotepad()
 		1024,
 		DiagSession ) );
 
+	TraceProcedures( NpCtx, JpfsvEnableProcedureTracing );
+	
 	//
 	// Pump a little...
 	//
 	Sleep( 1000 );
 
-	TEST_OK( JpfsvStopTraceContext( NpCtx ) );
+	////
+	//// Stop while tracing active!
+	////
+	//TEST( E_UNEXPECTED == JpfsvStopTraceContext( NpCtx ) );
 
+	TraceProcedures( NpCtx, JpfsvDisableProcedureTracing );
+
+	TEST_OK( JpfsvStopTraceContext( NpCtx ) );
 	TEST_OK( JpfsvDetachContext( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 

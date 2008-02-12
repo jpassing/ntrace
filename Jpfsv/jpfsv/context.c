@@ -844,3 +844,104 @@ HRESULT JpfsvStopTraceContext(
 
 	return Hr;
 }
+
+HRESULT JpfsvConfigureTraceContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_TRACE_ACTION Action,
+	__in UINT ProcedureCountRaw,
+	__in_ecount(InstrCount) CONST DWORD_PTR *ProceduresRaw,
+	__out_opt DWORD_PTR *FailedProcedure
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+	PJPFSV_TRACE_SESSION TraceSession;
+	HRESULT Hr;
+	UINT ProcedureCountClean = 0;
+	DWORD_PTR *ProceduresClean;
+	UINT Index;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE ||
+		 ( Action != JpfsvEnableProcedureTracing &&
+		   Action != JpfsvDisableProcedureTracing ) ||
+		 ProcedureCountRaw == 0 ||
+		 ProcedureCountRaw > MAXWORD ||
+		 ! ProceduresRaw ||
+		 ! FailedProcedure )
+	{
+		return E_INVALIDARG;
+	}
+
+	//
+	// We have to ensure the array is free of duplicates before
+	// passing it down.
+	//
+	ProceduresClean = malloc( sizeof( DWORD_PTR ) * ProcedureCountRaw );
+	if ( ! ProceduresClean )
+	{
+		return E_OUTOFMEMORY;
+	}
+
+	//
+	// Assuminng the array is usually rather small, the naive O(n*n)
+	// algorithm is probably good enough.
+	//
+	for ( Index = 0; Index < ProcedureCountRaw; Index++ )
+	{
+		UINT RefIndex;
+		BOOL Duplicate = FALSE;
+		for ( RefIndex = 0; RefIndex < Index; RefIndex++ )
+		{
+			if ( ProceduresRaw[ Index ] == ProceduresRaw[ RefIndex ] )
+			{
+				//
+				// Already had that one. Ignore.
+				//
+				Duplicate = TRUE;
+				break;
+			}
+		}
+
+		if ( ! Duplicate )
+		{
+			ProceduresClean[ ProcedureCountClean++ ] = ProceduresRaw[ Index ];
+		}
+	}
+	
+	ASSERT( ProcedureCountClean <= ProcedureCountRaw );
+
+	//
+	// Get reference and stabilize it.
+	//
+	EnterCriticalSection( &Context->ProtectedMembers.Lock );
+
+	TraceSession = Context->ProtectedMembers.TraceSession;
+
+	if ( TraceSession )
+	{
+		TraceSession->Reference( TraceSession );
+	}
+	
+	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
+
+	if ( ! TraceSession )
+	{
+		return E_UNEXPECTED;
+	}
+
+	Hr = TraceSession->InstrumentProcedure( 
+		TraceSession,
+		Action,
+		ProcedureCountClean,
+		( PJPFBT_PROCEDURE ) ProceduresClean,
+		( PJPFBT_PROCEDURE ) FailedProcedure );
+
+	//
+	// Destabilize.
+	//
+	TraceSession->Dereference( TraceSession );
+
+	free( ProceduresClean );
+
+	return Hr;
+}

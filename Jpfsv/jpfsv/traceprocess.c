@@ -348,6 +348,45 @@ static HRESULT JpfsvsStopTraceSession(
 	return Hr;
 }
 
+static HRESULT JpfsvsInstrumentProcedureTraceSession(
+	__in PJPFSV_TRACE_SESSION This,
+	__in JPFSV_TRACE_ACTION Action,
+	__in UINT ProcedureCount,
+	__in_ecount(InstrCount) CONST PJPFBT_PROCEDURE Procedures,
+	__out_opt PJPFBT_PROCEDURE FailedProcedure
+	)
+{
+	PUM_TRACE_SESSION TraceSession = ( PUM_TRACE_SESSION ) This;
+	NTSTATUS Status;
+
+	if ( ! TraceSession ||
+		 ( Action != JpfsvEnableProcedureTracing && 
+		   Action != JpfsvDisableProcedureTracing ) ||
+		 ProcedureCount == 0 ||
+		 ! Procedures ||
+		 ! FailedProcedure )
+	{
+		return E_INVALIDARG;
+	}
+
+	Status = JpufbtInstrumentProcedure(
+		TraceSession->UfbtSession,
+		Action == JpfsvEnableProcedureTracing
+			? JpfbtAddInstrumentation
+			: JpfbtRemoveInstrumentation,
+		ProcedureCount,
+		Procedures,
+		FailedProcedure );
+	if ( NT_SUCCESS( Status ) )
+	{
+		return S_OK;
+	}
+	else
+	{
+		return HRESULT_FROM_NT( Status );
+	}
+}
+
 static VOID JpfsvsDeleteTraceSession(
 	__in PUM_TRACE_SESSION TraceSession
 	)
@@ -435,18 +474,19 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	//
 	// Initialize.
 	//
-	TempSession->Base.Start				= JpfsvsStartTraceSession;
-	TempSession->Base.Stop				= JpfsvsStopTraceSession;
-	TempSession->Base.Reference			= JpfsvsReferenceTraceSession;
-	TempSession->Base.Dereference		= JpfsvsDereferenceTraceSession;
+	TempSession->Base.Start					= JpfsvsStartTraceSession;
+	TempSession->Base.Stop					= JpfsvsStopTraceSession;
+	TempSession->Base.InstrumentProcedure	= JpfsvsInstrumentProcedureTraceSession;
+	TempSession->Base.Reference				= JpfsvsReferenceTraceSession;
+	TempSession->Base.Dereference			= JpfsvsDereferenceTraceSession;
 
-	TempSession->ReferenceCount			= 1;
+	TempSession->ReferenceCount				= 1;
 
 	JpdiagReferenceSession( TraceSessionHandle );
-	TempSession->DiagSession			= NULL;
-	TempSession->UfbtSession			= UfbtSession;
-	TempSession->EventPump.Thread		= NULL;
-	TempSession->EventPump.StopEvent	= NULL;
+	TempSession->DiagSession				= NULL;
+	TempSession->UfbtSession				= UfbtSession;
+	TempSession->EventPump.Thread			= NULL;
+	TempSession->EventPump.StopEvent		= NULL;
 
 	InitializeCriticalSection( &TempSession->EventPump.Lock );
 

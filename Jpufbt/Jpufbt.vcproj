@@ -227,6 +227,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\include\jpqlpc.h"
+				>
+			</File>
+			<File
 				RelativePath="..\include\jpufbt.h"
 				>
 			</File>

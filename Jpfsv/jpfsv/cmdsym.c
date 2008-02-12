@@ -24,67 +24,6 @@ typedef struct _SYM_USER_CTX
 	HANDLE Process;
 } SYM_USER_CTX, *PSYM_USER_CTX;
 
-static HRESULT JpfbtsIsHotpatchable(
-	__in HANDLE Process,
-	__in DWORD_PTR ProcAddress,
-	__out PBOOL Hotpatchable
-	)
-{
-	USHORT FirstInstruction;
-	if ( ReadProcessMemory(
-		Process,
-		( PVOID ) ProcAddress,
-		&FirstInstruction,
-		sizeof( USHORT ),
-		NULL ) )
-	{
-		USHORT MovEdiEdi = 0xFF8B;
-		*Hotpatchable = ( FirstInstruction == MovEdiEdi );
-		return S_OK;
-	}
-	else
-	{
-		DWORD Err = GetLastError();
-		return HRESULT_FROM_WIN32( Err );
-	}
-}
-
-static HRESULT JpfbtsGetFunctionPaddingSize(
-	__in HANDLE Process,
-	__in DWORD_PTR ProcAddress,
-	__out PUINT PaddingSize
-	)
-{
-	UCHAR Padding[ 10 ];
-	if ( ReadProcessMemory(
-		Process,
-		( PVOID ) ( ProcAddress - 10 ),
-		&Padding,
-		sizeof( Padding ),
-		NULL ) )
-	{
-		*PaddingSize = 0;
-		if ( Padding[ 9 ] != 0x90 &&
-			 Padding[ 9 ] != 0xCC &&
-			 Padding[ 9 ] != 0x00 )
-		{
-			return S_OK;
-		}
-		
-		while ( Padding[ 9 - *PaddingSize ] == Padding[ 9 ] )
-		{
-			( *PaddingSize )++;
-		}
-
-		return S_OK;
-	}
-	else
-	{
-		DWORD Err = GetLastError();
-		return HRESULT_FROM_WIN32( Err );
-	}
-}
-
 static BOOL JpfsvsOutputSymbol(
 	__in PSYMBOL_INFO SymInfo,
 	__in ULONG SymbolSize,
@@ -108,7 +47,7 @@ static BOOL JpfsvsOutputSymbol(
 		( Ctx->OutputRoutine ) ( Buffer );
 	}
 
-	Hr = JpfbtsIsHotpatchable(
+	Hr = JpfbtIsHotpatchable(
 		Ctx->Process,
 		( DWORD_PTR ) SymInfo->Address,
 		&Hotpatchable );
@@ -117,7 +56,7 @@ static BOOL JpfsvsOutputSymbol(
 		if ( Hotpatchable )
 		{
 			UINT PaddingSize;
-			Hr = JpfbtsGetFunctionPaddingSize(
+			Hr = JpfbtGetFunctionPaddingSize(
 				Ctx->Process,
 				( DWORD_PTR ) SymInfo->Address,
 				&PaddingSize );

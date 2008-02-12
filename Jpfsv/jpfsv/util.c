@@ -60,3 +60,4 @@ BOOL JpfsvpIsWhitespaceOnly(
 	
 	return wsOnly;
 }
+

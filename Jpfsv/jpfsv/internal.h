@@ -79,6 +79,7 @@ __inline BOOL JpfsvpIsCriticalSectionHeld(
 #endif
 }
 
+
 /*----------------------------------------------------------------------
  *
  * Tracing.
@@ -97,6 +98,14 @@ typedef struct _JPFSV_TRACE_SESSION
 		__in UINT BufferCount,
 		__in UINT BufferSize,
 		__in JPDIAG_SESSION_HANDLE Session
+		);
+
+	HRESULT ( *InstrumentProcedure )(
+		__in struct _JPFSV_TRACE_SESSION *This,
+		__in JPFSV_TRACE_ACTION Action,
+		__in UINT ProcedureCount,
+		__in_ecount(InstrCount) CONST PJPFBT_PROCEDURE Procedures,
+		__out_opt PJPFBT_PROCEDURE FailedProcedure
 		);
 
 	HRESULT ( *Stop )(

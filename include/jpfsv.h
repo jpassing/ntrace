@@ -22,6 +22,8 @@ typedef PVOID JPFSV_HANDLE;
 		Attach to context, i.e. attach to the process s.t. tracing
 		can be used.
 
+		Routine is threadsafe.
+
 	Parameters:
 		ContextHandle	Context to attach to.
 --*/
@@ -33,6 +35,8 @@ HRESULT JpfsvAttachContext(
 	Routine Description:
 		Detach from a context, i.e. free all resources. Any tracing
 		must have been stopped before.
+
+		Routine is threadsafe.
 
 	Parameters:
 		ContextHandle	Context to attach to.
@@ -49,6 +53,8 @@ HRESULT JpfsvDetachContext(
 
 		Note that any output is handled with severity
 		JpdiagTraceSeverity.
+
+		Routine is threadsafe.
 
 	Parameters;
 		ContextHandle	Context.
@@ -71,6 +77,64 @@ HRESULT JpfsvStartTraceContext(
 --*/
 HRESULT JpfsvStopTraceContext(
 	__in JPFSV_HANDLE ContextHandle
+	);
+
+typedef enum
+{
+	JpfsvEnableProcedureTracing		= 0,
+	JpfsvDisableProcedureTracing	= 1
+} JPFSV_TRACE_ACTION;
+
+
+/*++
+	Routine Description:
+		Instrument one or more procedures. Instrumentation requires 
+		either 5 byte (/functionpadmin:5) or 10 byte (/functionpadmin:10) 
+		padding and a hotpatchable prolog.
+
+		Routine is threadsafe.
+
+	Parameters:
+		ProcedureCount  - # of procedures to instrument.
+		Procedures	    - Procedures to instrument. Any duplicates
+						  will be removed.
+		FailedProcedure - Procedure that made the instrumentation fail.
+
+	Return Value:
+		STATUS_SUCCESS on success. FailedProcedure is set to NULL.
+		Any failure NTSTATUS.
+			If instrumentation of a certain procedure failed, 
+			FailedProcedure is set.
+--*/
+HRESULT JpfsvConfigureTraceContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_TRACE_ACTION Action,
+	__in UINT ProcedureCount,
+	__in_ecount(InstrCount) CONST DWORD_PTR *Procedures,
+	__out_opt DWORD_PTR *FailedProcedure
+	);
+
+
+/*++
+	Routine Description:
+		Determine if a procedure is hotpatchable 
+		(i.e. compiled with /hotpatch).
+--*/
+HRESULT JpfbtIsHotpatchable(
+	__in HANDLE Process,
+	__in DWORD_PTR ProcAddress,
+	__out PBOOL Hotpatchable
+	);
+
+/*++
+	Routine Description:
+		Determine padding of a procedure
+		(i.e. linked with /functionpadmin:?).
+--*/
+HRESULT JpfbtGetFunctionPaddingSize(
+	__in HANDLE Process,
+	__in DWORD_PTR ProcAddress,
+	__out PUINT PaddingSize
 	);
 
 /*----------------------------------------------------------------------
@@ -113,6 +177,8 @@ typedef PVOID JPFSV_ENUM_HANDLE;
 		Retrieves the list of processes on the target system.
 		JpfsvGetNextItem will return JPFSV_PROCESS_INFO structures.
 
+		Routine is threadsafe.
+
 	Parameters:
 		EnumHandle - Handle to enum.
 --*/
@@ -125,6 +191,8 @@ HRESULT JpfsvEnumProcesses(
 	Routine Description:
 		Retrieves the list of modules of a given process.
 		JpfsvGetNextItem will return JPFSV_MODULE_INFO structures.
+
+		Routine is threadsafe.
 
 	Parameters:
 		EnumHandle - Handle to enum.
@@ -139,6 +207,8 @@ HRESULT JpfsvEnumModules(
 	Routine Description:
 		Retrieves the list of threads of a given process.
 		JpfsvGetNextItem will return JPFSV_THREAD_INFO structures.
+
+		Routine is threadsafe.
 
 	Parameters:
 		ProcessId  - ID of process. JPFSV_KERNEL may not be used.
@@ -193,6 +263,8 @@ HRESULT JpfsvCloseEnum(
 		If the context is already loaded, a cached object is returned.
 		In this case, UserSearchPath is ignored.
 
+		Routine is threadsafe.
+
 	Parameters:
 		ProcessId	   - Target process ID.
 		UserSearchPath - Search path or NULL to use system-defined
@@ -209,6 +281,8 @@ HRESULT JpfsvLoadContext(
 	Routine Description:
 		Determines if the context has already been loaded and is cached.
 
+		Routine is threadsafe.
+
 	Parameters:
 		ProcessId	    - Target process ID.
 		Loaded			- Result.
@@ -221,6 +295,8 @@ HRESULT JpfsvIsContextLoaded(
 /*++
 	Routine Description:
 		Unloads the context.
+
+		Routine is threadsafe.
 --*/
 HRESULT JpfsvUnloadContext(
 	__in JPFSV_HANDLE Context
@@ -229,6 +305,8 @@ HRESULT JpfsvUnloadContext(
 /*++
 	Routine Description:
 		Retrieves the process handle of the given context.
+
+		Routine is threadsafe.
 --*/
 HANDLE JpfsvGetProcessHandleContext(
 	__in JPFSV_HANDLE Context
@@ -238,6 +316,8 @@ HANDLE JpfsvGetProcessHandleContext(
 	Routine Description:
 		Retrieves the process handle of the given context.
 		For a kernel context, JPFSV_KERNEL is returned.
+
+		Routine is threadsafe.
 --*/
 DWORD JpfsvGetProcessIdContext(
 	__in JPFSV_HANDLE ContextHandle
@@ -246,6 +326,8 @@ DWORD JpfsvGetProcessIdContext(
 /*++
 	Routine Description:
 		Loads a module for symbol analysis.
+
+		Routine is threadsafe.
 
 	Parameters:
 		Resolver	- Resolver obtained from JpfsvGetSymbolResolver.

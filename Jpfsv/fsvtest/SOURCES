@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=..\include;..\..\include;..\..\..\cfix\include
+INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\cfix\include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -24,6 +24,7 @@ UMENTRY=wmain
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfsv.lib \
 		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfix.lib \
+		   $(MAKEDIR)\..\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib \
 		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpdiag.lib
 
 

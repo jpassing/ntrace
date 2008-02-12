@@ -42,6 +42,7 @@ SOURCES=\
 	traceprocess.c \
 	tracekern.c \
 	eventsink.c \
+	procinspect.c \
 	jpfsv.rc
 	
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

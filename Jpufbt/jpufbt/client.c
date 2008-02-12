@@ -416,8 +416,9 @@ NTSTATUS JPFBTCALLTYPE JpufbtInstrumentProcedure(
 {
 	NTSTATUS Status;
 	PJPUFBT_SESSION Session = ( PJPUFBT_SESSION ) SessionHandle;
-	JPUFAG_MESSAGE Request;
+	PJPUFAG_MESSAGE Request;
 	PJPUFAG_MESSAGE Response;
+	UINT RequestSize;
 
 	if ( ! Session ||
 		Session->Signature != JPUFBT_SESSION_SIGNATURE ||
@@ -430,20 +431,29 @@ NTSTATUS JPFBTCALLTYPE JpufbtInstrumentProcedure(
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	Request.Header.TotalSize = sizeof( JPUFAG_MESSAGE );
-	Request.Header.MessageId = JPUFAG_MSG_INSTRUMENT_REQUEST;
-	Request.Header.PayloadSize = 
-		RTL_SIZEOF_THROUGH_FIELD(
+	//
+	// Request struct is of dynamic size.
+	//
+	RequestSize = RTL_SIZEOF_THROUGH_FIELD(
 			JPUFAG_MESSAGE,
-			Body.InstrumentRequest.Procedures[ ProcedureCount - 1 ] ) -
+			Body.InstrumentRequest.Procedures[ ProcedureCount - 1 ] );
+	Request = malloc( RequestSize );
+	if ( ! Request )
+	{
+		return STATUS_NO_MEMORY;
+	}
+
+	Request->Header.TotalSize = RequestSize;
+	Request->Header.MessageId = JPUFAG_MSG_INSTRUMENT_REQUEST;
+	Request->Header.PayloadSize = RequestSize -
 		FIELD_OFFSET(
 			JPUFAG_MESSAGE,
 			Body.Status );
 
-	Request.Body.InstrumentRequest.Action = Action;
-	Request.Body.InstrumentRequest.ProcedureCount = ProcedureCount;
+	Request->Body.InstrumentRequest.Action = Action;
+	Request->Body.InstrumentRequest.ProcedureCount = ProcedureCount;
 	CopyMemory(
-		Request.Body.InstrumentRequest.Procedures,
+		Request->Body.InstrumentRequest.Procedures,
 		Procedures,
 		ProcedureCount * sizeof( JPFBT_PROCEDURE ) );
 
@@ -462,7 +472,7 @@ NTSTATUS JPFBTCALLTYPE JpufbtInstrumentProcedure(
 		FIELD_OFFSET(
 			JPUFAG_MESSAGE,
 			Body.Status ),
-		&Request,
+		Request,
 		&Response );
 	if ( STATUS_TIMEOUT == Status )
 	{
@@ -489,6 +499,8 @@ NTSTATUS JPFBTCALLTYPE JpufbtInstrumentProcedure(
 	}
 
 	LeaveCriticalSection( &Session->Qlpc.Lock );
+
+	free( Request );
 
 	return Status;
 }

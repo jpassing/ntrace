@@ -237,6 +237,9 @@ typedef struct _JPFBT_PROCEDURE
 	Parameters:
 		ProcedureCount  - # of procedures to instrument.
 		Procedures	    - Procedures to instrument.
+						  The caller has to ensure that the array
+						  is free of duplicates. Duplicate entries
+						  lead to undefined behaviour.
 		FailedProcedure - Procedure that made the instrumentation fail.
 
 	Return Value:

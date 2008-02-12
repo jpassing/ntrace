@@ -35,7 +35,6 @@
 #define NTSTATUS_UFBT_INVALID_HANDLE			_MAKE_NTSTATUS( 3, 1, 0xFD, 0x9 )
 #define NTSTATUS_UFBT_TIMED_OUT					_MAKE_NTSTATUS( 3, 1, 0xFD, 0xa )
 
-
 typedef enum
 {
 	JpufbtFunctionEntryEventType,
@@ -207,6 +206,9 @@ NTSTATUS JpufbtShutdownTracing(
 	Parameters:
 		ProcedureCount  - # of procedures to instrument.
 		Procedures	    - Procedures to instrument.
+						  The caller has to ensure that the array
+						  is free of duplicates. Duplicate entries
+						  lead to undefined behaviour.
 		FailedProcedure - Procedure that made the instrumentation fail.
 
 	Return Value:
@@ -216,7 +218,7 @@ NTSTATUS JpufbtShutdownTracing(
 		STATUS_FBT_PROC_ALREADY_PATCHED if procedure has already been
 			patched. FailedProcedure is set.
 --*/
-NTSTATUS JPFBTCALLTYPE JpufbtInstrumentProcedure(
+NTSTATUS JpufbtInstrumentProcedure(
 	__in JPUFBT_HANDLE Session,
 	__in JPFBT_INSTRUMENTATION_ACTION Action,
 	__in UINT ProcedureCount,
