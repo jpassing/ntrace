@@ -22,7 +22,7 @@ static VOID JpufagsGenerateEvent(
 	if ( Event )
 	{
 		Event->Type = Type;
-		Event->Procedure = ( DWORD_PTR ) Function;
+		Event->Procedure.u.Procedure = Function;
 		Event->ThreadContext = *Context;
 		if ( ! QueryPerformanceCounter( &Event->Timestamp ) )
 		{

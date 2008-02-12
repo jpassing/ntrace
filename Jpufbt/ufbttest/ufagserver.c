@@ -249,7 +249,7 @@ static void TestServer()
 
 			if ( EventCount > 0 )
 			{
-				TEST( Msg->Body.ReadTraceResponse.Events[ 0 ].Procedure ==
+				TEST( Msg->Body.ReadTraceResponse.Events[ 0 ].Procedure.u.ProcedureVa ==
 					( DWORD_PTR ) ( PVOID ) JpqlpcSendReceive );
 			}
 		} while ( EventCount > 0 );

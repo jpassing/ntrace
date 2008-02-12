@@ -43,7 +43,11 @@ static NTSTATUS JpufbtsCall(
 		( PJPQLPC_MESSAGE ) Request,
 		( PJPQLPC_MESSAGE* ) Response );
 
-	if ( NT_SUCCESS( Status ) )
+	if ( STATUS_TIMEOUT == Status )
+	{
+		return Status;
+	}
+	else if ( NT_SUCCESS( Status ) )
 	{
 		if ( ( *Response )->Header.TotalSize < sizeof( JPUFAG_MESSAGE ) ||
 			 ( ExpectedPyldSizeOrZero != 0 && 
@@ -118,7 +122,15 @@ NTSTATUS JpufbtpShutdown(
 		sizeof( NTSTATUS ),
 		&Request,
 		&Response );
-	if ( NT_SUCCESS( Status ) )
+	if ( STATUS_TIMEOUT == Status )
+	{
+		//
+		// This should not occur as we used INFINITE.
+		// Promote it to an error.
+		//
+		Status = NTSTATUS_UFBT_TIMED_OUT;
+	}
+	else if ( NT_SUCCESS( Status ) )
 	{
 		Status = Response->Body.Status;
 	}
@@ -181,7 +193,15 @@ NTSTATUS JpufbtInitializeTracing(
 		sizeof( NTSTATUS ),
 		&Request,
 		&Response );
-	if ( NT_SUCCESS( Status ) )
+	if ( STATUS_TIMEOUT == Status )
+	{
+		//
+		// This should not occur as we used INFINITE.
+		// Promote it to an error.
+		//
+		Status = NTSTATUS_UFBT_TIMED_OUT;
+	}
+	else if ( NT_SUCCESS( Status ) )
 	{
 		Status = Response->Body.Status;
 	}
@@ -214,6 +234,11 @@ NTSTATUS JpufbtReadTrace(
 	Request.Header.MessageId = JPUFAG_MSG_READ_TRACE_REQUEST;
 	Request.Header.PayloadSize = sizeof( UINT );
 			
+	//
+	// N.B. The timeout is used by the peer, not for QLPC
+	// communication. The net result should be the same
+	// (assuming a well-behaved peer).
+	//
 	Request.Body.ReadTraceRequest.Timeout = Timeout;
 
 	//
@@ -228,10 +253,24 @@ NTSTATUS JpufbtReadTrace(
 		0, // unknown
 		&Request,
 		&Response );
-	if ( NT_SUCCESS( Status ) )
+	if ( STATUS_TIMEOUT == Status )
+	{
+		//
+		// This should not occur as we used INFINITE.
+		// Promote it to an error.
+		//
+		Status = NTSTATUS_UFBT_TIMED_OUT;
+	}
+	else if ( NT_SUCCESS( Status ) )
 	{
 		Status = Response->Body.Status;
-		if ( NT_SUCCESS( Status ) )
+		if ( STATUS_TIMEOUT == Status )
+		{
+			//
+			// Timed out, that's ok.
+			//
+		}
+		else if ( NT_SUCCESS( Status ) )
 		{
 			DWORD ProcessId = GetProcessId( Session->Process );
 			
@@ -247,10 +286,9 @@ NTSTATUS JpufbtReadTrace(
 					JPUFAG_MESSAGE,
 					Body.Status ) )
 			{
-				return NTSTATUS_UFBT_INVALID_PEER_MSG_FMT;
+				Status = NTSTATUS_UFBT_INVALID_PEER_MSG_FMT;
 			}
-
-			if ( Response->Body.ReadTraceResponse.EventCount > 0 )
+			else if ( Response->Body.ReadTraceResponse.EventCount > 0 )
 			{
 				//
 				// Pass data to callback.
@@ -310,10 +348,24 @@ NTSTATUS JpufbtShutdownTracing(
 			0,	// unknown
 			&Request,
 			&Response );
-		if ( NT_SUCCESS( Status ) )
+		if ( STATUS_TIMEOUT == Status )
+		{
+			//
+			// This should not occur as we used INFINITE.
+			// Promote it to an error.
+			//
+			Status = NTSTATUS_UFBT_TIMED_OUT;
+		}
+		else if ( NT_SUCCESS( Status ) )
 		{
 			Status = Response->Body.Status;
-			if ( NT_SUCCESS( Status ) )
+			if ( STATUS_TIMEOUT == Status )
+			{
+				//
+				// Timed out, that's ok.
+				//
+			}
+			else if ( NT_SUCCESS( Status ) )
 			{
 				DWORD ProcessId = GetProcessId( Session->Process );
 				
@@ -329,10 +381,9 @@ NTSTATUS JpufbtShutdownTracing(
 						JPUFAG_MESSAGE,
 						Body.Status ) )
 				{
-					return NTSTATUS_UFBT_INVALID_PEER_MSG_FMT;
+					Status = NTSTATUS_UFBT_INVALID_PEER_MSG_FMT;
 				}
-
-				if ( Response->Body.ReadTraceResponse.EventCount > 0 )
+				else if ( Response->Body.ReadTraceResponse.EventCount > 0 )
 				{
 					//
 					// Pass data to callback.
@@ -413,11 +464,28 @@ NTSTATUS JPFBTCALLTYPE JpufbtInstrumentProcedure(
 			Body.Status ),
 		&Request,
 		&Response );
-	if ( NT_SUCCESS( Status ) )
+	if ( STATUS_TIMEOUT == Status )
+	{
+		//
+		// This should not occur as we used INFINITE.
+		// Promote it to an error.
+		//
+		Status = NTSTATUS_UFBT_TIMED_OUT;
+	}
+	else if ( NT_SUCCESS( Status ) )
 	{
 		Status = Response->Body.Status;
-		*FailedProcedure = 
-			Response->Body.InstrumentResponse.FailedProcedure;
+		if ( STATUS_TIMEOUT == Status )
+		{
+			//
+			// Timed out, that's ok.
+			//
+		}
+		else
+		{
+			*FailedProcedure = 
+				Response->Body.InstrumentResponse.FailedProcedure;
+		}
 	}
 
 	LeaveCriticalSection( &Session->Qlpc.Lock );

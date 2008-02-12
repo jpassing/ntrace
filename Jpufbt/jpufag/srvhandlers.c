@@ -70,7 +70,7 @@ static VOID JpufagsProcessBuffer(
 				#pragma warning( suppress : 6385 )
 				DWORD Eip = Message->Body.ReadTraceResponse.Events[ Index ].ThreadContext.Eip;
 				#pragma warning( suppress : 6385 )
-				DWORD Proc = ( DWORD ) Message->Body.ReadTraceResponse.Events[ Index ].Procedure;
+				DWORD Proc = ( DWORD ) Message->Body.ReadTraceResponse.Events[ Index ].Procedure.u.ProcedureVa;
 				ASSERT( Eip == Proc );
 			}
 		}
