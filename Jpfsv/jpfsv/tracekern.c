@@ -22,7 +22,7 @@
  * Internals.
  *
  */
-HRESULT JpfsvpCreateKernelTracingSession(
+HRESULT JpfsvpCreateKernelTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
 	__out PJPFSV_TRACE_SESSION *TraceSessionHandle
 	)

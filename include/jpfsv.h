@@ -70,7 +70,7 @@ HRESULT JpfsvStartTraceContext(
 		Auto-deinstrument?
 --*/
 HRESULT JpfsvStopTraceContext(
-	__in JPFSV_HANDLE *ContextHandle
+	__in JPFSV_HANDLE ContextHandle
 	);
 
 /*----------------------------------------------------------------------

@@ -4,6 +4,8 @@
  * Purpose:
  *		User Mode Function Boundary Tracing Library.
  *
+ *		N.B. All communication to the target process is half-duplex.
+ *
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
@@ -31,6 +33,7 @@
 #define NTSTATUS_UFBT_INVALID_PEER_MSG_FMT	 	_MAKE_NTSTATUS( 3, 1, 0xFD, 0x7 )
 #define NTSTATUS_UFBT_TRACING_NOT_INITIALIZED	_MAKE_NTSTATUS( 3, 1, 0xFD, 0x8 )
 #define NTSTATUS_UFBT_INVALID_HANDLE			_MAKE_NTSTATUS( 3, 1, 0xFD, 0x9 )
+#define NTSTATUS_UFBT_TIMED_OUT					_MAKE_NTSTATUS( 3, 1, 0xFD, 0xa )
 
 
 typedef enum
@@ -49,7 +52,7 @@ typedef struct _JPUFBT_EVENT
 	// VA of hooked procedure. Note that VA refers to the target
 	// process, not the current process.
 	//
-	DWORD_PTR Procedure;
+	JPFBT_PROCEDURE Procedure;
 
 	//
 	// Captured context.
@@ -209,7 +212,7 @@ NTSTATUS JpufbtShutdownTracing(
 	Return Value:
 		STATUS_SUCCESS on success. FailedProcedure is set to NULL.
 		STATUS_FBT_PROC_NOT_PATCHABLE if at least one procedure does not 
-			fulfil criteria. FailedProcedure is set.
+			fulfill criteria. FailedProcedure is set.
 		STATUS_FBT_PROC_ALREADY_PATCHED if procedure has already been
 			patched. FailedProcedure is set.
 --*/

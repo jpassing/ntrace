@@ -8,16 +8,9 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 #include <jpfsv.h>
+#include <jpfbt.h>
+#include <jpfbtdef.h>
 #include <crtdbg.h>
-
-#define ASSERT _ASSERTE
-#ifndef VERIFY
-#if defined(DBG) || defined( DBG )
-#define VERIFY ASSERT
-#else
-#define VERIFY( x ) ( x )
-#endif
-#endif
 
 extern CRITICAL_SECTION JpfsvpDbghelpLock;
 
@@ -100,14 +93,23 @@ __inline BOOL JpfsvpIsCriticalSectionHeld(
 typedef struct _JPFSV_TRACE_SESSION
 {
 	HRESULT ( *Start )(
+		__in struct _JPFSV_TRACE_SESSION *This,
 		__in UINT BufferCount,
 		__in UINT BufferSize,
 		__in JPDIAG_SESSION_HANDLE Session
 		);
 
-	HRESULT ( *Stop )();
+	HRESULT ( *Stop )(
+		__in struct _JPFSV_TRACE_SESSION *This
+		);
 
-	HRESULT ( *Delete )();
+	VOID ( *Reference )(
+		__in struct _JPFSV_TRACE_SESSION *This
+		);
+
+	VOID ( *Dereference )(
+		__in struct _JPFSV_TRACE_SESSION *This
+		);
 } JPFSV_TRACE_SESSION, *PJPFSV_TRACE_SESSION;
 
 /*++
@@ -115,7 +117,7 @@ typedef struct _JPFSV_TRACE_SESSION
 		Create a session for user mode tracing. To be called by
 		context.
 --*/
-HRESULT JpfsvpCreateProcessTracingSession(
+HRESULT JpfsvpCreateProcessTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
 	__out PJPFSV_TRACE_SESSION *Session
 	);
@@ -125,9 +127,29 @@ HRESULT JpfsvpCreateProcessTracingSession(
 		Create a session for kernel mode tracing. To be called by
 		context.
 --*/
-HRESULT JpfsvpCreateKernelTracingSession(
+HRESULT JpfsvpCreateKernelTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
 	__out PJPFSV_TRACE_SESSION *Session
+	);
+
+typedef enum
+{
+	JpfsvFunctionEntryEventType,
+	JpfsvFunctionExitEventType
+} JPFSV_EVENT_TYPE;
+
+/*++
+	Routine Description:
+		Event Sink. 
+--*/
+VOID JpfsvpProcessEvent(
+	__in JPFSV_EVENT_TYPE Type,
+	__in DWORD ThreadId,
+	__in DWORD ProcessId,
+	__in JPFBT_PROCEDURE Procedure,
+	__in PJPFBT_CONTEXT ThreadContext,
+	__in PLARGE_INTEGER Timestamp,
+	__in JPDIAG_SESSION_HANDLE DiagSession
 	);
 
 /*----------------------------------------------------------------------
