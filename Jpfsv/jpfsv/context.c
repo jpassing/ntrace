@@ -11,7 +11,6 @@
 #include <jpfbtdef.h>
 #include <dbghelp.h>
 #include <stdlib.h>
-#include <hashtable.h>
 
 #define JPFSV_CONTEXT_SIGNATURE 'txtC'
 
@@ -43,6 +42,12 @@ typedef struct _JPFSV_CONTEXT
 		// Trace session. NULL until attached.
 		//
 		PJPFSV_TRACE_SESSION TraceSession;
+
+		//
+		// Table of Tracepoints. Must be held in sync with actual
+		// state.
+		//
+		JPFSV_TRACEPOINT_TABLE Tracepoints;
 	} ProtectedMembers;
 } JPFSV_CONTEXT, *PJPFSV_CONTEXT;
 
@@ -217,6 +222,12 @@ static HRESULT JpfsvsCreateContext(
 	InitializeCriticalSection( &TempContext->ProtectedMembers.Lock );
 	TempContext->ProtectedMembers.TraceSession	= NULL;
 
+	Hr = JpfsvpInitializeTracepointTable( &TempContext->ProtectedMembers.Tracepoints );
+	if ( FAILED( Hr ) )
+	{
+		goto Cleanup;
+	}
+
 	//
 	// Load dbghelp stuff.
 	//
@@ -308,6 +319,9 @@ static HRESULT JpfsvsDeleteContext(
 		CloseHandle( Context->ProcessHandle );
 	} 
 
+	VERIFY( S_OK == JpfsvpDeleteTracepointTable( 
+		&Context->ProtectedMembers.Tracepoints ) );
+
 	DeleteCriticalSection( &Context->ProtectedMembers.Lock );
 
 	free( Context );
@@ -335,27 +349,13 @@ static BOOL JpfsvsEqualsProcessId(
 	return ( ( DWORD ) KeyLhs ) == ( ( DWORD ) KeyRhs );
 }
 
-static PVOID JpfsvsAllocateHashtableMemory(
-	__in SIZE_T Size 
-	)
-{
-	return malloc( Size );
-}
-
-static VOID JpfsvsFreeHashtableMemory(
-	__in PVOID Mem
-	)
-{
-	free( Mem );
-}
-
 BOOL JpfsvpInitializeLoadedContextsHashtable()
 {
 	InitializeCriticalSection( &JpfsvsLoadedContexts.Lock );
 	return JphtInitializeHashtable(
 		&JpfsvsLoadedContexts.Table,
-		JpfsvsAllocateHashtableMemory,
-		JpfsvsFreeHashtableMemory,
+		JpfsvpAllocateHashtableMemory,
+		JpfsvpFreeHashtableMemory,
 		JpfsvsHashProcessId,
 		JpfsvsEqualsProcessId,
 		101 );
@@ -769,7 +769,7 @@ HRESULT JpfsvStartTraceContext(
 	}
 
 	//
-	// Get reference and stabilize it.
+	// Get reference and stabilize it so we can leave the critical early.
 	//
 	EnterCriticalSection( &Context->ProtectedMembers.Lock );
 
@@ -816,7 +816,8 @@ HRESULT JpfsvStopTraceContext(
 	}
 
 	//
-	// Get reference and stabilize it.
+	// Execute under lock protection to make sure the tracepoint table
+	// is in sync with reality.
 	//
 	EnterCriticalSection( &Context->ProtectedMembers.Lock );
 
@@ -824,23 +825,24 @@ HRESULT JpfsvStopTraceContext(
 
 	if ( TraceSession )
 	{
-		TraceSession->Reference( TraceSession );
-	}
-	
-	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
+		//
+		// Remove any outstanding tracepoints.
+		//
+		Hr = JpfsvpRemoveAllTracepointsInTracepointTable(
+			&Context->ProtectedMembers.Tracepoints,
+			TraceSession );
 
-	if ( ! TraceSession )
+		if ( SUCCEEDED( Hr ) )
+		{
+			Hr = TraceSession->Stop( TraceSession );
+		}
+	}
+	else
 	{
 		return E_UNEXPECTED;
 	}
-
-	Hr = TraceSession->Stop( 
-		TraceSession );
-
-	//
-	// Destabilize.
-	//
-	TraceSession->Dereference( TraceSession );
+	
+	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
 
 	return Hr;
 }
@@ -862,8 +864,8 @@ HRESULT JpfsvSetTracePointsContext(
 
 	if ( ! Context ||
 		 Context->Signature != JPFSV_CONTEXT_SIGNATURE ||
-		 ( Action != JpfsvEnableProcedureTracing &&
-		   Action != JpfsvDisableProcedureTracing ) ||
+		 ( Action != JpfsvAddTracepoint &&
+		   Action != JpfsvRemoveTracepoint ) ||
 		 ProcedureCountRaw == 0 ||
 		 ProcedureCountRaw > MAXWORD ||
 		 ! ProceduresRaw ||
@@ -883,65 +885,145 @@ HRESULT JpfsvSetTracePointsContext(
 	}
 
 	//
-	// Assuminng the array is usually rather small, the naive O(n*n)
-	// algorithm is probably good enough.
-	//
-	for ( Index = 0; Index < ProcedureCountRaw; Index++ )
-	{
-		UINT RefIndex;
-		BOOL Duplicate = FALSE;
-		for ( RefIndex = 0; RefIndex < Index; RefIndex++ )
-		{
-			if ( ProceduresRaw[ Index ] == ProceduresRaw[ RefIndex ] )
-			{
-				//
-				// Already had that one. Ignore.
-				//
-				Duplicate = TRUE;
-				break;
-			}
-		}
-
-		if ( ! Duplicate )
-		{
-			ProceduresClean[ ProcedureCountClean++ ] = ProceduresRaw[ Index ];
-		}
-	}
-	
-	ASSERT( ProcedureCountClean <= ProcedureCountRaw );
-
-	//
-	// Get reference and stabilize it.
+	// Enter CS to ensure that the tracpoint table is consistent.
 	//
 	EnterCriticalSection( &Context->ProtectedMembers.Lock );
 
 	TraceSession = Context->ProtectedMembers.TraceSession;
-
-	if ( TraceSession )
-	{
-		TraceSession->Reference( TraceSession );
-	}
 	
-	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
-
 	if ( ! TraceSession )
 	{
-		return E_UNEXPECTED;
+		Hr = E_UNEXPECTED;
+	}
+	else
+	{
+		Hr = S_OK;
+
+		//
+		// Check for duplicates:
+		//  1. Duplicates within parameter array.
+		//  2. Procs that are already listed in tracepoint table.
+		//     (Only applies for adding tracepoints)
+		//
+		// Assuminng the array is usually rather small, the naive O(n*n)
+		// algorithm is probably good enough.
+		//
+		for ( Index = 0; Index < ProcedureCountRaw; Index++ )
+		{
+			UINT RefIndex;
+			BOOL Duplicate = FALSE;
+
+			if ( ProceduresRaw[ Index ] == 0 )
+			{
+				Hr = E_INVALIDARG;
+				break;
+			}
+
+			//
+			// Check 1.
+			//
+			for ( RefIndex = 0; RefIndex < Index; RefIndex++ )
+			{
+				if ( ProceduresRaw[ Index ] == ProceduresRaw[ RefIndex ] )
+				{
+					//
+					// Already had that one. Ignore.
+					//
+					Duplicate = TRUE;
+					break;
+				}
+			}
+
+			//
+			// Check 2.
+			//
+			if ( Action == JpfsvAddTracepoint )
+			{
+				JPFBT_PROCEDURE Proc;
+				Proc.u.ProcedureVa = ProceduresRaw[ Index ];
+				
+				Duplicate = Duplicate || JpfsvpExistsEntryTracepointTable(
+					&Context->ProtectedMembers.Tracepoints,
+					Proc );
+			}
+
+			if ( ! Duplicate )
+			{
+				ProceduresClean[ ProcedureCountClean++ ] = ProceduresRaw[ Index ];
+			}
+		}
+		
+		ASSERT( ProcedureCountClean <= ProcedureCountRaw );
+
+		if ( SUCCEEDED( Hr ) )
+		{
+			ASSERT( ProcedureCountClean > 0 );
+
+			//
+			// Array is clean, instrument.
+			//
+			Hr = TraceSession->InstrumentProcedure( 
+				TraceSession,
+				Action,
+				ProcedureCountClean,
+				( PJPFBT_PROCEDURE ) ProceduresClean,
+				( PJPFBT_PROCEDURE ) FailedProcedure );
+
+			if ( SUCCEEDED( Hr ) )
+			{
+				//
+				// Update table. As we operate under a lock,
+				// instrumentation and table is kept in sync.
+				//
+				for ( Index = 0; Index < ProcedureCountClean; Index++ )
+				{
+					JPFBT_PROCEDURE Proc;
+					Proc.u.ProcedureVa = ProceduresClean[ Index ];
+
+					if ( Action == JpfsvAddTracepoint )
+					{
+						Hr = JpfsvpAddEntryTracepointTable(
+							&Context->ProtectedMembers.Tracepoints,
+							Proc );
+					}
+					else
+					{
+						Hr = JpfsvpRemoveEntryTracepointTable(
+							&Context->ProtectedMembers.Tracepoints,
+							Proc );
+					}
+
+					if ( FAILED( Hr ) )
+					{
+						break;
+					}
+				}
+			}
+		}  
 	}
 
-	Hr = TraceSession->InstrumentProcedure( 
-		TraceSession,
-		Action,
-		ProcedureCountClean,
-		( PJPFBT_PROCEDURE ) ProceduresClean,
-		( PJPFBT_PROCEDURE ) FailedProcedure );
-
-	//
-	// Destabilize.
-	//
-	TraceSession->Dereference( TraceSession );
+	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
 
 	free( ProceduresClean );
 
 	return Hr;
+}
+
+UINT JpfsvCountTracePointsContext(
+	__in JPFSV_HANDLE ContextHandle
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE )
+	{
+		ASSERT( !"Invalid context passed to JpfsvCountTracePointsContext" );
+		return 0xffffffff;
+	}
+	else
+	{
+		return JpfsvpGetEntryCountTracepointTable( 
+			&Context->ProtectedMembers.Tracepoints );
+	}
 }

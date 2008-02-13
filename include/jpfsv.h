@@ -14,6 +14,8 @@ typedef PVOID JPFSV_HANDLE;
 
 #define JPFSV_E_COMMAND_FAILED	MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 1 )
 #define JPFSV_E_UNSUP_ON_WOW64	MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 2 )
+#define JPFSV_E_TRACEPOINT_EXISTS		MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 3 )
+#define JPFSV_E_TRACEPOINT_NOT_FOUND	MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 4 )
 
 #define JPFSV_KERNEL	( ( DWORD ) -1 )
 
@@ -87,8 +89,8 @@ HRESULT JpfsvStopTraceContext(
 
 typedef enum
 {
-	JpfsvEnableProcedureTracing		= 0,
-	JpfsvDisableProcedureTracing	= 1
+	JpfsvAddTracepoint		= 0,
+	JpfsvRemoveTracepoint	= 1
 } JPFSV_TRACE_ACTION;
 
 
@@ -118,6 +120,14 @@ HRESULT JpfsvSetTracePointsContext(
 	__in UINT ProcedureCount,
 	__in_ecount(InstrCount) CONST DWORD_PTR *Procedures,
 	__out_opt DWORD_PTR *FailedProcedure
+	);
+
+/*++
+	Routine Description:
+		Get number of active tracepoints.
+--*/
+UINT JpfsvCountTracePointsContext(
+	__in JPFSV_HANDLE ContextHandle
 	);
 
 /*++

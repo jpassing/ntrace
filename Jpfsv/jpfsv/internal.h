@@ -10,6 +10,7 @@
 #include <jpfsv.h>
 #include <jpfbt.h>
 #include <jpfbtdef.h>
+#include <hashtable.h>
 #include <crtdbg.h>
 
 extern CRITICAL_SECTION JpfsvpDbghelpLock;
@@ -28,6 +29,15 @@ BOOL JpfsvpDeleteLoadedContextsHashtable();
  * Util routines.
  *
  */
+
+PVOID JpfsvpAllocateHashtableMemory(
+	__in SIZE_T Size 
+	);
+
+VOID JpfsvpFreeHashtableMemory(
+	__in PVOID Mem
+	);
+
 /*++
 	Routine Description:
 		Parse an integer in the format
@@ -82,7 +92,7 @@ __inline BOOL JpfsvpIsCriticalSectionHeld(
 
 /*----------------------------------------------------------------------
  *
- * Tracing.
+ * Trace Session.
  *
  */
 
@@ -159,6 +169,91 @@ VOID JpfsvpProcessEvent(
 	__in PJPFBT_CONTEXT ThreadContext,
 	__in PLARGE_INTEGER Timestamp,
 	__in JPDIAG_SESSION_HANDLE DiagSession
+	);
+
+/*----------------------------------------------------------------------
+ *
+ * TracePoint Table.
+ *
+ * The TracePoint Table is NOT threadsafe!
+ *
+ */
+typedef struct _JPFSV_TRACEPOINT_TABLE
+{
+	//
+	// Hashtable: Proc VA -> Information.
+	//
+	JPHT_HASHTABLE Table;
+} JPFSV_TRACEPOINT_TABLE, *PJPFSV_TRACEPOINT_TABLE;
+
+/*++
+	Routine Description:
+		Initialize table.
+--*/
+HRESULT JpfsvpInitializeTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table
+	);
+
+/*++
+	Routine Description:
+		Remove all active tracepoints.
+--*/
+HRESULT JpfsvpRemoveAllTracepointsInTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in PJPFSV_TRACE_SESSION TraceSession
+	);
+
+/*++
+	Routine Description:
+		Initialize table. All tracepoints must have been 
+		removed before calling this routine.
+--*/
+HRESULT JpfsvpDeleteTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table
+	);
+
+/*++
+	Routine Description:
+		Add an entry to the tracepoint table. 
+
+	Return Value:
+		S_OK is successfully inserted.
+		JPFSV_E_TRACEPOINT_EXISTS is an entry already existed for 
+			this procedure.
+--*/
+HRESULT JpfsvpAddEntryTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in JPFBT_PROCEDURE Proc
+	);
+
+/*++
+	Routine Description:
+		Remove an entry from the tracepoint table. 
+
+	Return Value:
+		S_OK is successfully inserted.
+		JPFSV_E_TRACEPOINT_NOT_FOUND if entry not found.
+--*/
+HRESULT JpfsvpRemoveEntryTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in JPFBT_PROCEDURE Proc
+	);
+
+/*++
+	Routine Description:
+		Check if a tracepoint entry exists.
+--*/
+BOOL JpfsvpExistsEntryTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in JPFBT_PROCEDURE Proc
+	);
+
+/*++
+	Routine Description:
+		Get number of tracepoints.
+--*/
+UINT JpfsvpGetEntryCountTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table
 	);
 
 /*----------------------------------------------------------------------

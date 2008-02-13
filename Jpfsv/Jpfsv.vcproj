@@ -152,6 +152,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\jpfsv\tracetab.c"
+					>
+				</File>
+				<File
 					RelativePath=".\jpfsv\util.c"
 					>
 				</File>

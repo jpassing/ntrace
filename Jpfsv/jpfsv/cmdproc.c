@@ -7,7 +7,6 @@
  */
 
 #include <jpfsv.h>
-#include <hashtable.h>
 #include <stdlib.h>
 #include <shellapi.h>
 #include "internal.h"
@@ -110,20 +109,6 @@ static BOOL JpfsvsEqualsCommandName(
 	PWSTR Rhs = ( PWSTR ) ( PVOID ) KeyRhs;
 	
 	return 0 == wcscmp( Lhs, Rhs );
-}
-
-static PVOID JpfsvsAllocateHashtableMemory(
-	__in SIZE_T Size 
-	)
-{
-	return malloc( Size );
-}
-
-static VOID JpfsvsFreeHashtableMemory(
-	__in PVOID Mem
-	)
-{
-	free( Mem );
 }
 
 /*----------------------------------------------------------------------
@@ -463,8 +448,8 @@ HRESULT JpfsvCreateCommandProcessor(
 
 	if ( ! JphtInitializeHashtable(
 		&Processor->Commands,
-		JpfsvsAllocateHashtableMemory,
-		JpfsvsFreeHashtableMemory,
+		JpfsvpAllocateHashtableMemory,
+		JpfsvpFreeHashtableMemory,
 		JpfsvsHashCommandName,
 		JpfsvsEqualsCommandName,
 		_countof( JpfsvsBuiltInCommands ) * 2 - 1 ) )

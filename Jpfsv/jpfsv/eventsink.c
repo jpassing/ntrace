@@ -10,10 +10,10 @@
 
 VOID Indent( UINT Depth )
 {
-	UINT Index;
-	ASSERT( Depth < 16 );
-	for ( Index = 0; Index < Depth; Index++ )
-		wprintf( L" " );
+	//UINT Index;
+	//ASSERT( Depth < 16 );
+	//for ( Index = 0; Index < Depth; Index++ )
+	//	wprintf( L" " );
 }
 
 VOID JpfsvpProcessEvent(

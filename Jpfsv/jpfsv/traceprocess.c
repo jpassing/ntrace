@@ -360,8 +360,8 @@ static HRESULT JpfsvsInstrumentProcedureTraceSession(
 	NTSTATUS Status;
 
 	if ( ! TraceSession ||
-		 ( Action != JpfsvEnableProcedureTracing && 
-		   Action != JpfsvDisableProcedureTracing ) ||
+		 ( Action != JpfsvAddTracepoint && 
+		   Action != JpfsvRemoveTracepoint ) ||
 		 ProcedureCount == 0 ||
 		 ! Procedures ||
 		 ! FailedProcedure )
@@ -371,7 +371,7 @@ static HRESULT JpfsvsInstrumentProcedureTraceSession(
 
 	Status = JpufbtInstrumentProcedure(
 		TraceSession->UfbtSession,
-		Action == JpfsvEnableProcedureTracing
+		Action == JpfsvAddTracepoint
 			? JpfbtAddInstrumentation
 			: JpfbtRemoveInstrumentation,
 		ProcedureCount,

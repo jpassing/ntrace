@@ -61,3 +61,16 @@ BOOL JpfsvpIsWhitespaceOnly(
 	return wsOnly;
 }
 
+PVOID JpfsvpAllocateHashtableMemory(
+	__in SIZE_T Size 
+	)
+{
+	return malloc( Size );
+}
+
+VOID JpfsvpFreeHashtableMemory(
+	__in PVOID Mem
+	)
+{
+	free( Mem );
+}
