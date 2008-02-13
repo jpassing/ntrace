@@ -7,7 +7,7 @@
  */
 #include "internal.h"
 
-HRESULT JpfbtIsHotpatchable(
+HRESULT JpfbtIsProcedureHotpatchable(
 	__in HANDLE Process,
 	__in DWORD_PTR ProcAddress,
 	__out PBOOL Hotpatchable
@@ -32,7 +32,7 @@ HRESULT JpfbtIsHotpatchable(
 	}
 }
 
-HRESULT JpfbtGetFunctionPaddingSize(
+HRESULT JpfbtGetProcedurePaddingSize(
 	__in HANDLE Process,
 	__in DWORD_PTR ProcAddress,
 	__out PUINT PaddingSize

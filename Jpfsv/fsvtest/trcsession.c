@@ -34,7 +34,7 @@ static BOOL AddProcedureSymCallback(
 		BOOL Hotpatchable;
 		UINT PaddingSize;
 
-		TEST_OK( JpfbtIsHotpatchable(
+		TEST_OK( JpfbtIsProcedureHotpatchable(
 			Set->Process,
 			( DWORD_PTR ) SymInfo->Address,
 			&Hotpatchable ) );
@@ -44,7 +44,7 @@ static BOOL AddProcedureSymCallback(
 			return TRUE;
 		}
 
-		TEST_OK( JpfbtGetFunctionPaddingSize(
+		TEST_OK( JpfbtGetProcedurePaddingSize(
 			Set->Process,
 			( DWORD_PTR ) SymInfo->Address,
 			&PaddingSize ) );
@@ -216,7 +216,7 @@ static VOID TestTraceNotepad()
 
 	TEST( Set.Count > 0 );
 
-	TEST_OK( JpfsvConfigureTraceContext(
+	TEST_OK( JpfsvSetTracePointsContext(
 		NpCtx,
 		JpfsvEnableProcedureTracing,
 		Set.Count,
@@ -234,7 +234,7 @@ static VOID TestTraceNotepad()
 	////
 	//TEST( E_UNEXPECTED == JpfsvStopTraceContext( NpCtx ) );
 
-	TEST_OK( JpfsvConfigureTraceContext(
+	TEST_OK( JpfsvSetTracePointsContext(
 		NpCtx,
 		JpfsvDisableProcedureTracing,
 		Set.Count,

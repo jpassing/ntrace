@@ -17,6 +17,12 @@ typedef PVOID JPFSV_HANDLE;
 
 #define JPFSV_KERNEL	( ( DWORD ) -1 )
 
+/*----------------------------------------------------------------------
+ *
+ * Tracing.
+ *
+ */
+
 /*++
 	Routine Description:
 		Attach to context, i.e. attach to the process s.t. tracing
@@ -106,7 +112,7 @@ typedef enum
 			If instrumentation of a certain procedure failed, 
 			FailedProcedure is set.
 --*/
-HRESULT JpfsvConfigureTraceContext(
+HRESULT JpfsvSetTracePointsContext(
 	__in JPFSV_HANDLE ContextHandle,
 	__in JPFSV_TRACE_ACTION Action,
 	__in UINT ProcedureCount,
@@ -114,13 +120,37 @@ HRESULT JpfsvConfigureTraceContext(
 	__out_opt DWORD_PTR *FailedProcedure
 	);
 
+/*++
+	Routine Description:
+		Callback definition used by JpfsvEnumTracePointsContext.
+
+	Parameters:
+		ProcAddress		VA of procedure.
+		SymbolInfo		dbghelp!SYMBOL_INFO strcuture.
+		Context			Caller-supplied context.
+--*/
+typedef HRESULT ( * JPFSV_ENUM_TRACEPOINTS_ROUTINE ) (
+	__in DWORD_PTR ProcAddress,
+	__in CONST PVOID SymbolInfo,
+	__in_opt PVOID Context
+	);
+
+/*++
+	Routine Description:
+		Enumerate all active tracepoints.
+--*/
+HRESULT JpfsvEnumTracePointsContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_ENUM_TRACEPOINTS_ROUTINE Callback,
+	__in_opt PVOID CallbackContext
+	);
 
 /*++
 	Routine Description:
 		Determine if a procedure is hotpatchable 
 		(i.e. compiled with /hotpatch).
 --*/
-HRESULT JpfbtIsHotpatchable(
+HRESULT JpfbtIsProcedureHotpatchable(
 	__in HANDLE Process,
 	__in DWORD_PTR ProcAddress,
 	__out PBOOL Hotpatchable
@@ -131,7 +161,7 @@ HRESULT JpfbtIsHotpatchable(
 		Determine padding of a procedure
 		(i.e. linked with /functionpadmin:?).
 --*/
-HRESULT JpfbtGetFunctionPaddingSize(
+HRESULT JpfbtGetProcedurePaddingSize(
 	__in HANDLE Process,
 	__in DWORD_PTR ProcAddress,
 	__out PUINT PaddingSize

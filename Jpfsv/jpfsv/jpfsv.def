@@ -18,6 +18,6 @@ EXPORTS
 	JpfsvDetachContext
 	JpfsvStartTraceContext
 	JpfsvStopTraceContext
-	JpfsvConfigureTraceContext
-	JpfbtIsHotpatchable
-	JpfbtGetFunctionPaddingSize
+	JpfsvSetTracePointsContext
+	JpfbtIsProcedureHotpatchable
+	JpfbtGetProcedurePaddingSize

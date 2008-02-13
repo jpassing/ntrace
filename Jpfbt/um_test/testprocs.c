@@ -238,7 +238,7 @@ static VOID UnpatchAll()
 			JPFBT_PROCEDURE InvalidUnpatchProc;
 			InvalidUnpatchProc.u.Procedure = ProcSet->SampleProcs[ Index ].Proc;
 
-			TEST( 0xC000000DL == JpfbtInstrumentProcedure( 
+			TEST( STATUS_FBT_NOT_PATCHED == JpfbtInstrumentProcedure( 
 				JpfbtRemoveInstrumentation, 
 				1, 
 				&InvalidUnpatchProc, 

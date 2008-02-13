@@ -50,8 +50,7 @@ static void TestUfbt()
 	JPFBT_PROCEDURE PatchProcs[] =
 	{
 		NULL,									// see below.
-		( PVOID ) ProcessEvents,				
-		( PVOID ) ProcessEvents					// Duplicate!
+		( PVOID ) ProcessEvents
 	};
 	JPFBT_PROCEDURE NoPatchProcs[] =
 	{

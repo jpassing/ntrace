@@ -845,7 +845,7 @@ HRESULT JpfsvStopTraceContext(
 	return Hr;
 }
 
-HRESULT JpfsvConfigureTraceContext(
+HRESULT JpfsvSetTracePointsContext(
 	__in JPFSV_HANDLE ContextHandle,
 	__in JPFSV_TRACE_ACTION Action,
 	__in UINT ProcedureCountRaw,
