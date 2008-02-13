@@ -8,6 +8,14 @@
 #include "internal.h"
 #include <stdio.h>
 
+VOID Indent( UINT Depth )
+{
+	UINT Index;
+	ASSERT( Depth < 16 );
+	for ( Index = 0; Index < Depth; Index++ )
+		wprintf( L" " );
+}
+
 VOID JpfsvpProcessEvent(
 	__in JPFSV_EVENT_TYPE Type,
 	__in DWORD ThreadId,
@@ -18,12 +26,17 @@ VOID JpfsvpProcessEvent(
 	__in JPDIAG_SESSION_HANDLE DiagSession
 	)
 {
+	static UINT Depth;
 	if ( Type == JpfsvFunctionEntryEventType )
 	{
+		Indent( Depth );
 		wprintf( L"--> %p\n", Procedure.u.Procedure );
+		Depth++;
 	}
 	else
 	{
+		Depth--;
+		Indent( Depth );
 		wprintf( L"<-- %p\n", Procedure.u.Procedure );
 	}
 

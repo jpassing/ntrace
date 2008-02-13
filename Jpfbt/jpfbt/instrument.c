@@ -588,7 +588,7 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 			//
 			// Invalid target.
 			//
-			Status = STATUS_INVALID_PARAMETER;
+			Status = STATUS_FBT_NOT_PATCHED;
 
 			if ( FailedProcedure )
 			{

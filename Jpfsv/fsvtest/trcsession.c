@@ -14,7 +14,7 @@
 typedef struct _PROC_SET
 {
 	HANDLE Process;
-	DWORD_PTR Procedures[ 16 ];
+	DWORD_PTR Procedures[ 256 ];
 	UINT Count;
 } PROC_SET, *PPROC_SET;
 
@@ -33,7 +33,6 @@ static BOOL AddProcedureSymCallback(
 	{
 		BOOL Hotpatchable;
 		UINT PaddingSize;
-		UINT Index;
 
 		TEST_OK( JpfbtIsHotpatchable(
 			Set->Process,
@@ -72,40 +71,6 @@ static BOOL AddProcedureSymCallback(
 	}
 
 	return TRUE;
-}
-
-static VOID TraceProcedures(
-	__in JPFSV_HANDLE ContextHandle,
-	__in JPFSV_TRACE_ACTION Action
-	)
-{
-	PROC_SET Set;
-	DWORD_PTR FailedProc;
-
-	Set.Count = 0;
-	Set.Process = JpfsvGetProcessHandleContext( ContextHandle );
-
-	TEST( Set.Process );
-
-	//
-	// Get some procedures.
-	//
-	TEST( SymEnumSymbols(
-		Set.Process,
-		0,
-		L"user32!*",
-		AddProcedureSymCallback,
-		&Set ) );
-
-	TEST( Set.Count > 0 );
-
-	TEST_OK( JpfsvConfigureTraceContext(
-		ContextHandle,
-		Action,
-		Set.Count,
-		Set.Procedures,
-		&FailedProc ) );
-	TEST( FailedProc == 0 );
 }
 
 static BOOL HasUfagBeenLoaded(
@@ -203,6 +168,8 @@ static VOID TestTraceNotepad()
 	PROCESS_INFORMATION pi;
 	JPFSV_HANDLE NpCtx;
 	JPDIAG_SESSION_HANDLE DiagSession;
+	PROC_SET Set;
+	DWORD_PTR FailedProc;
 
 	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
 
@@ -222,6 +189,20 @@ static VOID TestTraceNotepad()
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
 	TEST_OK( JpfsvAttachContext( NpCtx ) );
 
+	//
+	// Instrument some procedures.
+	//
+	Set.Count = 0;
+	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
+	TEST( Set.Process );
+
+	TEST( SymEnumSymbols(
+		Set.Process,
+		0,
+		L"user32!*",
+		AddProcedureSymCallback,
+		&Set ) );
+
 	TEST_OK( JpfsvStartTraceContext(
 		NpCtx,
 		5,
@@ -233,19 +214,33 @@ static VOID TestTraceNotepad()
 		1024,
 		DiagSession ) );
 
-	TraceProcedures( NpCtx, JpfsvEnableProcedureTracing );
-	
+	TEST( Set.Count > 0 );
+
+	TEST_OK( JpfsvConfigureTraceContext(
+		NpCtx,
+		JpfsvEnableProcedureTracing,
+		Set.Count,
+		Set.Procedures,
+		&FailedProc ) );
+	TEST( FailedProc == 0 );
+
 	//
 	// Pump a little...
 	//
-	Sleep( 1000 );
+	Sleep( 2000 );
 
 	////
 	//// Stop while tracing active!
 	////
 	//TEST( E_UNEXPECTED == JpfsvStopTraceContext( NpCtx ) );
 
-	TraceProcedures( NpCtx, JpfsvDisableProcedureTracing );
+	TEST_OK( JpfsvConfigureTraceContext(
+		NpCtx,
+		JpfsvDisableProcedureTracing,
+		Set.Count,
+		Set.Procedures,
+		&FailedProc ) );
+	TEST( FailedProc == 0 );
 
 	TEST_OK( JpfsvStopTraceContext( NpCtx ) );
 	TEST_OK( JpfsvDetachContext( NpCtx ) );
