@@ -32,10 +32,10 @@ DWORD ServerProc( PVOID PvPort )
 	UINT Iteration = 0;
 	BOOL Continue = TRUE;
 
-	TEST_SUCCESS( JpqlpcReceive( Port, ( PJPQLPC_MESSAGE* ) &Msg ) );
+	TEST_SUCCESS( JpqlpcReceive( Port, FALSE, ( PJPQLPC_MESSAGE* ) &Msg ) );
 
 	TEST( NTSTATUS_QLPC_INVALID_OPERATION == 
-		JpqlpcReceive( Port, ( PJPQLPC_MESSAGE* ) &Msg ) );
+		JpqlpcReceive( Port, FALSE, ( PJPQLPC_MESSAGE* ) &Msg ) );
 
 	while ( Continue )
 	{
@@ -70,6 +70,7 @@ DWORD ServerProc( PVOID PvPort )
 			Port,
 			Continue ? INFINITE : 0,
 			( PJPQLPC_MESSAGE ) Msg,
+			FALSE, 
 			( PJPQLPC_MESSAGE* ) &Msg );
 
 		TEST( Status == Continue ? STATUS_SUCCESS : STATUS_TIMEOUT );
@@ -103,6 +104,7 @@ DWORD ClientProc( PVOID PvPort )
 			Port,
 			INFINITE,
 			( PJPQLPC_MESSAGE ) ( Iteration == 0 ? &InitialMsg : Msg ),
+			FALSE, 
 			( PJPQLPC_MESSAGE* ) &Msg ) );
 		TEST( Msg );
 		
@@ -126,6 +128,7 @@ DWORD ClientProc( PVOID PvPort )
 		Port,
 		INFINITE,
 		( PJPQLPC_MESSAGE ) Msg,
+		FALSE, 
 		( PJPQLPC_MESSAGE* ) &Msg ) );
 	TEST( Msg );
 	TEST( Msg->Base.MessageId == SHUTDOWN_ACK );

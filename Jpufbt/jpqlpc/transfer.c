@@ -42,10 +42,12 @@ NTSTATUS JpqlpcSendReceive(
 	__in JPQLPC_PORT_HANDLE PortHandle,
 	__in ULONG Timeout,
 	__in PJPQLPC_MESSAGE SendMsg,
+	__in BOOL Alertable,
 	__out_opt PJPQLPC_MESSAGE *RecvMsg
 	)
 {
 	PJPQLPC_PORT Port = ( PJPQLPC_PORT ) PortHandle;
+	DWORD WaitResult;
 
 	if ( ! Port || 
 		 ! SendMsg ||
@@ -119,11 +121,16 @@ NTSTATUS JpqlpcSendReceive(
 	//
 	// Signal peer and wait for next receive.
 	//
-	if ( WAIT_TIMEOUT != SignalObjectAndWait(
+	WaitResult = SignalObjectAndWait(
 		Port->EventPair.Host,
 		Port->EventPair.Peer,
 		Timeout,
-		FALSE ) )
+		Alertable );
+	if ( WAIT_IO_COMPLETION == WaitResult )
+	{
+		return STATUS_ALERTED;
+	}
+	else if ( WAIT_TIMEOUT != WaitResult )
 	{
 		*RecvMsg = Port->SharedMemory.SharedMessage;
 		return STATUS_SUCCESS;
@@ -136,10 +143,12 @@ NTSTATUS JpqlpcSendReceive(
 
 NTSTATUS JpqlpcReceive(
 	__in JPQLPC_PORT_HANDLE PortHandle,
+	__in BOOL Alertable,
 	__out PJPQLPC_MESSAGE *Message
 	)
 {
 	PJPQLPC_PORT Port = ( PJPQLPC_PORT ) PortHandle;
+	NTSTATUS Status;
 
 	if ( ! Port || 
 		 ! Message ||
@@ -158,12 +167,20 @@ NTSTATUS JpqlpcReceive(
 	// perform this initial wait. For subsequent send/receive
 	// operations all waiting is done in JpqlpcSendReceive.
 	//
-	WaitForSingleObject(
+	if ( WAIT_IO_COMPLETION == WaitForSingleObjectEx(
 		Port->EventPair.Peer,
-		INFINITE );
+		INFINITE,
+		Alertable ) )
+	{
+		Status = STATUS_ALERTED;
+	}
+	else
+	{
+		Status = STATUS_SUCCESS;
+	}
 
 	Port->InitialReceiveDone = TRUE;
 	*Message = Port->SharedMemory.SharedMessage;
 
-	return STATUS_SUCCESS;
+	return Status;
 }

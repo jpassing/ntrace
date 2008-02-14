@@ -10,6 +10,7 @@
 
 VOID Indent( UINT Depth )
 {
+	UNREFERENCED_PARAMETER( Depth );
 	//UINT Index;
 	//ASSERT( Depth < 16 );
 	//for ( Index = 0; Index < Depth; Index++ )

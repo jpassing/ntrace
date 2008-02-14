@@ -17,6 +17,7 @@ PJPUFAG_MESSAGE UfagSendEmptyMessage(
 		CliPort,
 		INFINITE,
 		&Req.Header,
+		FALSE, 
 		( PJPQLPC_MESSAGE* ) &Res ) );
 
 	return Res;
@@ -47,6 +48,7 @@ PJPUFAG_MESSAGE UfagSendInitializeTracingMessage(
 		CliPort,
 		INFINITE,
 		&Req.Header,
+		FALSE, 
 		( PJPQLPC_MESSAGE* ) &Res ) );
 
 	return Res;
@@ -93,6 +95,7 @@ PJPUFAG_MESSAGE UfagSendInstrumentMessage(
 		CliPort,
 		INFINITE,
 		&Req.Header,
+		FALSE, 
 		( PJPQLPC_MESSAGE* ) &Res ) );
 
 	return Res;
@@ -203,7 +206,7 @@ static void TestServer()
 		// Invalid attempt to shutdown all.
 		//
 		Msg = UfagSendEmptyMessage( CliPort, JPUFAG_MSG_SHUTDOWN_REQUEST );
-		TEST( Msg->Body.Status == NTSTATUS_UFBT_STILL_ACTIVE );
+		TEST( Msg->Body.Status == STATUS_UFBT_STILL_ACTIVE );
 
 		//
 		// Instrument.

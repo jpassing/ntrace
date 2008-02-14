@@ -51,8 +51,29 @@ typedef struct _JPUFBT_SESSION
 		//
 		CRITICAL_SECTION Lock;
 		JPQLPC_PORT_HANDLE ClientPort;
+
+		//
+		// Thread currently doing QLPC - this thread always also
+		// owns the Lock.
+		//
+		HANDLE ActiveThread;
+
+		//
+		// Indicates whether the peer process is still alive.
+		//
+		BOOL PeerActive;
 	} Qlpc;
+
+	//
+	// Peer process.
+	//
 	HANDLE Process;
+
+	//
+	// RegisterWaitForSingleObject-WaitHandle used for detecting
+	// peer death.
+	//
+	HANDLE PeerDeathWaitHandle;
 } JPUFBT_SESSION, *PJPUFBT_SESSION;
 
 

@@ -37,13 +37,62 @@ static NTSTATUS JpufbtsCall(
 	__out PJPUFAG_MESSAGE *Response
 	)
 {
-	NTSTATUS Status = JpqlpcSendReceive(
+	NTSTATUS Status;
+	HANDLE CurThread;
+	
+	if ( ! Session->Qlpc.PeerActive )
+	{
+		//
+		// Peer died - do not even try to call.
+		//
+		return STATUS_UFBT_PEER_DIED;
+	}
+
+	//
+	// We are about to call the peer. We do not know for sure whether
+	// the peer is still alive, has been killed or is just about to
+	// be killed.
+	// Therefore, we save our (real!) thread handle in the session s.t.
+	// the APC fired on peer deach will unblock the (alertable) wait.
+	//
+	if ( ! DuplicateHandle(
+		GetCurrentProcess(),
+		GetCurrentThread(),		// Pseudo-handle!
+		GetCurrentProcess(),
+		&Session->Qlpc.ActiveThread,
+		0,
+		FALSE,
+		DUPLICATE_SAME_ACCESS ) )
+	{
+		return STATUS_INVALID_HANDLE;
+	}
+
+	Status = JpqlpcSendReceive(
 		Session->Qlpc.ClientPort,
 		Timeout,
 		( PJPQLPC_MESSAGE ) Request,
+		TRUE,
 		( PJPQLPC_MESSAGE* ) Response );
 
-	if ( STATUS_TIMEOUT == Status )
+	//
+	// We do not need the (real) thread handle any more.
+	//
+	CurThread = Session->Qlpc.ActiveThread;
+	Session->Qlpc.ActiveThread = NULL;
+	VERIFY( CloseHandle( CurThread ) );
+
+	if ( STATUS_ALERTED == Status )
+	{
+		//
+		// PeerDeathApc delivered.
+		//
+		// To avoid subsequent calls, set flag.
+		//
+		Session->Qlpc.PeerActive = FALSE;
+
+		return STATUS_UFBT_PEER_DIED;
+	}
+	else if ( STATUS_TIMEOUT == Status )
 	{
 		return Status;
 	}
@@ -57,7 +106,7 @@ static NTSTATUS JpufbtsCall(
 			// Invalid format.
 			//
 			TRACE( ( "Invalid peer msg\n" ) );
-			return NTSTATUS_UFBT_INVALID_PEER_MSG;
+			return STATUS_UFBT_INVALID_PEER_MSG;
 		}
 		else if ( ( *Response )->Header.MessageId == JPUFAG_MSG_COMMUNICATION_ERROR )
 		{
@@ -74,7 +123,7 @@ static NTSTATUS JpufbtsCall(
 			//
 			TRACE( ( "Unexpected message %d received\n",  
 				( *Response )->Header.MessageId ) );
-			return NTSTATUS_UFBT_UNEXPECTED_PEER_MSG;
+			return STATUS_UFBT_UNEXPECTED_PEER_MSG;
 		}
 		else
 		{
@@ -128,7 +177,7 @@ NTSTATUS JpufbtpShutdown(
 		// This should not occur as we used INFINITE.
 		// Promote it to an error.
 		//
-		Status = NTSTATUS_UFBT_TIMED_OUT;
+		Status = STATUS_UFBT_TIMED_OUT;
 	}
 	else if ( NT_SUCCESS( Status ) )
 	{
@@ -199,7 +248,7 @@ NTSTATUS JpufbtInitializeTracing(
 		// This should not occur as we used INFINITE.
 		// Promote it to an error.
 		//
-		Status = NTSTATUS_UFBT_TIMED_OUT;
+		Status = STATUS_UFBT_TIMED_OUT;
 	}
 	else if ( NT_SUCCESS( Status ) )
 	{
@@ -259,7 +308,7 @@ NTSTATUS JpufbtReadTrace(
 		// This should not occur as we used INFINITE.
 		// Promote it to an error.
 		//
-		Status = NTSTATUS_UFBT_TIMED_OUT;
+		Status = STATUS_UFBT_TIMED_OUT;
 	}
 	else if ( NT_SUCCESS( Status ) )
 	{
@@ -286,7 +335,7 @@ NTSTATUS JpufbtReadTrace(
 					JPUFAG_MESSAGE,
 					Body.Status ) )
 			{
-				Status = NTSTATUS_UFBT_INVALID_PEER_MSG_FMT;
+				Status = STATUS_UFBT_INVALID_PEER_MSG_FMT;
 			}
 			else if ( Response->Body.ReadTraceResponse.EventCount > 0 )
 			{
@@ -354,7 +403,7 @@ NTSTATUS JpufbtShutdownTracing(
 			// This should not occur as we used INFINITE.
 			// Promote it to an error.
 			//
-			Status = NTSTATUS_UFBT_TIMED_OUT;
+			Status = STATUS_UFBT_TIMED_OUT;
 		}
 		else if ( NT_SUCCESS( Status ) )
 		{
@@ -381,7 +430,7 @@ NTSTATUS JpufbtShutdownTracing(
 						JPUFAG_MESSAGE,
 						Body.Status ) )
 				{
-					Status = NTSTATUS_UFBT_INVALID_PEER_MSG_FMT;
+					Status = STATUS_UFBT_INVALID_PEER_MSG_FMT;
 				}
 				else if ( Response->Body.ReadTraceResponse.EventCount > 0 )
 				{
@@ -480,7 +529,7 @@ NTSTATUS JPFBTCALLTYPE JpufbtInstrumentProcedure(
 		// This should not occur as we used INFINITE.
 		// Promote it to an error.
 		//
-		Status = NTSTATUS_UFBT_TIMED_OUT;
+		Status = STATUS_UFBT_TIMED_OUT;
 	}
 	else if ( NT_SUCCESS( Status ) )
 	{

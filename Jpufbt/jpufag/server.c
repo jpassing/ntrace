@@ -140,6 +140,7 @@ VOID JpufagpRunServerStateMachine(
 			State->ServerPort,
 			Continue || WaitForFollowupMessage ? INFINITE : 0,
 			( PJPQLPC_MESSAGE ) State->CurrentMessage,
+			FALSE,
 			( PJPQLPC_MESSAGE* ) &RecvMsg );
 		if ( STATUS_SUCCESS != Status )
 		{
@@ -178,6 +179,7 @@ DWORD CALLBACK JpufagpServerProc(
 	//
 	Status = JpqlpcReceive( 
 		State.ServerPort, 
+		FALSE,
 		( PJPQLPC_MESSAGE* ) &State.CurrentMessage );
 	ASSERT( NT_SUCCESS( Status ) );
 	if ( ! NT_SUCCESS( Status ) )

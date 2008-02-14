@@ -88,6 +88,10 @@
 				RelativePath=".\DIRS"
 				>
 			</File>
+			<File
+				RelativePath="..\Todo.txt"
+				>
+			</File>
 			<Filter
 				Name="jpfsv"
 				>

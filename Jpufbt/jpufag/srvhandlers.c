@@ -188,7 +188,7 @@ static VOID JpufagsShutdownTracingHandler(
 		Message->Body.ReadTraceResponse.Status = 
 			State->TracingInitialized 
 				? STATUS_INVALID_PARAMETER
-				: NTSTATUS_UFBT_TRACING_NOT_INITIALIZED;
+				: STATUS_UFBT_TRACING_NOT_INITIALIZED;
 
 		*ContinueServing = InShutdownStateMachine
 			? FALSE
@@ -401,7 +401,7 @@ static VOID JpufagsShutdownHandler(
 	else if ( State->TracingInitialized )
 	{
 		*ContinueServing = TRUE;
-		Status = NTSTATUS_UFBT_STILL_ACTIVE;
+		Status = STATUS_UFBT_STILL_ACTIVE;
 	}
 	else
 	{

@@ -178,6 +178,14 @@ HRESULT JpfsvpRemoveAllTracepointsInTracepointTable(
 
 	ASSERT( SUCCEEDED( Hr ) == ( FailedProc.u.Procedure == NULL ) );
 
+	if ( Hr == JPFSV_E_PEER_DIED )
+	{
+		//
+		// Peer died, then de-instrumentation is futile anyway.
+		//
+		Hr = S_OK;
+	}
+
 	free( ProcedureArray.Procedures );
 
 	return Hr;

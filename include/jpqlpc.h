@@ -4,6 +4,9 @@
  * Purpose:
  *		JP Quick Local Procedure Call Library.
  *
+ *		The library is not threadsafe. All usage must be properly
+ *		serialized.
+ *
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
@@ -120,12 +123,14 @@ VOID JpqlpcClosePort(
 		STATUS_SUCCESS on success
 		STATUS_TIMEOUT if timeout elapsed prior to receiving a message
 			*RecvMsg is set to NULL.
+		STATUS_ALERTED if alerted.
 		(any other NTSTATUS) on failure.
 --*/
 NTSTATUS JpqlpcSendReceive(
 	__in JPQLPC_PORT_HANDLE Port,
 	__in ULONG Timeout,
 	__in PJPQLPC_MESSAGE SendMsg,
+	__in BOOL Alertable,
 	__out_opt PJPQLPC_MESSAGE *RecvMsg
 	);
 
@@ -143,8 +148,10 @@ NTSTATUS JpqlpcSendReceive(
 
 	Return Values:
 		STATUS_SUCCESS on success or any failure NTSTATUS.
+		STATUS_ALERTED if alerted.
 --*/
 NTSTATUS JpqlpcReceive(
 	__in JPQLPC_PORT_HANDLE Port,
+	__in BOOL Alertable,
 	__out PJPQLPC_MESSAGE *Message
 	);

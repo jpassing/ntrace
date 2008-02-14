@@ -211,7 +211,14 @@ static HRESULT JpfsvsStartTraceSession(
 		BufferSize );
 	if ( ! NT_SUCCESS( Status ) )
 	{
-		Hr = HRESULT_FROM_NT( Status );
+		if ( Status == STATUS_UFBT_PEER_DIED )
+		{
+			Hr = JPFSV_E_PEER_DIED;
+		}
+		else
+		{
+			Hr = HRESULT_FROM_NT( Status );
+		}
 		goto Cleanup;
 	}
 	else
@@ -282,6 +289,7 @@ static HRESULT JpfsvsStopTraceSession(
 	PUM_TRACE_SESSION TraceSession = ( PUM_TRACE_SESSION ) This;
 	NTSTATUS Status;
 	HRESULT Hr;
+	DWORD ThreadExitCode = STATUS_SUCCESS;
 
 	if ( ! TraceSession )
 	{
@@ -296,14 +304,12 @@ static HRESULT JpfsvsStopTraceSession(
 	if ( TraceSession->EventPump.Thread == NULL )
 	{
 		//
-		// Not started.
+		// Either tracing has not been statred yet or the thread
+		// has ended due to premature peer death.
 		//
-		Hr = E_UNEXPECTED;
 	}
 	else
 	{
-		DWORD ThreadExitCode = 0;
-
 		//
 		// Stop pump.
 		//
@@ -314,33 +320,42 @@ static HRESULT JpfsvsStopTraceSession(
 
 		TraceSession->EventPump.StopEvent = NULL;
 		TraceSession->EventPump.Thread = NULL;
+	}
 
-		//
-		// Stop tracing. Remaining events may have to be delivered.
-		//
-		Status = JpufbtShutdownTracing(
-			TraceSession->UfbtSession,
-			JpfsvsProcessEventsTraceSession,
-			TraceSession );
 
-		if ( NT_SUCCESS( Status ) )
+	//
+	// Stop tracing. Remaining events may have to be delivered.
+	//
+	Status = JpufbtShutdownTracing(
+		TraceSession->UfbtSession,
+		JpfsvsProcessEventsTraceSession,
+		TraceSession );
+
+	if ( NT_SUCCESS( Status ) )
+	{
+		//
+		// Stopping succeeded, but did the thread exit successfully?
+		//
+		if ( ThreadExitCode == STATUS_UFBT_PEER_DIED )
 		{
-			//
-			// Stopping succeeded, but did the thread exit successfully?
-			//
-			if ( ThreadExitCode != STATUS_SUCCESS )
-			{
-				Hr = HRESULT_FROM_NT( ThreadExitCode );
-			}
-			else
-			{
-				Hr = S_OK;
-			}
+			Hr = JPFSV_E_PEER_DIED;
+		}
+		else if ( ThreadExitCode != STATUS_SUCCESS )
+		{
+			Hr = HRESULT_FROM_NT( ThreadExitCode );
 		}
 		else
 		{
-			Hr = HRESULT_FROM_NT( Status );
+			Hr = S_OK;
 		}
+	}
+	else if ( Status == STATUS_UFBT_PEER_DIED )
+	{
+		Hr = JPFSV_E_PEER_DIED;
+	}
+	else
+	{
+		Hr = HRESULT_FROM_NT( Status );
 	}
 
 	LeaveCriticalSection( &TraceSession->EventPump.Lock );
@@ -377,7 +392,12 @@ static HRESULT JpfsvsInstrumentProcedureTraceSession(
 		ProcedureCount,
 		Procedures,
 		FailedProcedure );
-	if ( NT_SUCCESS( Status ) )
+		
+	if ( Status == STATUS_UFBT_PEER_DIED )
+	{
+		return JPFSV_E_PEER_DIED;
+	}
+	else if ( NT_SUCCESS( Status ) )
 	{
 		return S_OK;
 	}

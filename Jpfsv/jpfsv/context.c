@@ -955,10 +955,8 @@ HRESULT JpfsvSetTracePointsContext(
 		
 		ASSERT( ProcedureCountClean <= ProcedureCountRaw );
 
-		if ( SUCCEEDED( Hr ) )
+		if ( SUCCEEDED( Hr ) && ProcedureCountClean > 0 )
 		{
-			ASSERT( ProcedureCountClean > 0 );
-
 			//
 			// Array is clean, instrument.
 			//

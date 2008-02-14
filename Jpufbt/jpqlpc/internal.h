@@ -44,6 +44,7 @@ typedef struct _JPQLPC_PORT
 	//
 	// Event Pair - this process is always the host, the remote
 	// process is the peer.
+	//
 	// Depending on whether this process is a client (i.e. opened
 	// existing port) or the server, the mapping from Peer/Host
 	// to Client/Server swaps.

@@ -15,6 +15,53 @@
 #include <strsafe.h>
 #pragma warning( pop )
 
+static VOID JpufbtsPeerDeathApc(
+	__in ULONG_PTR Param
+	)
+{
+	UNREFERENCED_PARAMETER( Param );
+}
+
+/*++
+	Routine Description:
+		Used for RegisterWaitForSingleObject. Called when
+		a tracee process is terminated.
+
+		Routine is executed at most once per session.
+--*/
+static VOID JpufbtsPeerDeathCallback(
+	__in PVOID Parameter,
+	__in BOOLEAN TimerOrWaitFired
+	)
+{
+	PJPUFBT_SESSION Session = ( PJPUFBT_SESSION ) Parameter;
+	UNREFERENCED_PARAMETER( TimerOrWaitFired );
+
+	//
+	// The peer died and we do not want to block forever. All
+	// client QLPC waiting is done alertable. Thus, in order
+	// to unblock a blocked QLPC-thread, we can queue a dummy APC.
+	//
+	// Note that there is a race - the ActiveThread may be reset
+	// at the same time as we fire the APC. That does not matter -
+	// QueueUserAPC will just fail with STATUS_INVALID_HANDLE.
+	//
+	if ( Session->Qlpc.ActiveThread != NULL )
+	{
+		__try
+		{
+			VERIFY( QueueUserAPC(
+				JpufbtsPeerDeathApc,
+				Session->Qlpc.ActiveThread,
+				0 ) );
+		}
+		__except( GetExceptionCode() == STATUS_INVALID_HANDLE 
+			? EXCEPTION_EXECUTE_HANDLER 
+			: EXCEPTION_CONTINUE_SEARCH )
+		{
+		}
+	}
+}
 
 static NTSTATUS JpufbtsGetAgentDllPath(
 	__in DWORD BufferCch, 
@@ -32,7 +79,7 @@ static NTSTATUS JpufbtsGetAgentDllPath(
 		OwnDllPath,
 		_countof( OwnDllPath ) ) )
 	{
-		return NTSTATUS_UFBT_AGENT_NOT_FOUND;
+		return STATUS_UFBT_AGENT_NOT_FOUND;
 	}
 
 	//
@@ -45,12 +92,12 @@ static NTSTATUS JpufbtsGetAgentDllPath(
 	LastBackslash = wcsrchr( OwnDllPath, L'\\' );
 	if ( 0 == LastBackslash )
 	{
-		return NTSTATUS_UFBT_AGENT_NOT_FOUND;
+		return STATUS_UFBT_AGENT_NOT_FOUND;
 	}
 
 	if ( 0 != _wcsicmp( LastBackslash, L"\\jpufbt.dll" ) )
 	{
-		return NTSTATUS_UFBT_AGENT_NOT_FOUND;
+		return STATUS_UFBT_AGENT_NOT_FOUND;
 	}
 
 	//
@@ -67,7 +114,7 @@ static NTSTATUS JpufbtsGetAgentDllPath(
 		L"%s\\jpufag.dll",
 		OwnDllPath ) ) )
 	{
-		return NTSTATUS_UFBT_AGENT_NOT_FOUND;
+		return STATUS_UFBT_AGENT_NOT_FOUND;
 	}
 
 	return STATUS_SUCCESS;
@@ -104,7 +151,7 @@ static NTSTATUS JpufbtsInjectAgentDll(
 		"LoadLibraryW" );
 	if ( ! LoadLibraryProc )
 	{
-		return NTSTATUS_UFBT_INJECTION_FAILED;
+		return STATUS_UFBT_INJECTION_FAILED;
 	}
 
 	//
@@ -140,7 +187,7 @@ static NTSTATUS JpufbtsInjectAgentDll(
 		( wcslen( AgentDllPath ) + 1 ) * sizeof( WCHAR ),
 		NULL ) )
 	{
-		Status = NTSTATUS_UFBT_INJECTION_FAILED;
+		Status = STATUS_UFBT_INJECTION_FAILED;
 		goto Cleanup;
 	}
 
@@ -157,7 +204,7 @@ static NTSTATUS JpufbtsInjectAgentDll(
 		NULL );
 	if ( ! RemoteThread )
 	{
-		Status = NTSTATUS_UFBT_INJECTION_FAILED;
+		Status = STATUS_UFBT_INJECTION_FAILED;
 		goto Cleanup;
 	}
 
@@ -215,7 +262,8 @@ NTSTATUS JpufbtAttachProcess(
 			| PROCESS_QUERY_INFORMATION
 			| PROCESS_VM_OPERATION
 			| PROCESS_VM_WRITE
-			| PROCESS_VM_READ,
+			| PROCESS_VM_READ
+			| SYNCHRONIZE,
 		FALSE,
 		0 ) )
 	{
@@ -226,7 +274,7 @@ NTSTATUS JpufbtAttachProcess(
 		}
 		else
 		{
-			return NTSTATUS_UFBT_INVALID_HANDLE;
+			return STATUS_UFBT_INVALID_HANDLE;
 		}
 	}
 	
@@ -254,6 +302,8 @@ NTSTATUS JpufbtAttachProcess(
 
 	Session->Signature = JPUFBT_SESSION_SIGNATURE;
 	Session->Process = DupProcessHandle;
+	Session->Qlpc.ActiveThread = NULL;
+	Session->Qlpc.PeerActive = TRUE;
 	InitializeCriticalSection( &Session->Qlpc.Lock );
 
 	//
@@ -283,7 +333,23 @@ NTSTATUS JpufbtAttachProcess(
 		//
 		// The remote peer did not properly open a server port.
 		//
-		Status = NTSTATUS_UFBT_PEER_FAILED;
+		Status = STATUS_UFBT_PEER_FAILED;
+		goto Cleanup;
+	}
+
+	//
+	// Register for process-termination notification s.t. we can
+	// teardown the QLPC connection and avoid blocking forever.
+	//
+	if ( ! RegisterWaitForSingleObject(
+		&Session->PeerDeathWaitHandle,
+		DupProcessHandle,
+		JpufbtsPeerDeathCallback,
+		Session,
+		INFINITE,
+		WT_EXECUTEONLYONCE ) )
+	{
+		Status = STATUS_UFBT_PEER_FAILED;
 		goto Cleanup;
 	}
 
@@ -327,7 +393,7 @@ NTSTATUS JpufbtDetachProcess(
 	// Send shutdown.
 	//
 	Status = JpufbtpShutdown( Session );
-	if ( ! NT_SUCCESS( Status ) )
+	if ( STATUS_SUCCESS != Status && STATUS_UFBT_PEER_DIED != Status )
 	{
 		return Status;
 	}
@@ -345,6 +411,18 @@ NTSTATUS JpufbtDetachProcess(
 	if ( Session->Qlpc.ClientPort )
 	{
 		JpqlpcClosePort( Session->Qlpc.ClientPort );
+	}
+
+	if ( Session->PeerDeathWaitHandle )
+	{
+		//
+		// Note that UnregisterWaitEx is used to wait until all
+		// callbacks have been completed - otherwise our callback
+		// might touch freed memory.
+		//
+		VERIFY( UnregisterWaitEx( 
+			Session->PeerDeathWaitHandle, 
+			INVALID_HANDLE_VALUE ) );
 	}
 
 	DeleteCriticalSection( &Session->Qlpc.Lock );

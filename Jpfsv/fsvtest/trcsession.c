@@ -225,6 +225,13 @@ static VOID TestTraceNotepad()
 		Set.Count,
 		Set.Procedures,
 		&FailedProc ) );
+	// again - should be a noop.
+	TEST_OK( JpfsvSetTracePointsContext(
+		NpCtx,
+		JpfsvAddTracepoint,
+		Set.Count,
+		Set.Procedures,
+		&FailedProc ) );
 	TEST( FailedProc == 0 );
 
 	Tracepoints = JpfsvCountTracePointsContext( NpCtx );
@@ -297,7 +304,156 @@ static VOID TestTraceNotepad()
 	Sleep( 1000 );
 }
 
+static VOID TestDyingPeerWithoutTracing()
+{
+	PROCESS_INFORMATION pi;
+	JPFSV_HANDLE NpCtx;
+	JPDIAG_SESSION_HANDLE DiagSession;
+	PROC_SET Set;
+	DWORD_PTR FailedProc;
+
+	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
+
+	//
+	// Launch notepad.
+	//
+	LaunchNotepad( &pi );
+
+	//
+	// Give notepad some time to start...
+	//
+	Sleep( 1000 );
+
+	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
+	TEST_OK( JpfsvAttachContext( NpCtx ) );
+
+	Set.Count = 0;
+	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
+	TEST( Set.Process );
+
+	TEST( SymEnumSymbols(
+		Set.Process,
+		0,
+		L"user32!*",
+		AddProcedureSymCallback,
+		&Set ) );
+
+	//
+	// Kill notepad.
+	//
+	TEST( TerminateProcess( pi.hProcess, 0 ) );
+	CloseHandle( pi.hProcess );
+	CloseHandle( pi.hThread );
+
+	//
+	// Instrument some procedures - the dying peer-mechanism should
+	// kick in.
+	//
+	TEST( JPFSV_E_PEER_DIED == JpfsvStartTraceContext(
+		NpCtx,
+		5,
+		1024,
+		DiagSession ) );
+	TEST( Set.Count > 0 );
+
+	TEST( JPFSV_E_PEER_DIED  == JpfsvSetTracePointsContext(
+		NpCtx,
+		JpfsvAddTracepoint,
+		Set.Count,
+		Set.Procedures,
+		&FailedProc ) );
+
+	TEST( JPFSV_E_PEER_DIED  == JpfsvStopTraceContext( NpCtx ) );
+
+	TEST_OK( JpfsvDetachContext( NpCtx ) );
+	TEST_OK( JpfsvUnloadContext( NpCtx ) );
+
+	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
+
+	//
+	// Wait i.o. not to confuse further tests with dying process.
+	//
+	Sleep( 1000 );
+}
+
+static VOID TestDyingPeerWithTracing()
+{
+	PROCESS_INFORMATION pi;
+	JPFSV_HANDLE NpCtx;
+	JPDIAG_SESSION_HANDLE DiagSession;
+	PROC_SET Set;
+	DWORD_PTR FailedProc;
+
+	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
+
+	//
+	// Launch notepad.
+	//
+	LaunchNotepad( &pi );
+
+	//
+	// Give notepad some time to start...
+	//
+	Sleep( 1000 );
+
+	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
+	TEST_OK( JpfsvAttachContext( NpCtx ) );
+
+	Set.Count = 0;
+	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
+	TEST( Set.Process );
+
+	TEST( SymEnumSymbols(
+		Set.Process,
+		0,
+		L"user32!*",
+		AddProcedureSymCallback,
+		&Set ) );
+
+	//
+	// Instrument some procedures
+	//
+	TEST_OK( JpfsvStartTraceContext(
+		NpCtx,
+		5,
+		1024,
+		DiagSession ) );
+	TEST( Set.Count > 0 );
+
+	TEST_OK( JpfsvSetTracePointsContext(
+		NpCtx,
+		JpfsvAddTracepoint,
+		Set.Count,
+		Set.Procedures,
+		&FailedProc ) );
+
+	Sleep( 1000 );
+
+	//
+	// Kill notepad - the dying peer-mechanism should
+	// kick in *on the read thread*.
+	//
+	TEST( TerminateProcess( pi.hProcess, 0 ) );
+	CloseHandle( pi.hProcess );
+	CloseHandle( pi.hThread );
+
+	TEST( JPFSV_E_PEER_DIED == JpfsvStopTraceContext( NpCtx ) );
+
+	TEST_OK( JpfsvDetachContext( NpCtx ) );
+	TEST_OK( JpfsvUnloadContext( NpCtx ) );
+
+	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
+
+	//
+	// Wait i.o. not to confuse further tests with dying process.
+	//
+	Sleep( 1000 );
+}
+
+
 BEGIN_FIXTURE( TraceSession )
 	FIXTURE_ENTRY( TestAttachDetachNotepad )
 	FIXTURE_ENTRY( TestTraceNotepad )
+	FIXTURE_ENTRY( TestDyingPeerWithoutTracing )
+	FIXTURE_ENTRY( TestDyingPeerWithTracing )
 END_FIXTURE()
