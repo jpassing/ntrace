@@ -15,6 +15,8 @@
 #include <strsafe.h>
 #pragma warning( pop )
 
+#define NOP ( 0 )
+
 static VOID JpufbtsPeerDeathApc(
 	__in ULONG_PTR Param
 	)
@@ -59,6 +61,7 @@ static VOID JpufbtsPeerDeathCallback(
 			? EXCEPTION_EXECUTE_HANDLER 
 			: EXCEPTION_CONTINUE_SEARCH )
 		{
+			NOP;
 		}
 	}
 }

@@ -96,15 +96,11 @@
 				Name="jpfsv"
 				>
 				<File
-					RelativePath=".\jpfsv\cmdbasics.c"
-					>
-				</File>
-				<File
 					RelativePath=".\jpfsv\cmdproc.c"
 					>
 				</File>
 				<File
-					RelativePath=".\jpfsv\cmdsym.c"
+					RelativePath=".\jpfsv\cmdtracepnt.c"
 					>
 				</File>
 				<File
@@ -163,6 +159,22 @@
 					RelativePath=".\jpfsv\util.c"
 					>
 				</File>
+				<Filter
+					Name="Commands"
+					>
+					<File
+						RelativePath=".\jpfsv\cmdattach.c"
+						>
+					</File>
+					<File
+						RelativePath=".\jpfsv\cmdbasics.c"
+						>
+					</File>
+					<File
+						RelativePath=".\jpfsv\cmdsym.c"
+						>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="fsvtest"

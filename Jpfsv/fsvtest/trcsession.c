@@ -104,6 +104,29 @@ static BOOL HasUfagBeenLoaded(
 	return UfagLoaded;
 }
 
+HRESULT DetachContextSafe( 
+	__in JPFSV_HANDLE ContextHandle
+	)
+{
+	HRESULT Hr = E_UNEXPECTED;
+	UINT Attempt;
+	
+	for ( Attempt = 0; Attempt < 10; Attempt++ )
+	{
+		Hr = JpfsvDetachContext( ContextHandle );
+		if ( JPFSV_E_TRACES_ACTIVE == Hr )
+		{
+			CFIX_LOG( L"Traces still active (Attempt %d)\n", Attempt );
+			Sleep( 500 );
+		}
+		else
+		{
+			break;
+		}
+	}
+	
+	return Hr;
+}
 /*----------------------------------------------------------------------
  *
  * Test cases.
@@ -127,7 +150,7 @@ static VOID TestAttachDetachNotepad()
 
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
 
-	TEST( E_UNEXPECTED == JpfsvDetachContext( NpCtx ) );
+	TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( NpCtx ) );
 	TEST_OK( JpfsvAttachContext( NpCtx ) );
 	TEST( S_FALSE == JpfsvAttachContext( NpCtx ) );
 
@@ -136,8 +159,8 @@ static VOID TestAttachDetachNotepad()
 	//
 	TEST( HasUfagBeenLoaded( pi.dwProcessId ) );
 
-	TEST_OK( JpfsvDetachContext( NpCtx ) );
-	TEST( E_UNEXPECTED == JpfsvDetachContext( NpCtx ) );
+	TEST_OK( DetachContextSafe( NpCtx ) );
+	TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( NpCtx ) );
 
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
@@ -286,7 +309,7 @@ static VOID TestTraceNotepad()
 	TEST( 0 == JpfsvCountTracePointsContext( NpCtx ) );
 
 	TEST_OK( JpfsvStopTraceContext( NpCtx ) );
-	TEST_OK( JpfsvDetachContext( NpCtx ) );
+	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
 	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
@@ -365,7 +388,7 @@ static VOID TestDyingPeerWithoutTracing()
 
 	TEST( JPFSV_E_PEER_DIED  == JpfsvStopTraceContext( NpCtx ) );
 
-	TEST_OK( JpfsvDetachContext( NpCtx ) );
+	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
 	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
@@ -439,7 +462,7 @@ static VOID TestDyingPeerWithTracing()
 
 	TEST( JPFSV_E_PEER_DIED == JpfsvStopTraceContext( NpCtx ) );
 
-	TEST_OK( JpfsvDetachContext( NpCtx ) );
+	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
 	TEST_OK( JpdiagDereferenceSession( DiagSession ) );

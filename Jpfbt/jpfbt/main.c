@@ -313,7 +313,7 @@ NTSTATUS JpfbtUninitialize()
 	}
 
 	//
-	// Now that there are no patches left, we can safely tear down
+	// Now that there are no patches left, we can begin to tear down
 	// everything. 
 	//
 	// From now on, operations are not threadsafe any more!
@@ -337,8 +337,23 @@ NTSTATUS JpfbtUninitialize()
 			JPFBT_THREAD_DATA, 
 			ListEntry );
 
-		ASSERT( ThreadData->ThunkStack.StackPointer == 
-			&ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ] );
+		if ( ThreadData->ThunkStack.StackPointer != 
+			&ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ] )
+		{
+			//
+			// This thread has frames of patched procedures on its stack.
+			// Deleting the thread data would inevitable lead to a crash.
+			// Thus we have to stop uninitialiting.
+			//
+			// Re-insert to list.
+			//
+			InsertHeadList(
+				&JpfbtpGlobalState->PatchDatabase.ThreadDataListHead,
+				ListEntry );
+
+			return STATUS_FBT_PATCHES_ACTIVE;			
+		}
+
 		ASSERT( ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ].Procedure == 0xDEADBEEF );
 		ASSERT( ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ].ReturnAddress == 0xDEADBEEF );
 

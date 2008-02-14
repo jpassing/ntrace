@@ -52,6 +52,75 @@ static void TestCmdProc()
 	TEST_OK( JpfsvCloseCommandProcessor( Processor ) );
 }
 
+static struct _ATTACH_COMMANDS
+{
+	BOOL Ok;
+	PCWSTR CommandTemplate;
+} AttachCommands[] = {
+	{ FALSE,	L"|%x.attach r a f vg" },	
+	{ TRUE,		L"|%x.attach" },
+	{ TRUE,		L"|%x.attach 1" },
+	{ FALSE,	L"|%x.attach 1 0n1023" },
+	{ TRUE,		L"|%x.attach 64 0n1024" }
+};
+
+static void TestAttachDetachCommands()
+{
+	JPFSV_HANDLE Processor;
+	PROCESS_INFORMATION pi;
+	WCHAR Cmd[ 64 ];
+	UINT Index;
+
+	TEST_OK( JpfsvCreateCommandProcessor( &Processor ) );
+
+	for ( Index = 0; Index < _countof( AttachCommands ); Index++ )
+	{
+		HRESULT Hr;
+		//
+		// Launch notepad.
+		//
+		LaunchNotepad( &pi );
+
+		//
+		// Give notepad some time to start...
+		//
+		Sleep( 500 );
+
+		TEST_OK( StringCchPrintf( 
+			Cmd, 
+			_countof( Cmd ), 
+			AttachCommands[ Index ].CommandTemplate,
+			pi.dwProcessId ) );
+		Hr = JpfsvProcessCommand( Processor, Cmd, Output );
+		if ( AttachCommands[ Index ].Ok )
+		{
+			TEST_OK( Hr );
+
+			TEST_OK( StringCchPrintf( 
+				Cmd, 
+				_countof( Cmd ), 
+				L"|%x.detach", 
+				pi.dwProcessId ) );
+			TEST_OK( JpfsvProcessCommand( Processor, Cmd, Output ) );
+		}
+		else
+		{
+			TEST( JPFSV_E_COMMAND_FAILED == Hr );
+		}
+
+		//
+		// Kill notepad.
+		//
+		TEST( TerminateProcess( pi.hProcess, 0 ) );
+		CloseHandle( pi.hProcess );
+		CloseHandle( pi.hThread );
+		Sleep( 200 );
+	}
+
+	TEST_OK( JpfsvCloseCommandProcessor( Processor ) );
+}
+
 BEGIN_FIXTURE( CmdProc )
 	FIXTURE_ENTRY( TestCmdProc )
+	FIXTURE_ENTRY( TestAttachDetachCommands )
 END_FIXTURE()

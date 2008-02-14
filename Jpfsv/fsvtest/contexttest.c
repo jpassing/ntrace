@@ -11,6 +11,8 @@ void LaunchNotepad(
 	ZeroMemory( &si, sizeof( STARTUPINFO ) );
 	ZeroMemory( ppi, sizeof( PROCESS_INFORMATION ) );
 	si.cb = sizeof( STARTUPINFO );
+	si.dwFlags = STARTF_USESHOWWINDOW;
+	si.wShowWindow = SW_MINIMIZE;
 
 	TEST( CreateProcess(
 		NULL,

@@ -57,6 +57,31 @@ VOID JpfsvpOutputError(
 	}
 }
 
+VOID __cdecl JpfsvpOutput( 
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in PCWSTR Format,
+	...
+	)
+{
+	HRESULT Hr;
+	WCHAR Buffer[ 512 ];
+	va_list lst;
+
+	va_start( lst, Format );
+	
+	Hr = StringCchVPrintf(
+		Buffer, 
+		_countof( Buffer ),
+		Format,
+		lst );
+	va_end( lst );
+	
+	if ( SUCCEEDED( Hr ) )
+	{
+		( OutputRoutine ) ( Buffer );
+	}
+}
+
 BOOL JpfsvpEchoCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,

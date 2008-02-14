@@ -72,6 +72,8 @@ static JPFSV_COMMAND JpfsvsBuiltInCommands[] =
 	{ { L"echo" }	, JpfsvpEchoCommand				, L"Echo a string" },
 	{ { L"|" }		, JpfsvpListProcessesCommand	, L"List processes" },
 	{ { L"lm" }		, JpfsvpListModulesCommand		, L"List modules" },
+	{ { L".attach" }, JpfsvpAttachCommand			, L"Attach to current process" },
+	{ { L".detach" }, JpfsvpDetachCommand			, L"Detach from current process" },
 	{ { L"x" }		, JpfsvpSearchSymbolCommand		, L"Search symbol" }
 };
 

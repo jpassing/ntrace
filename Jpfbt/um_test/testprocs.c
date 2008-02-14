@@ -455,21 +455,26 @@ VOID PatchAndTestAllProcsMultithreaded()
 
 	WaitForMultipleObjects( _countof( Threads ), Threads, TRUE, INFINITE );
 
-	for ( Index = 0; Index < ProcSet->SampleProcCount; Index++ )
+	__try
 	{
-		if ( ProcSet->SampleProcs[ Index ].Patchable )
+		for ( Index = 0; Index < ProcSet->SampleProcCount; Index++ )
 		{
-			TEST( ProcSet->SampleProcs[ Index ].EntryThunkCallCount > 0 );
-			TEST( ProcSet->SampleProcs[ Index ].ExitThunkCallCount > 0 );
-		
-			TEST( ProcSet->SampleProcs[ Index ].EntryThunkCallCount ==
-				  ProcSet->SampleProcs[ Index ].ExitThunkCallCount );
+			if ( ProcSet->SampleProcs[ Index ].Patchable )
+			{
+				TEST( ProcSet->SampleProcs[ Index ].EntryThunkCallCount > 0 );
+				TEST( ProcSet->SampleProcs[ Index ].ExitThunkCallCount > 0 );
+			
+				TEST( ProcSet->SampleProcs[ Index ].EntryThunkCallCount ==
+					  ProcSet->SampleProcs[ Index ].ExitThunkCallCount );
+			}
+
+			TEST( *ProcSet->SampleProcs[ Index ].CallCount > 0 );
 		}
-
-		TEST( *ProcSet->SampleProcs[ Index ].CallCount > 0 );
 	}
-
-	TEST_SUCCESS( JpfbtUninitialize() );
+	__finally
+	{
+		TEST_SUCCESS( JpfbtUninitialize() );
+	}
 }
 
 

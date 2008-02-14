@@ -22,6 +22,6 @@
 #if defined(DBG) || defined( DBG )
 #define VERIFY ASSERT
 #else
-#define VERIFY( x ) ( x )
+#define VERIFY( x ) ( VOID ) ( x )
 #endif
 #endif

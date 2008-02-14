@@ -33,8 +33,6 @@ NTSTATUS JpfbtpForEachThread(
 	HANDLE Snapshot;
 	NTSTATUS Status = STATUS_SUCCESS;
 
-	ASSERT( JpfbtpIsPatchDatabaseLockHeld() );
-	
 #ifdef DBG
 	AllocationSize = sizeof( HANDLE );
 #else

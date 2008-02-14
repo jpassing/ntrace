@@ -126,7 +126,10 @@ typedef struct _JPFSV_TRACE_SESSION
 		__in struct _JPFSV_TRACE_SESSION *This
 		);
 
-	VOID ( *Dereference )(
+	/*++
+		This method may fail with JPFSV_E_TRACES_ACTIVE.
+	--*/
+	HRESULT ( *Dereference )(
 		__in struct _JPFSV_TRACE_SESSION *This
 		);
 } JPFSV_TRACE_SESSION, *PJPFSV_TRACE_SESSION;
@@ -288,6 +291,12 @@ VOID JpfsvpOutputError(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	);
 
+VOID __cdecl JpfsvpOutput( 
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in PCWSTR Format,
+	...
+	);
+
 BOOL JpfsvpEchoCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
@@ -313,6 +322,22 @@ BOOL JpfsvpListModulesCommand(
 	);
 
 BOOL JpfsvpSearchSymbolCommand(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);
+
+BOOL JpfsvpAttachCommand(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);
+
+BOOL JpfsvpDetachCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,

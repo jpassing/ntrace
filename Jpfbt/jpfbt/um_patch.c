@@ -288,8 +288,8 @@ Cleanup:
 	//
 	// Suspend counts must match.
 	//
-	ASSERT( SuspendContextBefore.SuspendCountChecksum == 
-		SuspendContextAfter.SuspendCountChecksum );
+	//ASSERT( SuspendContextBefore.SuspendCountChecksum == 
+	//	SuspendContextAfter.SuspendCountChecksum );
 
 	return Status;
 }

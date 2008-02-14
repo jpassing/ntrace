@@ -407,7 +407,7 @@ static HRESULT JpfsvsInstrumentProcedureTraceSession(
 	}
 }
 
-static VOID JpfsvsDeleteTraceSession(
+static HRESULT JpfsvsDeleteTraceSession(
 	__in PUM_TRACE_SESSION TraceSession
 	)
 {
@@ -418,7 +418,15 @@ static VOID JpfsvsDeleteTraceSession(
 
 	if ( TraceSession->UfbtSession )
 	{
-		VERIFY( NT_SUCCESS( JpufbtDetachProcess( TraceSession->UfbtSession ) ) );
+		NTSTATUS Status = JpufbtDetachProcess( TraceSession->UfbtSession );
+		if ( Status == STATUS_FBT_PATCHES_ACTIVE )
+		{
+			return JPFSV_E_TRACES_ACTIVE;
+		}
+		else
+		{
+			VERIFY( NT_SUCCESS( Status ) );
+		}
 	}
 
 	if ( TraceSession->DiagSession )
@@ -427,8 +435,9 @@ static VOID JpfsvsDeleteTraceSession(
 	}
 
 	DeleteCriticalSection( &TraceSession->EventPump.Lock );
-
 	free( TraceSession );
+
+	return S_OK;
 }
 
 static VOID JpfsvsReferenceTraceSession(
@@ -440,16 +449,27 @@ static VOID JpfsvsReferenceTraceSession(
 	InterlockedIncrement( &TraceSession->ReferenceCount );
 }
 
-static VOID JpfsvsDereferenceTraceSession(
+static HRESULT JpfsvsDereferenceTraceSession(
 	__in PJPFSV_TRACE_SESSION This
 	)
 {
 	PUM_TRACE_SESSION TraceSession = ( PUM_TRACE_SESSION ) This;
+	HRESULT Hr;
 
 	if ( 0 == InterlockedDecrement( &TraceSession->ReferenceCount ) )
 	{
-		JpfsvsDeleteTraceSession( TraceSession );
+		Hr = JpfsvsDeleteTraceSession( TraceSession );
+		if ( FAILED( Hr ) )
+		{
+			JpfsvsReferenceTraceSession( This );
+		}
 	}
+	else
+	{
+		Hr = S_OK;
+	}
+
+	return Hr;
 }
 
 /*----------------------------------------------------------------------

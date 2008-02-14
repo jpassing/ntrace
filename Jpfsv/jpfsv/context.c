@@ -735,15 +735,16 @@ HRESULT JpfsvDetachContext(
 
 	if ( Context->ProtectedMembers.TraceSession )
 	{
-		Context->ProtectedMembers.TraceSession->Dereference(
+		Hr = Context->ProtectedMembers.TraceSession->Dereference(
 			Context->ProtectedMembers.TraceSession );
-		Context->ProtectedMembers.TraceSession = NULL;
-	
-		Hr = S_OK;
+		if ( SUCCEEDED( Hr ) )
+		{
+			Context->ProtectedMembers.TraceSession = NULL;
+		}
 	}
 	else
 	{
-		Hr = E_UNEXPECTED;
+		Hr = JPFSV_E_NO_TRACESESSION;
 	}
 	
 	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
@@ -769,7 +770,7 @@ HRESULT JpfsvStartTraceContext(
 	}
 
 	//
-	// Get reference and stabilize it so we can leave the critical early.
+	// Get reference and stabilize it so we can leave the CS early.
 	//
 	EnterCriticalSection( &Context->ProtectedMembers.Lock );
 
@@ -784,7 +785,7 @@ HRESULT JpfsvStartTraceContext(
 
 	if ( ! TraceSession )
 	{
-		return E_UNEXPECTED;
+		return JPFSV_E_NO_TRACESESSION;
 	}
 
 	Hr = TraceSession->Start( 
@@ -839,7 +840,7 @@ HRESULT JpfsvStopTraceContext(
 	}
 	else
 	{
-		return E_UNEXPECTED;
+		return JPFSV_E_NO_TRACESESSION;
 	}
 	
 	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
@@ -893,7 +894,7 @@ HRESULT JpfsvSetTracePointsContext(
 	
 	if ( ! TraceSession )
 	{
-		Hr = E_UNEXPECTED;
+		Hr = JPFSV_E_NO_TRACESESSION;
 	}
 	else
 	{

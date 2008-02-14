@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------
  * Purpose:
- *		Builtin commands.
+ *		Symbol commands.
  *
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
@@ -18,11 +18,11 @@
 #include <strsafe.h>
 #pragma warning( pop )
 
-typedef struct _SYM_USER_CTX
+typedef struct _SEARCH_SYMBOL_CTX
 {
 	JPFSV_OUTPUT_ROUTINE OutputRoutine;
 	HANDLE Process;
-} SYM_USER_CTX, *PSYM_USER_CTX;
+} SEARCH_SYMBOL_CTX, *PSEARCH_SYMBOL_CTX;
 
 static BOOL JpfsvsOutputSymbol(
 	__in PSYMBOL_INFO SymInfo,
@@ -30,7 +30,7 @@ static BOOL JpfsvsOutputSymbol(
 	__in PVOID UserContext
 	)
 {
-	PSYM_USER_CTX Ctx = ( PSYM_USER_CTX ) UserContext;
+	PSEARCH_SYMBOL_CTX Ctx = ( PSEARCH_SYMBOL_CTX ) UserContext;
 	WCHAR Buffer[ 255 ];
 	BOOL Hotpatchable;
 	HRESULT Hr;
@@ -96,7 +96,7 @@ BOOL JpfsvpSearchSymbolCommand(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	)
 {
-	SYM_USER_CTX Ctx;
+	SEARCH_SYMBOL_CTX Ctx;
 	HANDLE Process = JpfsvGetProcessHandleContext( ProcessorState->Context );
 
 	UNREFERENCED_PARAMETER( CommandName );
@@ -106,10 +106,6 @@ BOOL JpfsvpSearchSymbolCommand(
 		( OutputRoutine ) ( L"Usage: x <mask>\n" );
 		return FALSE;
 	}
-
-#ifdef DBG
-	SymSetOptions( SymGetOptions() | SYMOPT_DEBUG );
-#endif
 
 	Ctx.OutputRoutine = OutputRoutine;
 	Ctx.Process = Process;
