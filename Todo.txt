@@ -11,7 +11,9 @@ jpufbt
  
 jpfsv
 ------------------------------------------------------------------------
- 
+ * Grow tracetab
+ * show attached state in |
+ * tl: show module names
  
  
  

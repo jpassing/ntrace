@@ -63,7 +63,7 @@
 //
 // Note: The debug code scraps eax!
 //
-#define TRAMPOLINE_TESTMODE 1
+//#define TRAMPOLINE_TESTMODE 1
 
 //
 // Stripped-down context as used by jpfbt.

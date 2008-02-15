@@ -147,6 +147,7 @@ static void TestTracepoints()
 
 	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"tc", Output ) );
 	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"ts", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tl", Output ) );
 	TEST_OK( JpfsvProcessCommand( Processor, L"tc kernel32!idonotexist", Output ) );
 	TEST_OK( JpfsvProcessCommand( Processor, L"ts kernel32!idonotexist", Output ) );
 
@@ -157,6 +158,8 @@ static void TestTracepoints()
 	TEST_OK( JpfsvProcessCommand( Processor, L"ts advapi32!Reg*", Output ) );
 	TEST( JpfsvCountTracePointsContext(
 		JpfsvGetCurrentContextCommandProcessor( Processor ) ) > 0 );
+
+	TEST_OK( JpfsvProcessCommand( Processor, L"tl", Output ) );
 
 	//// Clear
 	//TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!RegQ*", Output ) );

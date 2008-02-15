@@ -36,6 +36,63 @@ typedef struct _JPFSVP_SEARCH_TRACEPOINT_CTX
 		);
 } JPFSVP_SEARCH_TRACEPOINT_CTX, *PJPFSVP_SEARCH_TRACEPOINT_CTX;
 
+typedef struct _JPFSVP_LIST_TRACEPOINTS_CTX
+{
+	JPFSV_OUTPUT_ROUTINE OutputRoutine;
+	HANDLE Process;
+} JPFSVP_LIST_TRACEPOINTS_CTX, *PJPFSVP_LIST_TRACEPOINTS_CTX;
+
+/*----------------------------------------------------------------------
+ *
+ * Helpers.
+ *
+ */
+
+#define JPFSVP_MAX_SYMBOL_NAME_LEN 64
+static VOID JpfsvsOutputTracepoint(
+	__in DWORD_PTR ProcAddress,
+	__in_opt PVOID Context
+	)
+{
+	PJPFSVP_LIST_TRACEPOINTS_CTX OutputCtx = ( PJPFSVP_LIST_TRACEPOINTS_CTX ) Context;
+	DWORD64 Displacement;
+
+	UCHAR SymInfoBuffer[ sizeof( SYMBOL_INFO ) + JPFSVP_MAX_SYMBOL_NAME_LEN - 1 ];
+	PSYMBOL_INFO SymInfo = ( PSYMBOL_INFO ) &SymInfoBuffer;
+
+	ASSERT( ProcAddress );
+	ASSERT( OutputCtx );
+
+	if ( ! OutputCtx ) return;
+
+	//
+	// Get symbol for address.
+	//
+	SymInfo->SizeOfStruct = sizeof( SYMBOL_INFO );
+	SymInfo->MaxNameLen = JPFSVP_MAX_SYMBOL_NAME_LEN;
+
+	if ( ! SymFromAddr(
+		OutputCtx->Process,
+		ProcAddress,
+		&Displacement,
+		SymInfo ) )
+	{
+		JpfsvpOutput( 
+			OutputCtx->OutputRoutine, 
+			L"%p (Unknown symbol: 0x%08X)\n",
+			( PVOID ) ProcAddress,
+			HRESULT_FROM_WIN32( GetLastError() ) );
+	}
+	else
+	{
+		JpfsvpOutput( 
+			OutputCtx->OutputRoutine, 
+			L"%p %s\n",
+			( PVOID ) ProcAddress,
+			SymInfo->Name );
+	}
+}
+
 static BOOL JpfsvsCheckTracabilityFilter( 
 	__in PJPFSVP_SEARCH_TRACEPOINT_CTX Ctx,
 	__in PSYMBOL_INFO SymInfo
@@ -99,7 +156,14 @@ static BOOL JpfsvsSearchTracepointsCallback(
 
 	UNREFERENCED_PARAMETER( SymbolCapacity );
 
-	if ( Ctx->Filter && 
+	if ( ! ( SymInfo->Flags & ( SYMFLAG_EXPORT | SYMFLAG_FUNCTION ) ) )
+	{
+		//
+		// Types etc are irrelevant here.
+		//
+		return TRUE;
+	}
+	else if ( Ctx->Filter && 
 		 ! ( Ctx->Filter )( Ctx, SymInfo ) )
 	{
 		//
@@ -231,6 +295,13 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 	return Result;
 }
 
+
+/*----------------------------------------------------------------------
+ *
+ * Commands.
+ *
+ */
+
 BOOL JpfsvpSetTracepointCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
@@ -263,7 +334,6 @@ BOOL JpfsvpClearTracepointCommand(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	)
 {
-
 	UNREFERENCED_PARAMETER( CommandName );
 
 	if ( Argc < 1 )
@@ -277,4 +347,37 @@ BOOL JpfsvpClearTracepointCommand(
 		JpfsvRemoveTracepoint,
 		Argv[ 0 ],
 		OutputRoutine );
+}
+
+BOOL JpfsvpListTracepointsCommand(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	)
+{
+	HRESULT Hr;
+	JPFSVP_LIST_TRACEPOINTS_CTX Ctx;
+
+	UNREFERENCED_PARAMETER( CommandName );
+	UNREFERENCED_PARAMETER( Argc );
+	UNREFERENCED_PARAMETER( Argv );
+
+	Ctx.Process = JpfsvGetProcessHandleContext( ProcessorState->Context );
+	Ctx.OutputRoutine = OutputRoutine;
+
+	Hr = JpfsvEnumTracePointsContext(
+		ProcessorState->Context,
+		JpfsvsOutputTracepoint,
+		&Ctx );
+	if ( FAILED( Hr ) )
+	{
+		JpfsvpOutputError( Hr, OutputRoutine );
+		return FALSE;
+	}
+	else
+	{
+		return TRUE;
+	}
 }

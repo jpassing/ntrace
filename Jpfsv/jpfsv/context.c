@@ -42,6 +42,7 @@ typedef struct _JPFSV_CONTEXT
 		// Trace session. NULL until attached.
 		//
 		PJPFSV_TRACE_SESSION TraceSession;
+		BOOL TraceStarted;
 
 		//
 		// Table of Tracepoints. Must be held in sync with actual
@@ -222,6 +223,7 @@ static HRESULT JpfsvsCreateContext(
 
 	InitializeCriticalSection( &TempContext->ProtectedMembers.Lock );
 	TempContext->ProtectedMembers.TraceSession	= NULL;
+	TempContext->ProtectedMembers.TraceStarted	= FALSE;
 
 	Hr = JpfsvpInitializeTracepointTable( &TempContext->ProtectedMembers.Tracepoints );
 	if ( SUCCEEDED( Hr ) )
@@ -244,7 +246,17 @@ static HRESULT JpfsvsCreateContext(
 		AutoLoadModules ) )
 	{
 		DWORD Err = GetLastError();
-		Hr = HRESULT_FROM_WIN32( Err );
+		if ( ERROR_INVALID_DATA == ( Err & 0xFFFF ) )
+		{
+			//
+			// Most likely a 32bit vs. 64 bit mismatch.
+			//
+			Hr = JPFSV_E_ARCH_MISMATCH;
+		}
+		else
+		{
+			Hr = HRESULT_FROM_WIN32( Err );
+		}
 	}
 	else
 	{
@@ -319,6 +331,12 @@ static HRESULT JpfsvsDeleteContext(
 		 Context->Signature != JPFSV_CONTEXT_SIGNATURE )
 	{
 		return E_INVALIDARG;
+	}
+
+	if ( Context->ProtectedMembers.TraceSession )
+	{
+		HRESULT Hr = JpfsvDetachContext( Context );
+		VERIFY( S_OK == Hr || JPFSV_E_PEER_DIED == Hr );
 	}
 
 	ASSERT( JpfsvpIsCriticalSectionHeld( &JpfsvpDbghelpLock ) );
@@ -746,11 +764,30 @@ HRESULT JpfsvDetachContext(
 
 	if ( Context->ProtectedMembers.TraceSession )
 	{
-		Hr = Context->ProtectedMembers.TraceSession->Dereference(
-			Context->ProtectedMembers.TraceSession );
+		if ( Context->ProtectedMembers.TraceStarted )
+		{
+			Hr = JpfsvStopTraceContext( ContextHandle );
+			if ( JPFSV_E_PEER_DIED == Hr )
+			{
+				//
+				// That's ok - continue detach.
+				//
+				Hr = S_OK;
+			}
+		}
+		else
+		{
+			Hr = S_OK;
+		}
+
 		if ( SUCCEEDED( Hr ) )
 		{
-			Context->ProtectedMembers.TraceSession = NULL;
+			Hr = Context->ProtectedMembers.TraceSession->Dereference(
+				Context->ProtectedMembers.TraceSession );
+			if ( SUCCEEDED( Hr ) )
+			{
+				Context->ProtectedMembers.TraceSession = NULL;
+			}
 		}
 	}
 	else
@@ -780,36 +817,27 @@ HRESULT JpfsvStartTraceContext(
 		return E_INVALIDARG;
 	}
 
-	//
-	// Get reference and stabilize it so we can leave the CS early.
-	//
 	EnterCriticalSection( &Context->ProtectedMembers.Lock );
 
 	TraceSession = Context->ProtectedMembers.TraceSession;
 
-	if ( TraceSession )
-	{
-		TraceSession->Reference( TraceSession );
-	}
-	
-	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
-
 	if ( ! TraceSession )
 	{
-		return JPFSV_E_NO_TRACESESSION;
+		Hr = JPFSV_E_NO_TRACESESSION;
+	}
+	else
+	{
+		Hr = TraceSession->Start( 
+			TraceSession,
+			BufferCount,
+			BufferSize,
+			Session );
+
+		Context->ProtectedMembers.TraceStarted |= SUCCEEDED( Hr );
 	}
 
-	Hr = TraceSession->Start( 
-		TraceSession,
-		BufferCount,
-		BufferSize,
-		Session );
-
-	//
-	// Destabilize.
-	//
-	TraceSession->Dereference( TraceSession );
-
+	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
+	
 	return Hr;
 }
 
@@ -825,6 +853,11 @@ HRESULT JpfsvStopTraceContext(
 		 Context->Signature != JPFSV_CONTEXT_SIGNATURE )
 	{
 		return E_INVALIDARG;
+	}
+
+	if ( ! Context->ProtectedMembers.TraceStarted )
+	{
+		return E_UNEXPECTED;
 	}
 
 	//
@@ -847,6 +880,10 @@ HRESULT JpfsvStopTraceContext(
 		if ( SUCCEEDED( Hr ) )
 		{
 			Hr = TraceSession->Stop( TraceSession );
+			if ( SUCCEEDED( Hr ) )
+			{
+				Context->ProtectedMembers.TraceStarted = FALSE;
+			}
 		}
 	}
 	else

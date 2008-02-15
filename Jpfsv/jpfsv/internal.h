@@ -370,3 +370,11 @@ BOOL JpfsvpClearTracepointCommand(
 	__in PCWSTR* Argv,
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	);
+
+BOOL JpfsvpListTracepointsCommand(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);

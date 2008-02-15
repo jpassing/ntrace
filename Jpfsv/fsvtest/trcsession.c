@@ -128,7 +128,7 @@ HRESULT DetachContextSafe(
 	return Hr;
 }
 
-static HRESULT CountTracepointsCallback(
+static VOID CountTracepointsCallback(
 	__in DWORD_PTR ProcAddress,
 	__in_opt PVOID Context
 	)
@@ -136,7 +136,10 @@ static HRESULT CountTracepointsCallback(
 	PUINT Count = ( PUINT ) Context;
 	TEST( ProcAddress );
 	TEST( Count );
-	( *Count )++;
+	if ( Count )
+	{
+		( *Count )++;
+	}
 }
 
 /*----------------------------------------------------------------------
@@ -349,6 +352,77 @@ static VOID TestTraceNotepad()
 	Sleep( 1000 );
 }
 
+static VOID TestTraceNotepadAndDoHarshCleanup()
+{
+	PROCESS_INFORMATION pi;
+	JPFSV_HANDLE NpCtx;
+	JPDIAG_SESSION_HANDLE DiagSession;
+	PROC_SET Set;
+	DWORD_PTR FailedProc;
+
+	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
+
+	//
+	// Launch notepad.
+	//
+	LaunchNotepad( &pi );
+
+	//
+	// Give notepad some time to start...
+	//
+	Sleep( 1000 );
+
+	//
+	// Start a trace.
+	//
+	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
+	TEST_OK( JpfsvAttachContext( NpCtx ) );
+
+	//
+	// Instrument some procedures.
+	//
+	Set.Count = 0;
+	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
+	TEST( Set.Process );
+
+	TEST( SymEnumSymbols(
+		Set.Process,
+		0,
+		L"user32!*",
+		AddProcedureSymCallback,
+		&Set ) );
+
+	TEST_OK( JpfsvStartTraceContext(
+		NpCtx,
+		5,
+		1024,
+		DiagSession ) );
+	TEST_OK( JpfsvSetTracePointsContext(
+		NpCtx,
+		JpfsvAddTracepoint,
+		Set.Count,
+		Set.Procedures,
+		&FailedProc ) );
+	
+	//
+	// Skip stopping, skip detach.
+	//
+	TEST_OK( JpfsvUnloadContext( NpCtx ) );
+	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
+
+	//
+	// Kill notepad.
+	//
+	TEST( TerminateProcess( pi.hProcess, 0 ) );
+	CloseHandle( pi.hProcess );
+	CloseHandle( pi.hThread );
+
+	//
+	// Wait i.o. not to confuse further tests with dying process.
+	//
+	Sleep( 1000 );
+}
+
 static VOID TestDyingPeerWithoutTracing()
 {
 	PROCESS_INFORMATION pi;
@@ -408,7 +482,7 @@ static VOID TestDyingPeerWithoutTracing()
 		Set.Procedures,
 		&FailedProc ) );
 
-	TEST( JPFSV_E_PEER_DIED  == JpfsvStopTraceContext( NpCtx ) );
+	TEST( E_UNEXPECTED  == JpfsvStopTraceContext( NpCtx ) );
 
 	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
@@ -499,6 +573,7 @@ static VOID TestDyingPeerWithTracing()
 BEGIN_FIXTURE( TraceSession )
 	FIXTURE_ENTRY( TestAttachDetachNotepad )
 	FIXTURE_ENTRY( TestTraceNotepad )
+	FIXTURE_ENTRY( TestTraceNotepadAndDoHarshCleanup )
 	FIXTURE_ENTRY( TestDyingPeerWithoutTracing )
 	FIXTURE_ENTRY( TestDyingPeerWithTracing )
 END_FIXTURE()
