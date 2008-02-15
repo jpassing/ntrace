@@ -169,6 +169,7 @@ static HRESULT JpfsvsCreateContext(
 	HANDLE ProcessHandle = NULL;
 	BOOL SymInitialized = FALSE;
 	PJPFSV_CONTEXT TempContext;
+	BOOL TraceTabInitialized = FALSE;
 
 	if ( ! ProcessId || ! Context )
 	{
@@ -223,7 +224,11 @@ static HRESULT JpfsvsCreateContext(
 	TempContext->ProtectedMembers.TraceSession	= NULL;
 
 	Hr = JpfsvpInitializeTracepointTable( &TempContext->ProtectedMembers.Tracepoints );
-	if ( FAILED( Hr ) )
+	if ( SUCCEEDED( Hr ) )
+	{
+		TraceTabInitialized = TRUE;
+	}
+	else
 	{
 		goto Cleanup;
 	}
@@ -291,6 +296,12 @@ Cleanup:
 
 		if ( TempContext )
 		{
+			if ( TraceTabInitialized )
+			{
+				VERIFY( S_OK == JpfsvpDeleteTracepointTable(
+					&TempContext->ProtectedMembers.Tracepoints ) );
+			}
+
 			DeleteCriticalSection( &TempContext->ProtectedMembers.Lock );
 
 			free( TempContext );

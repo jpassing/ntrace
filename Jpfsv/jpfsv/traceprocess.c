@@ -318,6 +318,9 @@ static HRESULT JpfsvsStopTraceSession(
 
 		( VOID ) GetExitCodeThread( TraceSession->EventPump.Thread, &ThreadExitCode );
 
+		VERIFY( CloseHandle( TraceSession->EventPump.StopEvent ) );
+		VERIFY( CloseHandle( TraceSession->EventPump.Thread ) );
+
 		TraceSession->EventPump.StopEvent = NULL;
 		TraceSession->EventPump.Thread = NULL;
 	}

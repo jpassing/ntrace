@@ -455,6 +455,11 @@ VOID PatchAndTestAllProcsMultithreaded()
 
 	WaitForMultipleObjects( _countof( Threads ), Threads, TRUE, INFINITE );
 
+	for ( Index = 0; Index < CALLER_THREAD_COUNT + PATCHUNPATCH_THREAD_COUNT; Index++ )
+	{
+		CloseHandle( Threads[ Index ] );
+	}
+
 	__try
 	{
 		for ( Index = 0; Index < ProcSet->SampleProcCount; Index++ )

@@ -32,6 +32,7 @@ BOOL WINAPI DllMain(
 	{
 	case DLL_PROCESS_ATTACH:
 		InitializeCriticalSection( &JpfsvpDbghelpLock );
+		//_CrtSetBreakAlloc(19);
 		return JpfsvpInitializeLoadedContextsHashtable();
 
 	case DLL_PROCESS_DETACH:

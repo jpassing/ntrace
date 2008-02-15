@@ -45,24 +45,29 @@ BOOL JpfsvpAttachCommand(
 	}
 
 	Hr = JpfsvAttachContext( ProcessorState->Context );
-	if ( FAILED( Hr ) )
+	if ( SUCCEEDED( Hr ) )
+	{
+		Hr = JpfsvStartTraceContext( 
+			ProcessorState->Context,
+			BufferCount,
+			BufferSize,
+			( PVOID ) ( DWORD_PTR ) 0xDEADBEEF );
+		if ( SUCCEEDED( Hr ) )
+		{
+			return TRUE;
+		}
+		else
+		{
+			VERIFY( S_OK == JpfsvDetachContext( ProcessorState->Context ) );
+			JpfsvpOutputError( Hr, OutputRoutine );
+			return FALSE;
+		}
+	}
+	else
 	{
 		JpfsvpOutputError( Hr, OutputRoutine );
 		return FALSE;
 	}
-
-	Hr = JpfsvStartTraceContext( 
-		ProcessorState->Context,
-		BufferCount,
-		BufferSize,
-		( PVOID ) ( DWORD_PTR ) 0xDEADBEEF );
-	if ( FAILED( Hr ) )
-	{
-		JpfsvpOutputError( Hr, OutputRoutine );
-		return FALSE;
-	}
-
-	return TRUE;
 }
 
 BOOL JpfsvpDetachCommand(
@@ -73,22 +78,23 @@ BOOL JpfsvpDetachCommand(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	)
 {
-	HRESULT Hr;
+	HRESULT Hr1, Hr2;
 
 	UNREFERENCED_PARAMETER( CommandName );
+	UNREFERENCED_PARAMETER( Argc );
 	UNREFERENCED_PARAMETER( Argv );
 
-	Hr = JpfsvStopTraceContext( ProcessorState->Context );
-	if ( FAILED( Hr ) )
+	Hr1 = JpfsvStopTraceContext( ProcessorState->Context );
+	Hr2 = JpfsvDetachContext( ProcessorState->Context );
+	
+	if ( FAILED( Hr1 ) )
 	{
-		JpfsvpOutputError( Hr, OutputRoutine );
+		JpfsvpOutputError( Hr1, OutputRoutine );
 		return FALSE;
 	}
-
-	Hr = JpfsvDetachContext( ProcessorState->Context );
-	if ( FAILED( Hr ) )
+	if ( FAILED( Hr2 ) )
 	{
-		JpfsvpOutputError( Hr, OutputRoutine );
+		JpfsvpOutputError( Hr1, OutputRoutine );
 		return FALSE;
 	}
 
