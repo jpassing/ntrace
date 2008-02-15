@@ -22,4 +22,5 @@ EXPORTS
 	JpfsvCountTracePointsContext
 	JpfbtIsProcedureHotpatchable
 	JpfbtGetProcedurePaddingSize
-	
+	JpfsvEnumTracePointsContext
+	JpfsvExistsTracepointContext

@@ -9,6 +9,16 @@
  */
 #include "internal.h"
 
+//
+// Trace macro for use in thread suspension code:
+// Using TRACE is dangerous in this context as OutputDebugString enters a CS which
+// may be owned by a suspended thread. Enable this macro with care and
+// only temporarily.
+//
+//#define RISKY_TRACE TRACE
+#define RISKY_TRACE( x ) 
+
+
 /*++
 	Routine Description:
 		Perform an action for each thread in the current process

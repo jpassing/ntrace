@@ -45,6 +45,7 @@ SOURCES=\
 	procinspect.c \
 	tracetab.c \
 	cmdattach.c \
+	cmdtracepnt.c \
 	jpfsv.rc
 	
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

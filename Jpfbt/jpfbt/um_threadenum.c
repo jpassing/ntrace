@@ -126,7 +126,7 @@ NTSTATUS JpfbtpForEachThread(
 	}
 	VERIFY( CloseHandle( Snapshot ) );
 
-	TRACE( ( "ThreadEnum: Found %d threads\n", ThreadCount ) );
+	RISKY_TRACE( ( "ThreadEnum: Found %d threads\n", ThreadCount ) );
 
 	if ( NT_SUCCESS( Status ) )
 	{
@@ -152,7 +152,7 @@ NTSTATUS JpfbtpForEachThread(
 					// have worked.
 					//
 
-					TRACE( ( "ThreadEnum: ActionRoutine for thread %p (idx %d) "
+					RISKY_TRACE( ( "ThreadEnum: ActionRoutine for thread %p (idx %d) "
 						"failed - entering undo phase\n", 
 						Threads[ Index ], Index ) );
 					//
@@ -164,7 +164,7 @@ NTSTATUS JpfbtpForEachThread(
 						{
 							if ( ! NT_SUCCESS( ( UndoRoutine )( Threads[ Index ], Context ) ) )
 							{
-								TRACE( ( "ThreadEnum: UndoRoutine for thread "
+								RISKY_TRACE( ( "ThreadEnum: UndoRoutine for thread "
  									" %p (idx %d) failed\n", 
 									Threads[ Index ], Index ) );
 							}
@@ -180,7 +180,7 @@ NTSTATUS JpfbtpForEachThread(
 					// haing been invalididated, so do not undo
 					// everything.
 					//
-					TRACE( ( "ThreadEnum: ActionRoutine for thread %p (idx %d) "
+					RISKY_TRACE( ( "ThreadEnum: ActionRoutine for thread %p (idx %d) "
 						"failed - probably due to thread having exited\n", 
 						Threads[ Index ], Index ) );
 					Status = STATUS_SUCCESS;

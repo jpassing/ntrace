@@ -11,15 +11,6 @@
 #include "list.h"
 #include "um_internal.h"
 
-//
-// Using TRACE is dangerous here as OutputDebugString enters a CS which
-// may be owned by a suspended thread. Enable this macro with care and
-// only temporarily.
-//
-//#define RISKY_TRACE TRACE
-#define RISKY_TRACE( x ) 
-
-
 typedef struct _SUSPEND_CONTEXT
 {
 	//

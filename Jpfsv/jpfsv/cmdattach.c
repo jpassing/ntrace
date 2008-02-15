@@ -44,6 +44,12 @@ BOOL JpfsvpAttachCommand(
 		}
 	}
 
+	JpfsvpOutput( 
+		OutputRoutine, 
+		L"Using 0x%d buffers of size 0x%x\n",
+		BufferCount,
+		BufferSize );
+
 	Hr = JpfsvAttachContext( ProcessorState->Context );
 	if ( SUCCEEDED( Hr ) )
 	{

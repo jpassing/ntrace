@@ -127,6 +127,18 @@ HRESULT DetachContextSafe(
 	
 	return Hr;
 }
+
+static HRESULT CountTracepointsCallback(
+	__in DWORD_PTR ProcAddress,
+	__in_opt PVOID Context
+	)
+{
+	PUINT Count = ( PUINT ) Context;
+	TEST( ProcAddress );
+	TEST( Count );
+	( *Count )++;
+}
+
 /*----------------------------------------------------------------------
  *
  * Test cases.
@@ -194,6 +206,7 @@ static VOID TestTraceNotepad()
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 	UINT Tracepoints;
+	UINT EnumCount = 0;
 
 	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
 
@@ -260,6 +273,15 @@ static VOID TestTraceNotepad()
 	Tracepoints = JpfsvCountTracePointsContext( NpCtx );
 	TEST( Tracepoints > Set.Count / 2 );	// Duplicate-cleaned!
 	TEST( Tracepoints <= Set.Count );
+
+	//
+	// Count enum callbacks.
+	//
+	TEST_OK( JpfsvEnumTracePointsContext(
+		NpCtx,
+		CountTracepointsCallback,
+		&EnumCount ) );
+	TEST( EnumCount == Tracepoints );
 
 	//
 	// Pump a little...

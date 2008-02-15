@@ -100,10 +100,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\jpfsv\cmdtracepnt.c"
-					>
-				</File>
-				<File
 					RelativePath=".\jpfsv\context.c"
 					>
 				</File>
@@ -172,6 +168,10 @@
 					</File>
 					<File
 						RelativePath=".\jpfsv\cmdsym.c"
+						>
+					</File>
+					<File
+						RelativePath=".\jpfsv\cmdtracepnt.c"
 						>
 					</File>
 				</Filter>

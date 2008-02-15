@@ -68,6 +68,39 @@ typedef struct _PROCEDURE_ARRAY
 	UINT Count;
 } PROCEDURE_ARRAY, *PPROCEDURE_ARRAY;
 
+typedef struct _ENUM_TRANSLATE_CONTEXT
+{
+	JPFSV_ENUM_TRACEPOINTS_ROUTINE CallbackRoutine;
+	PVOID UserContext;
+} ENUM_TRANSLATE_CONTEXT, *PENUM_TRANSLATE_CONTEXT;
+
+static VOID JpfsvsTranslateHashtableCallback(
+	__in PJPHT_HASHTABLE Hashtable,
+	__in PJPHT_HASHTABLE_ENTRY Entry,
+	__in_opt PVOID PvTranslateContext
+	)
+{
+	PENUM_TRANSLATE_CONTEXT TranslateContext =
+		( PENUM_TRANSLATE_CONTEXT ) PvTranslateContext;
+	PTRACEPOINT TracePoint;
+
+	UNREFERENCED_PARAMETER( Hashtable );
+
+	TracePoint = CONTAINING_RECORD(
+		Entry,
+		TRACEPOINT,
+		u.HashtableEntry );
+
+	ASSERT( TranslateContext );
+	if ( TranslateContext )
+	{
+		( TranslateContext->CallbackRoutine )(
+			TracePoint->u.Procedure.u.ProcedureVa,
+			TranslateContext->UserContext );
+	}
+}
+
+
 static VOID JpfsvsCollectProceduresAndDeleteEntriesHashtableCallback(
 	__in PJPHT_HASHTABLE Hashtable,
 	__in PJPHT_HASHTABLE_ENTRY Entry,
@@ -293,4 +326,23 @@ UINT JpfsvpGetEntryCountTracepointTable(
 {
 	ASSERT( Table );
 	return JphtGetEntryCountHashtable( &Table->Table );
+}
+
+VOID JpfsvpEnumTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in JPFSV_ENUM_TRACEPOINTS_ROUTINE Callback,
+	__in_opt PVOID CallbackContext
+	)
+{
+	ENUM_TRANSLATE_CONTEXT TranslateContext;
+
+	ASSERT( Table );
+
+	TranslateContext.CallbackRoutine = Callback;
+	TranslateContext.UserContext = CallbackContext;
+
+	JphtEnumerateEntries(
+		&Table->Table,
+		JpfsvsTranslateHashtableCallback,
+		&TranslateContext );
 }

@@ -120,7 +120,72 @@ static void TestAttachDetachCommands()
 	TEST_OK( JpfsvCloseCommandProcessor( Processor ) );
 }
 
+static void TestTracepoints()
+{
+	JPFSV_HANDLE Processor;
+	PROCESS_INFORMATION pi;
+	WCHAR Cmd[ 64 ];
+		
+	TEST_OK( JpfsvCreateCommandProcessor( &Processor ) );
+
+	//
+	// Launch notepad.
+	//
+	LaunchNotepad( &pi );
+
+	//
+	// Give notepad some time to start...
+	//
+	Sleep( 500 );
+
+	TEST_OK( StringCchPrintf( 
+		Cmd, _countof( Cmd ), 
+		L"|0n%ds",
+		pi.dwProcessId ) );
+	TEST_OK( JpfsvProcessCommand( Processor, Cmd, Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L".attach", Output ) );
+
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"tc", Output ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"ts", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tc kernel32!idonotexist", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"ts kernel32!idonotexist", Output ) );
+
+	TEST( JpfsvCountTracePointsContext(
+		JpfsvGetCurrentContextCommandProcessor( Processor ) ) == 0 );
+
+	// Set
+	TEST_OK( JpfsvProcessCommand( Processor, L"ts advapi32!Reg*", Output ) );
+	TEST( JpfsvCountTracePointsContext(
+		JpfsvGetCurrentContextCommandProcessor( Processor ) ) > 0 );
+
+	//// Clear
+	//TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!RegQ*", Output ) );
+	//TEST( JpfsvCountTracePointsContext(
+	//	JpfsvGetCurrentContextCommandProcessor( Processor ) ) > 0 );
+	//TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!*", Output ) );
+	//TEST( JpfsvCountTracePointsContext(
+	//	JpfsvGetCurrentContextCommandProcessor( Processor ) ) == 0 );
+	
+	// Clear
+	TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!Reg*", Output ) );
+	TEST( JpfsvCountTracePointsContext(
+		JpfsvGetCurrentContextCommandProcessor( Processor ) ) == 0 );
+
+	TEST_OK( JpfsvProcessCommand( Processor, L".detach", Output ) );
+
+	//
+	// Kill notepad.
+	//
+	TEST( TerminateProcess( pi.hProcess, 0 ) );
+	CloseHandle( pi.hProcess );
+	CloseHandle( pi.hThread );
+	Sleep( 200 );
+
+	TEST_OK( JpfsvCloseCommandProcessor( Processor ) );
+}
+
 BEGIN_FIXTURE( CmdProc )
 	FIXTURE_ENTRY( TestCmdProc )
 	FIXTURE_ENTRY( TestAttachDetachCommands )
+	FIXTURE_ENTRY( TestTracepoints )
 END_FIXTURE()

@@ -1033,7 +1033,67 @@ UINT JpfsvCountTracePointsContext(
 	}
 	else
 	{
-		return JpfsvpGetEntryCountTracepointTable( 
+		UINT Count;
+
+		EnterCriticalSection( &Context->ProtectedMembers.Lock );
+		Count = JpfsvpGetEntryCountTracepointTable( 
 			&Context->ProtectedMembers.Tracepoints );
+		LeaveCriticalSection( &Context->ProtectedMembers.Lock );
+
+		return Count;
 	}
+}
+
+BOOL JpfsvExistsTracepointContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in DWORD_PTR Procedure
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+	JPFBT_PROCEDURE FbtProc;
+	FbtProc.u.ProcedureVa = Procedure;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE )
+	{
+		ASSERT( !"Invalid context passed to JpfsvExistsTracepointContext" );
+		return 0xffffffff;
+	}
+	else
+	{
+		BOOL Exists;
+
+		EnterCriticalSection( &Context->ProtectedMembers.Lock );
+		Exists = JpfsvpExistsEntryTracepointTable( 
+			&Context->ProtectedMembers.Tracepoints,
+			FbtProc );
+		LeaveCriticalSection( &Context->ProtectedMembers.Lock );
+
+		return Exists;
+	}
+}
+
+HRESULT JpfsvEnumTracePointsContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_ENUM_TRACEPOINTS_ROUTINE Callback,
+	__in_opt PVOID CallbackContext
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE ||
+		 ! Callback )
+	{
+		return E_INVALIDARG;
+	}
+
+	EnterCriticalSection( &Context->ProtectedMembers.Lock );
+	JpfsvpEnumTracepointTable(
+		&Context->ProtectedMembers.Tracepoints,
+		Callback,
+		CallbackContext );
+	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
+
+	return S_OK;
 }

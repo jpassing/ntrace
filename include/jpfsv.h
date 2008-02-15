@@ -144,7 +144,6 @@ UINT JpfsvCountTracePointsContext(
 --*/
 typedef HRESULT ( * JPFSV_ENUM_TRACEPOINTS_ROUTINE ) (
 	__in DWORD_PTR ProcAddress,
-	__in CONST PVOID SymbolInfo,
 	__in_opt PVOID Context
 	);
 
@@ -157,6 +156,16 @@ HRESULT JpfsvEnumTracePointsContext(
 	__in JPFSV_ENUM_TRACEPOINTS_ROUTINE Callback,
 	__in_opt PVOID CallbackContext
 	);
+
+/*++
+	Routine Description:
+		Check if a given procedure is currently traced.
+--*/
+BOOL JpfsvExistsTracepointContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in DWORD_PTR Procedure
+	);
+
 
 /*++
 	Routine Description:

@@ -259,6 +259,16 @@ UINT JpfsvpGetEntryCountTracepointTable(
 	__in PJPFSV_TRACEPOINT_TABLE Table
 	);
 
+/*++
+	Routine Description:
+		Enumerate table enries.
+--*/
+VOID JpfsvpEnumTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in JPFSV_ENUM_TRACEPOINTS_ROUTINE Callback,
+	__in_opt PVOID CallbackContext
+	);
+
 /*----------------------------------------------------------------------
  *
  * Definitions for commands.
@@ -338,6 +348,22 @@ BOOL JpfsvpAttachCommand(
 	);
 
 BOOL JpfsvpDetachCommand(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);
+
+BOOL JpfsvpSetTracepointCommand(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv,
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	);
+
+BOOL JpfsvpClearTracepointCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
