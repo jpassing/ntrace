@@ -209,8 +209,6 @@ HRESULT JpfsvpRemoveAllTracepointsInTracepointTable(
 		ProcedureArray.Procedures,
 		&FailedProc );
 
-	ASSERT( SUCCEEDED( Hr ) == ( FailedProc.u.Procedure == NULL ) );
-
 	if ( Hr == JPFSV_E_PEER_DIED )
 	{
 		//

@@ -8,6 +8,10 @@
 
 #include "internal.h"
 
+#if DBG
+static volatile LONG JpufagsEventCount = 0;
+#endif
+
 static VOID JpufagsGenerateEvent(
 	__in JPUFBT_EVENT_TYPE Type,
 	__in CONST PJPFBT_CONTEXT Context,
@@ -28,6 +32,10 @@ static VOID JpufagsGenerateEvent(
 		{
 			Event->Timestamp.QuadPart = 0;
 		}
+
+#if DBG
+		InterlockedIncrement( &JpufagsEventCount );
+#endif
 	}
 }
 

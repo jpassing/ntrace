@@ -85,10 +85,29 @@ static VOID JpfsvsOutputTracepoint(
 	}
 	else
 	{
+		IMAGEHLP_MODULE64 Module;
+		ZeroMemory( &Module, sizeof( IMAGEHLP_MODULE64 ) );
+		Module.SizeOfStruct = sizeof( IMAGEHLP_MODULE64 );
+	
+		//
+		// Get containing module.
+		//
+		if ( ! SymGetModuleInfo64(
+			OutputCtx->Process,
+			SymInfo->Address,
+			&Module ) )
+		{
+			( VOID ) StringCchCopy(
+				Module.ModuleName,
+				_countof( Module.ModuleName ),
+				L"(Unknown module)" );
+		}
+
 		JpfsvpOutput( 
 			OutputCtx->OutputRoutine, 
-			L"%p %s\n",
+			L"%p %s!%s\n",
 			( PVOID ) ProcAddress,
+			Module.ModuleName,
 			SymInfo->Name );
 	}
 }

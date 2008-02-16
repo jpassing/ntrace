@@ -129,9 +129,13 @@ HRESULT JpfsvSetTracePointsContext(
 /*++
 	Routine Description:
 		Get number of active tracepoints.
+
+	Return Value:
+		JPFSV_E_NO_TRACESESSION if no active tracesession.
 --*/
-UINT JpfsvCountTracePointsContext(
-	__in JPFSV_HANDLE ContextHandle
+HRESULT JpfsvCountTracePointsContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__out PUINT Count
 	);
 
 /*++

@@ -1056,28 +1056,31 @@ HRESULT JpfsvSetTracePointsContext(
 	return Hr;
 }
 
-UINT JpfsvCountTracePointsContext(
-	__in JPFSV_HANDLE ContextHandle
+HRESULT JpfsvCountTracePointsContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__out PUINT Count
 	)
 {
 	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
 
 	if ( ! Context ||
-		 Context->Signature != JPFSV_CONTEXT_SIGNATURE )
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE ||
+		 ! Count )
 	{
-		ASSERT( !"Invalid context passed to JpfsvCountTracePointsContext" );
-		return 0xffffffff;
+		return E_INVALIDARG;
+	}
+	else if ( ! Context->ProtectedMembers.TraceSession )
+	{
+		return JPFSV_E_NO_TRACESESSION;
 	}
 	else
 	{
-		UINT Count;
-
 		EnterCriticalSection( &Context->ProtectedMembers.Lock );
-		Count = JpfsvpGetEntryCountTracepointTable( 
+		*Count = JpfsvpGetEntryCountTracepointTable( 
 			&Context->ProtectedMembers.Tracepoints );
 		LeaveCriticalSection( &Context->ProtectedMembers.Lock );
 
-		return Count;
+		return S_OK;
 	}
 }
 

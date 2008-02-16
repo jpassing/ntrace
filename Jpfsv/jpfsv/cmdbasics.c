@@ -112,36 +112,82 @@ static VOID JpfsvsOutputProcessListEntry(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
 	)
 {
-	WCHAR Buffer[ 100 ];
-	BOOL LoadState;
-		
-	if ( SUCCEEDED( StringCchPrintf(
-		Buffer,
-		_countof( Buffer ),
-		Proc->ProcessId == CurrentProcessId
-			? L" . id:%-8x %-20s %s"
-			: L"   id:%-8x %-20s %s",
+	BOOL ContextLoaded;
+
+	JpfsvpOutput(
+		OutputRoutine,
+		L" %s id:%-8x %-20s %s",
+		Proc->ProcessId == CurrentProcessId ? L"." : L" ",
 		Proc->ProcessId,
 		Proc->ExeName,
-		Wow64 ? L" (32) " : L"       " ) ) )
-	{
-		( OutputRoutine ) ( Buffer );
-	}
+		Wow64 ? L" (32) " : L"       " );
 
-	if ( SUCCEEDED( JpfsvIsContextLoaded( Proc->ProcessId, &LoadState ) ) )
+	if ( FAILED( JpfsvIsContextLoaded( Proc->ProcessId, &ContextLoaded ) ) )
 	{
-		if ( LoadState )
-		{
-			( OutputRoutine ) ( L"(loaded)\n" );
-		}
-		else
-		{
-			( OutputRoutine ) ( L"\n" );
-		}
+		JpfsvpOutput(
+			OutputRoutine,
+			L"(unknwon load state)\n" );
 	}
 	else
 	{
-		( OutputRoutine ) ( L"(unknwon load state)\n" );
+		JPFSV_HANDLE Context;
+		BOOL Active = FALSE;
+		UINT TracepointCount = 0;
+		HRESULT Hr;
+
+		if ( ContextLoaded )
+		{
+			//
+			// Check if active (attached/trace started).
+			//
+			Hr = JpfsvLoadContext(
+				Proc->ProcessId,
+				NULL,
+				&Context );
+			if ( SUCCEEDED( Hr ) )
+			{
+				Hr = JpfsvCountTracePointsContext( Context, &TracepointCount );
+				if ( SUCCEEDED( Hr ) )
+				{
+					Active = TRUE;
+				}
+				else if ( JPFSV_E_NO_TRACESESSION == Hr )
+				{
+					Active = FALSE;
+				}
+				else
+				{
+					Active = FALSE;
+					JpfsvpOutputError( Hr, OutputRoutine );
+				}
+
+				VERIFY( S_OK == JpfsvUnloadContext( Context ) );
+			}
+			else
+			{
+				JpfsvpOutputError( Hr, OutputRoutine );
+			}
+
+			if ( Active )
+			{
+				JpfsvpOutput(
+					OutputRoutine,
+					L"(loaded, active, %d tracepoints)\n",
+					TracepointCount );
+			}
+			else
+			{
+				JpfsvpOutput(
+					OutputRoutine,
+					L"(loaded)\n" );
+			}
+		}
+		else
+		{
+			JpfsvpOutput(
+				OutputRoutine,
+				L"\n" );
+		}
 	}
 }
 
@@ -220,6 +266,7 @@ BOOL JpfsvpListProcessesCommand(
 	//
 	// Kernel.
 	//
+	
 	JpfsvsOutputProcessListEntry( 
 		CurrentProcessId, 
 		&Kernel, 

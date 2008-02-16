@@ -8,13 +8,15 @@ jpufbt
 ------------------------------------------------------------------------
  * VS_VERSION_INFO jpufbt, jpufag
  * Force ufag unload
+ * Check for shared memory overflow (large messages)
  
 jpfsv
 ------------------------------------------------------------------------
  * Grow tracetab
- * show attached state in |
- * tl: show module names
+ * force detach w/ ufag unload if starttrace failed in JpfsvpAttachCommand
+ * hang on peer death
  
+ * Error messages: use jpdiag resolver
  
  
  * Leaks?

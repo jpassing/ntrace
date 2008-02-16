@@ -74,7 +74,7 @@ static JPFSV_COMMAND JpfsvsBuiltInCommands[] =
 	{ { L"lm" }		, JpfsvpListModulesCommand		, L"List modules" },
 	{ { L".attach" }, JpfsvpAttachCommand			, L"Attach to current process" },
 	{ { L".detach" }, JpfsvpDetachCommand			, L"Detach from current process" },
-	{ { L"ts" }		, JpfsvpSetTracepointCommand	, L"Set tracepoint" },
+	{ { L"tp" }		, JpfsvpSetTracepointCommand	, L"Set tracepoint" },
 	{ { L"tc" }		, JpfsvpClearTracepointCommand	, L"Clear tracepoint" },
 	{ { L"tl" }		, JpfsvpListTracepointsCommand	, L"List tracepoints" },
 	{ { L"x" }		, JpfsvpSearchSymbolCommand		, L"Search symbol" },

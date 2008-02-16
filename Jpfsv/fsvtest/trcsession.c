@@ -208,7 +208,7 @@ static VOID TestTraceNotepad()
 	JPDIAG_SESSION_HANDLE DiagSession;
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
-	UINT Tracepoints;
+	UINT Tracepoints, Count;
 	UINT EnumCount = 0;
 
 	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
@@ -256,7 +256,8 @@ static VOID TestTraceNotepad()
 
 	TEST( Set.Count > 0 );
 
-	TEST( 0 == JpfsvCountTracePointsContext( NpCtx ) );
+	TEST_OK( JpfsvCountTracePointsContext( NpCtx, &Count ) );
+	TEST( 0 == Count );
 
 	TEST_OK( JpfsvSetTracePointsContext(
 		NpCtx,
@@ -273,7 +274,7 @@ static VOID TestTraceNotepad()
 		&FailedProc ) );
 	TEST( FailedProc == 0 );
 
-	Tracepoints = JpfsvCountTracePointsContext( NpCtx );
+	TEST_OK( JpfsvCountTracePointsContext( NpCtx, &Tracepoints ) );
 	TEST( Tracepoints > Set.Count / 2 );	// Duplicate-cleaned!
 	TEST( Tracepoints <= Set.Count );
 
@@ -295,7 +296,8 @@ static VOID TestTraceNotepad()
 	// Stop while tracing active -> implicitly revoke all tracepoints.
 	//
 	TEST_OK( JpfsvStopTraceContext( NpCtx ) );
-	TEST( 0 == JpfsvCountTracePointsContext( NpCtx ) );
+	TEST_OK( JpfsvCountTracePointsContext( NpCtx, &Count ) );
+	TEST( 0 == Count );
 
 	//
 	// Trace again.
@@ -313,7 +315,8 @@ static VOID TestTraceNotepad()
 		&FailedProc ) );
 	TEST( FailedProc == 0 );
 
-	TEST( Tracepoints == JpfsvCountTracePointsContext( NpCtx ) );
+	TEST_OK( JpfsvCountTracePointsContext( NpCtx, &Count ) );
+	TEST( Tracepoints == Count );
 
 	//
 	// Pump a little...
@@ -331,7 +334,8 @@ static VOID TestTraceNotepad()
 		&FailedProc ) );
 	TEST( FailedProc == 0 );
 
-	TEST( 0 == JpfsvCountTracePointsContext( NpCtx ) );
+	TEST_OK( JpfsvCountTracePointsContext( NpCtx, &Count ) );
+	TEST( 0 == Count );
 
 	TEST_OK( JpfsvStopTraceContext( NpCtx ) );
 	TEST_OK( DetachContextSafe( NpCtx ) );

@@ -24,6 +24,14 @@ BOOL JpfsvpAttachCommand(
 
 	UNREFERENCED_PARAMETER( CommandName );
 
+	if ( Argc == 1 && 0 == wcscmp( Argv[ 0 ], L"/?" ) )
+	{
+		JpfsvpOutput( 
+			OutputRoutine, 
+			L"Usage: .attach [BufferCount [BufferSize]]\n" );
+		return TRUE;
+	}
+
 	if ( Argc >= 1 )
 	{
 		PWSTR Remaining;

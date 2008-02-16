@@ -125,6 +125,7 @@ static void TestTracepoints()
 	JPFSV_HANDLE Processor;
 	PROCESS_INFORMATION pi;
 	WCHAR Cmd[ 64 ];
+	UINT Count;
 		
 	TEST_OK( JpfsvCreateCommandProcessor( &Processor ) );
 
@@ -138,6 +139,9 @@ static void TestTracepoints()
 	//
 	Sleep( 500 );
 
+	TEST( JPFSV_E_NO_TRACESESSION == JpfsvCountTracePointsContext(
+		JpfsvGetCurrentContextCommandProcessor( Processor ), &Count ) );
+
 	TEST_OK( StringCchPrintf( 
 		Cmd, _countof( Cmd ), 
 		L"|0n%ds",
@@ -146,18 +150,20 @@ static void TestTracepoints()
 	TEST_OK( JpfsvProcessCommand( Processor, L".attach", Output ) );
 
 	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"tc", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"ts", Output ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"tp", Output ) );
 	TEST_OK( JpfsvProcessCommand( Processor, L"tl", Output ) );
 	TEST_OK( JpfsvProcessCommand( Processor, L"tc kernel32!idonotexist", Output ) );
-	TEST_OK( JpfsvProcessCommand( Processor, L"ts kernel32!idonotexist", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tp kernel32!idonotexist", Output ) );
 
-	TEST( JpfsvCountTracePointsContext(
-		JpfsvGetCurrentContextCommandProcessor( Processor ) ) == 0 );
+	TEST_OK( JpfsvCountTracePointsContext(
+		JpfsvGetCurrentContextCommandProcessor( Processor ), &Count ) );
+	TEST( Count == 0 );
 
 	// Set
-	TEST_OK( JpfsvProcessCommand( Processor, L"ts advapi32!Reg*", Output ) );
-	TEST( JpfsvCountTracePointsContext(
-		JpfsvGetCurrentContextCommandProcessor( Processor ) ) > 0 );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tp advapi32!Reg*", Output ) );
+	TEST_OK( JpfsvCountTracePointsContext(
+		JpfsvGetCurrentContextCommandProcessor( Processor ), &Count ) );
+	TEST( Count > 0 );
 
 	TEST_OK( JpfsvProcessCommand( Processor, L"tl", Output ) );
 
@@ -171,8 +177,9 @@ static void TestTracepoints()
 	
 	// Clear
 	TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!Reg*", Output ) );
-	TEST( JpfsvCountTracePointsContext(
-		JpfsvGetCurrentContextCommandProcessor( Processor ) ) == 0 );
+	TEST_OK( JpfsvCountTracePointsContext(
+		JpfsvGetCurrentContextCommandProcessor( Processor ), &Count ) );
+	TEST( Count == 0 );
 
 	TEST_OK( JpfsvProcessCommand( Processor, L".detach", Output ) );
 
