@@ -129,12 +129,12 @@ HRESULT DetachContextSafe(
 }
 
 static VOID CountTracepointsCallback(
-	__in DWORD_PTR ProcAddress,
+	__in PJPFSV_TRACEPOINT Tracepoint,
 	__in_opt PVOID Context
 	)
 {
 	PUINT Count = ( PUINT ) Context;
-	TEST( ProcAddress );
+	TEST( Tracepoint );
 	TEST( Count );
 	if ( Count )
 	{
@@ -210,6 +210,7 @@ static VOID TestTraceNotepad()
 	DWORD_PTR FailedProc;
 	UINT Tracepoints, Count;
 	UINT EnumCount = 0;
+	JPFSV_TRACEPOINT Tracepnt;
 
 	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
 
@@ -227,6 +228,8 @@ static VOID TestTraceNotepad()
 	// Start a trace.
 	//
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
+	TEST( JPFSV_E_NO_TRACESESSION == JpfsvpGetTracepointContext( NpCtx, 0xF00, &Tracepnt ) );
+
 	TEST_OK( JpfsvAttachContext( NpCtx ) );
 
 	//
@@ -277,6 +280,13 @@ static VOID TestTraceNotepad()
 	TEST_OK( JpfsvCountTracePointsContext( NpCtx, &Tracepoints ) );
 	TEST( Tracepoints > Set.Count / 2 );	// Duplicate-cleaned!
 	TEST( Tracepoints <= Set.Count );
+
+	TEST_OK( JpfsvpGetTracepointContext( NpCtx, Set.Procedures[ 0 ], &Tracepnt ) );
+	TEST( Tracepnt.Procedure == Set.Procedures[ 0 ] );
+	TEST( wcslen( Tracepnt.SymbolName ) );
+	TEST( wcslen( Tracepnt.ModuleName ) );
+
+	TEST( JPFSV_E_TRACEPOINT_NOT_FOUND == JpfsvpGetTracepointContext( NpCtx, 0xBA2, &Tracepnt ) );
 
 	//
 	// Count enum callbacks.

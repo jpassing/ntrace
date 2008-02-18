@@ -1031,6 +1031,7 @@ HRESULT JpfsvSetTracePointsContext(
 					{
 						Hr = JpfsvpAddEntryTracepointTable(
 							&Context->ProtectedMembers.Tracepoints,
+							Context->ProcessHandle,
 							Proc );
 					}
 					else
@@ -1128,6 +1129,11 @@ HRESULT JpfsvEnumTracePointsContext(
 		return E_INVALIDARG;
 	}
 
+	if ( ! Context->ProtectedMembers.TraceSession )
+	{
+		return JPFSV_E_NO_TRACESESSION;
+	}
+
 	EnterCriticalSection( &Context->ProtectedMembers.Lock );
 	JpfsvpEnumTracepointTable(
 		&Context->ProtectedMembers.Tracepoints,
@@ -1136,4 +1142,39 @@ HRESULT JpfsvEnumTracePointsContext(
 	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
 
 	return S_OK;
+}
+
+HRESULT JpfsvpGetTracepointContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in DWORD_PTR Procedure,
+	__out PJPFSV_TRACEPOINT Tracepoint
+	)
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+	HRESULT Hr;
+	JPFBT_PROCEDURE FbtProc;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE ||
+		 ! Procedure ||
+		 ! Tracepoint )
+	{
+		return E_INVALIDARG;
+	}
+
+	if ( ! Context->ProtectedMembers.TraceSession )
+	{
+		return JPFSV_E_NO_TRACESESSION;
+	}
+
+	FbtProc.u.ProcedureVa = Procedure;
+
+	EnterCriticalSection( &Context->ProtectedMembers.Lock );
+	Hr = JpfsvpGetEntryTracepointTable(
+		&Context->ProtectedMembers.Tracepoints,
+		FbtProc,
+		Tracepoint );
+	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
+
+	return Hr;
 }

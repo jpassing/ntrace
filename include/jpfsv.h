@@ -23,11 +23,22 @@ typedef PVOID JPFSV_HANDLE;
 
 #define JPFSV_KERNEL	( ( DWORD ) -1 )
 
+#define JPFSVP_MAX_SYMBOL_NAME_CCH 64
+#define JPFSVP_MAX_MODULE_NAME_CCH 64
+
 /*----------------------------------------------------------------------
  *
  * Tracing.
  *
  */
+
+typedef struct _JPFSV_TRACEPOINT
+{
+	DWORD_PTR Procedure;
+	WCHAR ModuleName[ JPFSVP_MAX_MODULE_NAME_CCH ];
+	WCHAR SymbolName[ JPFSVP_MAX_SYMBOL_NAME_CCH ];
+} JPFSV_TRACEPOINT, *PJPFSV_TRACEPOINT;
+
 
 /*++
 	Routine Description:
@@ -148,7 +159,7 @@ HRESULT JpfsvCountTracePointsContext(
 		Context			Caller-supplied context.
 --*/
 typedef VOID ( * JPFSV_ENUM_TRACEPOINTS_ROUTINE ) (
-	__in DWORD_PTR ProcAddress,
+	__in PJPFSV_TRACEPOINT Tracepoint,
 	__in_opt PVOID Context
 	);
 
@@ -171,6 +182,17 @@ BOOL JpfsvExistsTracepointContext(
 	__in DWORD_PTR Procedure
 	);
 
+/*++
+	Routine Description:
+		Retrieve tracepoint information.
+
+	Return Value: S_OK or JPFSV_E_TRACEPOINT_NOT_FOUND.
+--*/
+HRESULT JpfsvpGetTracepointContext(
+	__in JPFSV_HANDLE ContextHandle,
+	__in DWORD_PTR Procedure,
+	__out PJPFSV_TRACEPOINT Tracepoint
+	);
 
 /*++
 	Routine Description:

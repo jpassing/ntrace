@@ -8,14 +8,18 @@
 #include "internal.h"
 #define DBGHELP_TRANSLATE_TCHAR
 #include <dbghelp.h>
-#include <malloc.h>
+#include <stdlib.h>
 
-#define MAX_SYMBOL_NAME_LEN 64
+#pragma warning( push )
+#pragma warning( disable: 6011; disable: 6387 )
+#include <strsafe.h>
+#pragma warning( pop )
+
 
 /*++
 	Hashtable Entry.
 --*/
-typedef struct _TRACEPOINT
+typedef struct _TRACEPOINT_ENTRY
 {
 	//
 	// N.B. Must be first member to enable casts.
@@ -25,10 +29,14 @@ typedef struct _TRACEPOINT
 		JPFBT_PROCEDURE Procedure;
 		JPHT_HASHTABLE_ENTRY HashtableEntry;
 	} u;
-} TRACEPOINT, *PTRACEPOINT;
 
-C_ASSERT( FIELD_OFFSET( TRACEPOINT, u.Procedure.u.Procedure ) == 
-		  FIELD_OFFSET( TRACEPOINT, u.HashtableEntry ) );
+	JPFSV_TRACEPOINT Info;
+} TRACEPOINT_ENTRY, *PTRACEPOINT_ENTRY;
+
+C_ASSERT( FIELD_OFFSET( TRACEPOINT_ENTRY, u.Procedure ) == 
+		  FIELD_OFFSET( TRACEPOINT_ENTRY, u.HashtableEntry ) );
+C_ASSERT( RTL_FIELD_SIZE( TRACEPOINT_ENTRY, u.Procedure ) == 
+		  RTL_FIELD_SIZE( TRACEPOINT_ENTRY, u.HashtableEntry.Key ) );
 
 /*----------------------------------------------------------------------
  *
@@ -82,20 +90,21 @@ static VOID JpfsvsTranslateHashtableCallback(
 {
 	PENUM_TRANSLATE_CONTEXT TranslateContext =
 		( PENUM_TRANSLATE_CONTEXT ) PvTranslateContext;
-	PTRACEPOINT TracePoint;
+	PTRACEPOINT_ENTRY TracePoint;
 
 	UNREFERENCED_PARAMETER( Hashtable );
 
 	TracePoint = CONTAINING_RECORD(
 		Entry,
-		TRACEPOINT,
+		TRACEPOINT_ENTRY,
 		u.HashtableEntry );
 
 	ASSERT( TranslateContext );
 	if ( TranslateContext )
 	{
+		ASSERT( TracePoint->u.Procedure.u.ProcedureVa == TracePoint->Info.Procedure );
 		( TranslateContext->CallbackRoutine )(
-			TracePoint->u.Procedure.u.ProcedureVa,
+			&TracePoint->Info,
 			TranslateContext->UserContext );
 	}
 }
@@ -109,7 +118,7 @@ static VOID JpfsvsCollectProceduresAndDeleteEntriesHashtableCallback(
 {
 	PPROCEDURE_ARRAY ProcArray = ( PPROCEDURE_ARRAY ) PvProcArray;
 	PJPHT_HASHTABLE_ENTRY OldEntry;
-	PTRACEPOINT TracePoint;
+	PTRACEPOINT_ENTRY TracePoint;
 	
 	ASSERT( ProcArray );
 	if ( ! ProcArray ) return;
@@ -126,7 +135,7 @@ static VOID JpfsvsCollectProceduresAndDeleteEntriesHashtableCallback(
 
 	TracePoint = CONTAINING_RECORD(
 		Entry,
-		TRACEPOINT,
+		TRACEPOINT_ENTRY,
 		u.HashtableEntry );
 
 	//
@@ -242,22 +251,83 @@ HRESULT JpfsvpDeleteTracepointTable(
 
 HRESULT JpfsvpAddEntryTracepointTable(
 	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in HANDLE Process,
 	__in JPFBT_PROCEDURE Proc
 	)
 {
-	PTRACEPOINT Tracepoint;
+	PTRACEPOINT_ENTRY Tracepoint;
 	PJPHT_HASHTABLE_ENTRY OldEntry;
+	DWORD64 Displacement;
+
+	IMAGEHLP_MODULE64 Module;
+
+	UCHAR SymInfoBuffer[ sizeof( SYMBOL_INFO ) + 
+		( JPFSVP_MAX_SYMBOL_NAME_CCH - 1 ) * sizeof( WCHAR )];
+	PSYMBOL_INFO SymInfo = ( PSYMBOL_INFO ) SymInfoBuffer;
+
+	ZeroMemory( &Module, sizeof( IMAGEHLP_MODULE64 ) );
+	ZeroMemory( &SymInfoBuffer, sizeof( SymInfoBuffer ) );
 
 	ASSERT( Table );
 	ASSERT( Proc.u.Procedure );
+
+	//
+	// Get symbol for address.
+	//
+	SymInfo->SizeOfStruct = sizeof( SYMBOL_INFO );
+	SymInfo->MaxNameLen = JPFSVP_MAX_SYMBOL_NAME_CCH;
+
+	if ( SymFromAddr(
+		Process,
+		Proc.u.ProcedureVa,
+		&Displacement,
+		SymInfo ) )
+	{
+		Module.SizeOfStruct = sizeof( IMAGEHLP_MODULE64 );
 	
-	Tracepoint = malloc( sizeof( TRACEPOINT ) );
+		//
+		// Get containing module.
+		//
+		if ( ! SymGetModuleInfo64(
+			Process,
+			SymInfo->Address,
+			&Module ) )
+		{
+			( VOID ) StringCchCopy(
+				Module.ModuleName,
+				_countof( Module.ModuleName ),
+				L"(Unknown module)" );
+		}
+	}
+	else
+	{
+		( VOID ) StringCchPrintf(
+			SymInfo->Name,
+			SymInfo->NameLen,
+			L"(Unknown symbol %p)",
+			Proc.u.Procedure );
+	}
+
+	//
+	// Add to table.
+	//
+	
+	Tracepoint = malloc( sizeof( TRACEPOINT_ENTRY ) );
 	if ( ! Tracepoint ) 
 	{
 		return E_OUTOFMEMORY;
 	}
 	
 	Tracepoint->u.Procedure = Proc;
+	Tracepoint->Info.Procedure = Proc.u.ProcedureVa;
+	( VOID ) StringCchCopy( 
+		Tracepoint->Info.ModuleName, 
+		_countof( Tracepoint->Info.ModuleName ),
+		Module.ModuleName );
+	( VOID ) StringCchCopy( 
+		Tracepoint->Info.SymbolName, 
+		_countof( Tracepoint->Info.SymbolName ),
+		SymInfo->Name );
 
 	JphtPutEntryHashtable(
 		&Table->Table,
@@ -335,6 +405,7 @@ VOID JpfsvpEnumTracepointTable(
 	ENUM_TRANSLATE_CONTEXT TranslateContext;
 
 	ASSERT( Table );
+	ASSERT( Callback );
 
 	TranslateContext.CallbackRoutine = Callback;
 	TranslateContext.UserContext = CallbackContext;
@@ -343,4 +414,42 @@ VOID JpfsvpEnumTracepointTable(
 		&Table->Table,
 		JpfsvsTranslateHashtableCallback,
 		&TranslateContext );
+}
+
+HRESULT JpfsvpGetEntryTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in JPFBT_PROCEDURE Proc,
+	__out PJPFSV_TRACEPOINT Tracepoint
+	)
+{
+	PJPHT_HASHTABLE_ENTRY Entry;
+	PTRACEPOINT_ENTRY TracepointEntry;
+
+	ASSERT( Table );
+	ASSERT( Proc.u.Procedure );
+	ASSERT( Tracepoint );
+
+	Entry = JphtGetEntryHashtable(
+		&Table->Table,
+		Proc.u.ProcedureVa );
+	TracepointEntry = CONTAINING_RECORD(
+		Entry,
+		TRACEPOINT_ENTRY,
+		u.HashtableEntry );
+	if ( TracepointEntry )
+	{
+
+		ASSERT( TracepointEntry );
+
+		CopyMemory(
+			Tracepoint,
+			&TracepointEntry->Info,
+			sizeof( JPFSV_TRACEPOINT ) );
+
+		return S_OK;
+	}
+	else
+	{
+		return JPFSV_E_TRACEPOINT_NOT_FOUND;
+	}
 }

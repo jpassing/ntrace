@@ -48,68 +48,24 @@ typedef struct _JPFSVP_LIST_TRACEPOINTS_CTX
  *
  */
 
-#define JPFSVP_MAX_SYMBOL_NAME_LEN 64
 static VOID JpfsvsOutputTracepoint(
-	__in DWORD_PTR ProcAddress,
+	__in PJPFSV_TRACEPOINT Tracepoint,
 	__in_opt PVOID Context
 	)
 {
 	PJPFSVP_LIST_TRACEPOINTS_CTX OutputCtx = ( PJPFSVP_LIST_TRACEPOINTS_CTX ) Context;
-	DWORD64 Displacement;
 
-	UCHAR SymInfoBuffer[ sizeof( SYMBOL_INFO ) + JPFSVP_MAX_SYMBOL_NAME_LEN - 1 ];
-	PSYMBOL_INFO SymInfo = ( PSYMBOL_INFO ) &SymInfoBuffer;
-
-	ASSERT( ProcAddress );
+	ASSERT( Tracepoint );
 	ASSERT( OutputCtx );
 
 	if ( ! OutputCtx ) return;
 
-	//
-	// Get symbol for address.
-	//
-	SymInfo->SizeOfStruct = sizeof( SYMBOL_INFO );
-	SymInfo->MaxNameLen = JPFSVP_MAX_SYMBOL_NAME_LEN;
-
-	if ( ! SymFromAddr(
-		OutputCtx->Process,
-		ProcAddress,
-		&Displacement,
-		SymInfo ) )
-	{
-		JpfsvpOutput( 
-			OutputCtx->OutputRoutine, 
-			L"%p (Unknown symbol: 0x%08X)\n",
-			( PVOID ) ProcAddress,
-			HRESULT_FROM_WIN32( GetLastError() ) );
-	}
-	else
-	{
-		IMAGEHLP_MODULE64 Module;
-		ZeroMemory( &Module, sizeof( IMAGEHLP_MODULE64 ) );
-		Module.SizeOfStruct = sizeof( IMAGEHLP_MODULE64 );
-	
-		//
-		// Get containing module.
-		//
-		if ( ! SymGetModuleInfo64(
-			OutputCtx->Process,
-			SymInfo->Address,
-			&Module ) )
-		{
-			( VOID ) StringCchCopy(
-				Module.ModuleName,
-				_countof( Module.ModuleName ),
-				L"(Unknown module)" );
-		}
-
-		JpfsvpOutput( 
-			OutputCtx->OutputRoutine, 
-			L"%p %s!%s\n",
-			( PVOID ) ProcAddress,
-			Module.ModuleName,
-			SymInfo->Name );
-	}
+	JpfsvpOutput( 
+		OutputCtx->OutputRoutine, 
+		L"%p %s!%s\n",
+		( PVOID ) Tracepoint->Procedure,
+		Tracepoint->ModuleName,
+		Tracepoint->SymbolName );
 }
 
 static BOOL JpfsvsCheckTracabilityFilter( 

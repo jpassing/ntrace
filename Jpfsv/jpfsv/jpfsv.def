@@ -24,3 +24,4 @@ EXPORTS
 	JpfbtGetProcedurePaddingSize
 	JpfsvEnumTracePointsContext
 	JpfsvExistsTracepointContext
+	JpfsvpGetTracepointContext

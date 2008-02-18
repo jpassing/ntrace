@@ -8,15 +8,6 @@
 #include "internal.h"
 #include <stdio.h>
 
-VOID Indent( UINT Depth )
-{
-	UNREFERENCED_PARAMETER( Depth );
-	//UINT Index;
-	//ASSERT( Depth < 16 );
-	//for ( Index = 0; Index < Depth; Index++ )
-	//	wprintf( L" " );
-}
-
 VOID JpfsvpProcessEvent(
 	__in JPFSV_EVENT_TYPE Type,
 	__in DWORD ThreadId,
@@ -27,18 +18,30 @@ VOID JpfsvpProcessEvent(
 	__in JPDIAG_SESSION_HANDLE DiagSession
 	)
 {
-	static UINT Depth;
+	//JPFSV_TRACEPOINT Tracepoint;
+	//HRESULT Hr;
+	PCWSTR ModName = NULL;
+	PCWSTR SymName = NULL;
+	
+	/*Hr = JpfsvpGetTracepointContext(
+		ContextHandle,
+		Procedure.u.ProcedureVa,
+		&Tracepoint );
+	if ( SUCCEEDED( Hr ) )
+	{
+		ModName = Tracepoint.ModuleName;
+		SymName = Tracepoint.SymbolName;
+	}*/
+
 	if ( Type == JpfsvFunctionEntryEventType )
 	{
-		Indent( Depth );
-		wprintf( L"--> %p\n", Procedure.u.Procedure );
-		Depth++;
+		wprintf( L"--> %s!%s %p\n", 
+			ModName, SymName, Procedure.u.Procedure );
 	}
 	else
 	{
-		Depth--;
-		Indent( Depth );
-		wprintf( L"<-- %p\n", Procedure.u.Procedure );
+		wprintf( L"<-- %s!%s %p\n", 
+			ModName, SymName, Procedure.u.Procedure );
 	}
 
 	UNREFERENCED_PARAMETER( Type );

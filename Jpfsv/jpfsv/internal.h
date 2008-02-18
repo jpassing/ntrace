@@ -90,6 +90,17 @@ __inline BOOL JpfsvpIsCriticalSectionHeld(
 }
 
 
+///*----------------------------------------------------------------------
+// *
+// * Event Processor.
+// *
+// */
+//typedef struct _JPFSV_EVENT_PROESSOR
+//{
+//	
+//} JPFSV_EVENT_PROESSOR, *PJPFSV_EVENT_PROESSOR;
+//
+
 /*----------------------------------------------------------------------
  *
  * Trace Session.
@@ -189,6 +200,7 @@ typedef struct _JPFSV_TRACEPOINT_TABLE
 	JPHT_HASHTABLE Table;
 } JPFSV_TRACEPOINT_TABLE, *PJPFSV_TRACEPOINT_TABLE;
 
+
 /*++
 	Routine Description:
 		Initialize table.
@@ -220,12 +232,13 @@ HRESULT JpfsvpDeleteTracepointTable(
 		Add an entry to the tracepoint table. 
 
 	Return Value:
-		S_OK is successfully inserted.
+		S_OK if successfully inserted.
 		JPFSV_E_TRACEPOINT_EXISTS is an entry already existed for 
 			this procedure.
 --*/
 HRESULT JpfsvpAddEntryTracepointTable(
 	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in HANDLE Process,
 	__in JPFBT_PROCEDURE Proc
 	);
 
@@ -267,6 +280,18 @@ VOID JpfsvpEnumTracepointTable(
 	__in PJPFSV_TRACEPOINT_TABLE Table,
 	__in JPFSV_ENUM_TRACEPOINTS_ROUTINE Callback,
 	__in_opt PVOID CallbackContext
+	);
+
+/*++
+	Routine Description:
+		Retrieve a copy of an entry in the table.
+
+	Return Value: S_OK or JPFSV_E_TRACEPOINT_NOT_FOUND.
+--*/
+HRESULT JpfsvpGetEntryTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table,
+	__in JPFBT_PROCEDURE Proc,
+	__out PJPFSV_TRACEPOINT Tracepoint
 	);
 
 /*----------------------------------------------------------------------

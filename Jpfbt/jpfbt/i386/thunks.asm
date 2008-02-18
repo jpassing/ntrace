@@ -243,14 +243,14 @@ JpfbtpFunctionCallThunk proc
 	; available at fs:[014h].
 	;
 	; One register is a good start, but we need some memory 
-	; so that we actually do something.
+	; so that we can actually do something.
 	; Our redemption is thus to get some thread-local meomory by
 	; leveraging TLS. Alas, we cannot call JpfbtpGetCurrentThunkStack
 	; as we would need registers and stack for the call, so we are in
 	; a catch-22.
 	;
 	; In order to get out of this situation, we have to perform some
-	; nasty maneuver - we we can neither call JpfbtpGetCurrentThunkStack 
+	; nasty maneuver - as we can neither call JpfbtpGetCurrentThunkStack 
 	; nor TlsGetValue, we will directly access the TEB to achieve
 	; the same result as JpfbtpGetCurrentThunkStack, but without
 	; the requirement for stack & registers.
@@ -403,9 +403,9 @@ JpfbtpFunctionCallThunk proc
 	add esp, 028h	; sizeof( JPFBT_CONTEXT )
 	
 	;
-	; Tear down stack frame. Note that there are 2 possible ways to
+	; Tear down stack frame. Note that there are 3 possible ways to
 	; return to the caller:
-	;  1. Retore ESP as it was at beginning of *this* procedure, 
+	;  1. Restore ESP as it was at beginning of *this* procedure, 
 	;     push real RA and ret.
 	;     --> pushing RA would overwrite the last parameter of the 
 	;         hooked procedure, which might be an out-parameter.
@@ -431,7 +431,7 @@ JpfbtpFunctionCallThunk proc
 	; No matter in which order we try to restore registers,
 	; we will leave at least one srapped.
 	;
-	; Again, we have to use the TEB again and use the Sp field of
+	; Again, we have to use the TEB and use the Sp field of
 	; the current thunk stack frame as scrap memory.
 	;
 	
@@ -440,7 +440,7 @@ JpfbtpFunctionCallThunk proc
 	; Note that due to register shortage, we could not have done this
 	; assignment when we first accessed the TEB.
 	;
-	; N.B. For some callconvs (cdecl) the esp is not the same as the 
+	; N.B. For some callconvs the esp is not the same as the 
 	; esp initially saved to the thunk stack.
 	;
 	mov eax, [JpfbtpThreadDataTlsOffset]
