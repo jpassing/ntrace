@@ -34,6 +34,7 @@ TARGETTYPE=DYNLINK
 SOURCES=psinfotest.c \
 		cmdproctest.c \
 		contexttest.c \
-		trcsession.c
+		trcsession.c \
+		util.c
 
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

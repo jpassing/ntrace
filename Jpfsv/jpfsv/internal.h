@@ -90,16 +90,40 @@ __inline BOOL JpfsvpIsCriticalSectionHeld(
 }
 
 
-///*----------------------------------------------------------------------
-// *
-// * Event Processor.
-// *
-// */
-//typedef struct _JPFSV_EVENT_PROESSOR
-//{
-//	
-//} JPFSV_EVENT_PROESSOR, *PJPFSV_EVENT_PROESSOR;
-//
+/*----------------------------------------------------------------------
+ *
+ * Event Processor.
+ *
+ */
+
+typedef enum
+{
+	JpfsvFunctionEntryEventType,
+	JpfsvFunctionExitEventType
+} JPFSV_EVENT_TYPE;
+
+typedef struct _JPFSV_EVENT_PROESSOR
+{
+	VOID ( *ProcessEvent ) (
+		__in struct _JPFSV_EVENT_PROESSOR *This,
+		__in JPFSV_EVENT_TYPE Type,
+		__in DWORD ThreadId,
+		__in DWORD ProcessId,
+		__in JPFBT_PROCEDURE Procedure,
+		__in PJPFBT_CONTEXT ThreadContext,
+		__in PLARGE_INTEGER Timestamp
+		);	
+
+	VOID ( *Delete ) (
+		__in struct _JPFSV_EVENT_PROESSOR *This
+		);
+} JPFSV_EVENT_PROESSOR, *PJPFSV_EVENT_PROESSOR;
+
+HRESULT JpfsvpCreateDiagEventProcessor(
+	__in JPDIAG_SESSION_HANDLE DiagSession,
+	__in JPFSV_HANDLE ContextHandle,
+	__out PJPFSV_EVENT_PROESSOR *EvProc
+	);
 
 /*----------------------------------------------------------------------
  *
@@ -118,7 +142,7 @@ typedef struct _JPFSV_TRACE_SESSION
 		__in struct _JPFSV_TRACE_SESSION *This,
 		__in UINT BufferCount,
 		__in UINT BufferSize,
-		__in JPDIAG_SESSION_HANDLE Session
+		__in PJPFSV_EVENT_PROESSOR EventProcessor
 		);
 
 	HRESULT ( *InstrumentProcedure )(
@@ -163,26 +187,6 @@ HRESULT JpfsvpCreateProcessTraceSession(
 HRESULT JpfsvpCreateKernelTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
 	__out PJPFSV_TRACE_SESSION *Session
-	);
-
-typedef enum
-{
-	JpfsvFunctionEntryEventType,
-	JpfsvFunctionExitEventType
-} JPFSV_EVENT_TYPE;
-
-/*++
-	Routine Description:
-		Event Sink. 
---*/
-VOID JpfsvpProcessEvent(
-	__in JPFSV_EVENT_TYPE Type,
-	__in DWORD ThreadId,
-	__in DWORD ProcessId,
-	__in JPFBT_PROCEDURE Procedure,
-	__in PJPFBT_CONTEXT ThreadContext,
-	__in PLARGE_INTEGER Timestamp,
-	__in JPDIAG_SESSION_HANDLE DiagSession
 	);
 
 /*----------------------------------------------------------------------
@@ -306,6 +310,11 @@ typedef struct _JPFSV_COMMAND_PROCESSOR_STATE
 	// Context to be used by commands.
 	//
 	JPFSV_HANDLE Context;
+
+	//
+	// Jpdiag session for event processing.
+	//
+	JPDIAG_SESSION_HANDLE DiagSession;
 } JPFSV_COMMAND_PROCESSOR_STATE, *PJPFSV_COMMAND_PROCESSOR_STATE;
 
 typedef BOOL ( * JPFSV_COMMAND_ROUTINE ) (

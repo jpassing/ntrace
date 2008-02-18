@@ -104,7 +104,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\jpfsv\eventsink.c"
+					RelativePath=".\jpfsv\eventproc.c"
 					>
 				</File>
 				<File
@@ -205,6 +205,10 @@
 				</File>
 				<File
 					RelativePath=".\fsvtest\trcsession.c"
+					>
+				</File>
+				<File
+					RelativePath=".\fsvtest\util.c"
 					>
 				</File>
 			</Filter>

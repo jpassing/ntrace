@@ -17,8 +17,10 @@ jpfsv
  * hang on peer death
  * SymFromAddr-cache
  * Error messages: use jpdiag resolver
- 
+ * strip OutputRoutine param for commands
  * mc files
  * symsetopt( undnames )
+ 
+ * memleak detection jpdiag, cfix
  
  * Leaks?

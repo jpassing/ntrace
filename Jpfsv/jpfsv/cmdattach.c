@@ -65,7 +65,7 @@ BOOL JpfsvpAttachCommand(
 			ProcessorState->Context,
 			BufferCount,
 			BufferSize,
-			( PVOID ) ( DWORD_PTR ) 0xDEADBEEF );
+			ProcessorState->DiagSession );
 		if ( SUCCEEDED( Hr ) )
 		{
 			return TRUE;

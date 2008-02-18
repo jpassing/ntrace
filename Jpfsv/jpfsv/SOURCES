@@ -41,7 +41,7 @@ SOURCES=\
 	cmdsym.c \
 	traceprocess.c \
 	tracekern.c \
-	eventsink.c \
+	eventproc.c \
 	procinspect.c \
 	tracetab.c \
 	cmdattach.c \

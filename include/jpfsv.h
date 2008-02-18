@@ -448,18 +448,24 @@ HRESULT JpfsvLoadModuleContext(
  * Command processor.
  *
  */
+
+typedef VOID ( CALLBACK *JPFSV_OUTPUT_ROUTINE ) (
+	__in PCWSTR Output
+	);
+
 /*++
 	Routine Description:
 		Create a command processor.
 
 	Parameters:
-		Resolver	- Resolver obtained from JpfsvGetSymbolResolver.
-					  The object must remain valid until the command
-					  processor is destroyed by calling
-					  JpfsvCloseCommandProcessor.
-		Processor   - Processor handle.
+		OutputRoutine   - Routine handling all command output.
+						  The object must remain valid until the command
+						  processor is destroyed by calling
+						  JpfsvCloseCommandProcessor.
+		Processor   	- Processor handle.
 --*/
 HRESULT JpfsvCreateCommandProcessor(
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
 	__out JPFSV_HANDLE *Processor
 	);
 
@@ -488,10 +494,6 @@ HRESULT JpfsvCloseCommandProcessor(
 	__in JPFSV_HANDLE Processor
 	);
 
-typedef VOID ( CALLBACK *JPFSV_OUTPUT_ROUTINE ) (
-	__in PCWSTR Output
-	);
-
 /*++
 	Routine Description:
 		Process a command.
@@ -501,7 +503,6 @@ typedef VOID ( CALLBACK *JPFSV_OUTPUT_ROUTINE ) (
 --*/
 HRESULT JpfsvProcessCommand(
 	__in JPFSV_HANDLE Processor,
-	__in PCWSTR CommandLine,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR CommandLine
 	);
 	

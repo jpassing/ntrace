@@ -56,6 +56,8 @@ typedef struct _JPFSV_COMMAND_PROCESSOR
 	// State accessible by commands.
 	//
 	JPFSV_COMMAND_PROCESSOR_STATE State;
+
+	JPFSV_OUTPUT_ROUTINE OutputRoutine;
 } JPFSV_COMMAND_PROCESSOR, *PJPFSV_COMMAND_PROCESSOR;
 
 static BOOL JpfsvsHelp(
@@ -152,6 +154,55 @@ static BOOL JpfsvsHelp(
 	}
 
 	return TRUE;
+}
+
+static HRESULT JpfsvsCreateDiagSession(
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__out JPDIAG_SESSION_HANDLE *DiagSession
+	)
+{
+	JPDIAG_SESSION_HANDLE Session;
+	PJPDIAG_HANDLER Handler;
+	HRESULT Hr;
+
+	*DiagSession = NULL;
+
+	Hr = JpdiagCreateSession( NULL, NULL, &Session );
+	if ( FAILED( Hr ) )
+	{
+		return Hr;
+	}
+
+	ASSERT( Session );
+
+	Hr = JpdiagCreateOutputHandler( Session, OutputRoutine, &Handler );
+	if ( FAILED( Hr ) )
+	{
+		goto Cleanup;
+	}
+
+	ASSERT( Handler );
+
+	Hr = JpdiagSetInformationSession(
+		Session,
+		JpdiagSessionDefaultHandler,
+		0,
+		Handler );
+	if ( FAILED( Hr ) )
+	{
+		goto Cleanup;
+	}
+
+	*DiagSession = Session;
+	Hr = S_OK;
+
+Cleanup:
+	if ( FAILED( Hr ) )
+	{
+		VERIFY( S_OK == JpdiagDereferenceSession( Session ) );
+	}
+
+	return Hr;
 }
 
 static JpfsvsRegisterBuiltinCommands(
@@ -418,16 +469,29 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
  */
 
 HRESULT JpfsvCreateCommandProcessor(
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
 	__out JPFSV_HANDLE *ProcessorHandle
 	)
 {
 	PJPFSV_COMMAND_PROCESSOR Processor = NULL;
 	JPFSV_HANDLE CurrentContext = NULL;
 	HRESULT Hr = E_UNEXPECTED;
+	JPDIAG_SESSION_HANDLE DiagSession;
 
-	if ( ! ProcessorHandle )
+	if ( ! OutputRoutine || ! ProcessorHandle )
 	{
 		return E_INVALIDARG;
+	}
+
+	//
+	// Create a jpdiag session for output handling.
+	//
+	Hr = JpfsvsCreateDiagSession(
+		OutputRoutine,
+		&DiagSession );
+	if ( FAILED( Hr ) )
+	{
+		return Hr;
 	}
 
 	//
@@ -463,8 +527,10 @@ HRESULT JpfsvCreateCommandProcessor(
 		goto Cleanup;
 	}
 
-	Processor->Signature = JPFSV_COMMAND_PROCESSOR_SIGNATURE;
-	Processor->State.Context = CurrentContext;
+	Processor->Signature			= JPFSV_COMMAND_PROCESSOR_SIGNATURE;
+	Processor->State.Context		= CurrentContext;
+	Processor->State.DiagSession	= DiagSession;
+	Processor->OutputRoutine		= OutputRoutine;
 	InitializeCriticalSection( &Processor->Lock );
 
 	JpfsvsRegisterBuiltinCommands( Processor );
@@ -504,6 +570,8 @@ HRESULT JpfsvCloseCommandProcessor(
 	JpfsvsUnegisterBuiltinCommands( Processor );
 	JphtDeleteHashtable( &Processor->Commands );
 
+	JpdiagDereferenceSession( Processor->State.DiagSession );
+
 	free( Processor );
 	return S_OK;
 }
@@ -527,16 +595,14 @@ JPFSV_HANDLE JpfsvGetCurrentContextCommandProcessor(
 
 HRESULT JpfsvProcessCommand(
 	__in JPFSV_HANDLE ProcessorHandle,
-	__in PCWSTR CommandLine,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR CommandLine
 	)
 {
 	PJPFSV_COMMAND_PROCESSOR Processor = ( PJPFSV_COMMAND_PROCESSOR ) ProcessorHandle;
 	HRESULT Hr;
 	if ( ! Processor ||
 		 Processor->Signature != JPFSV_COMMAND_PROCESSOR_SIGNATURE ||
-		 ! CommandLine ||
-		 ! OutputRoutine )
+		 ! CommandLine )
 	{
 		return E_INVALIDARG;
 	}
@@ -546,7 +612,7 @@ HRESULT JpfsvProcessCommand(
 	if ( JpfsvsParseAndDisparchCommandLine(
 		Processor,
 		CommandLine,
-		OutputRoutine ) )
+		Processor->OutputRoutine ) )
 	{
 		Hr = S_OK;
 	}

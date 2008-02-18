@@ -21,7 +21,7 @@ typedef struct _UM_TRACE_SESSION
 	//
 	// Event sink. Non-NULL iff tracing session started.
 	//
-	JPDIAG_SESSION_HANDLE DiagSession;
+	PJPFSV_EVENT_PROESSOR EventProcessor;
 
 	struct
 	{
@@ -69,14 +69,14 @@ static VOID JpfsvsProcessEventsTraceSession(
 
 	for ( Index = 0; Index < EventCount; Index++ )
 	{
-		JpfsvpProcessEvent(
+		TraceSession->EventProcessor->ProcessEvent(
+			TraceSession->EventProcessor,
 			Events[ Index ].Type,
 			ThreadId,
 			ProcessId,
 			Events[ Index ].Procedure,
 			&Events[ Index ].ThreadContext,
-			&Events[ Index ].Timestamp,
-			TraceSession->DiagSession );
+			&Events[ Index ].Timestamp );
 	}
 }
 
@@ -177,7 +177,7 @@ static HRESULT JpfsvsStartTraceSession(
 	__in PJPFSV_TRACE_SESSION This,
 	__in UINT BufferCount,
 	__in UINT BufferSize,
-	__in JPDIAG_SESSION_HANDLE Session
+	__in PJPFSV_EVENT_PROESSOR EventProcessor
 	)
 {
 	PUM_TRACE_SESSION TraceSession = ( PUM_TRACE_SESSION ) This;
@@ -188,7 +188,7 @@ static HRESULT JpfsvsStartTraceSession(
 	if ( ! TraceSession ||
 		 BufferCount == 0 ||
 		 BufferSize == 0 ||
-		 ! Session )
+		 ! EventProcessor )
 	{
 		return E_INVALIDARG;
 	}
@@ -253,6 +253,7 @@ static HRESULT JpfsvsStartTraceSession(
 	}
 	else
 	{
+		TraceSession->EventProcessor = EventProcessor;
 		Hr = S_OK;
 	}
 
@@ -432,11 +433,6 @@ static HRESULT JpfsvsDeleteTraceSession(
 		}
 	}
 
-	if ( TraceSession->DiagSession )
-	{
-		JpdiagDereferenceSession( TraceSession->DiagSession );
-	}
-
 	DeleteCriticalSection( &TraceSession->EventPump.Lock );
 	free( TraceSession );
 
@@ -526,7 +522,7 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	TempSession->ReferenceCount				= 1;
 
 	JpdiagReferenceSession( TraceSessionHandle );
-	TempSession->DiagSession				= NULL;
+	TempSession->EventProcessor				= NULL;
 	TempSession->UfbtSession				= UfbtSession;
 	TempSession->EventPump.Thread			= NULL;
 	TempSession->EventPump.StopEvent		= NULL;

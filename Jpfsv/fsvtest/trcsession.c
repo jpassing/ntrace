@@ -5,6 +5,8 @@
 #define DBGHELP_TRANSLATE_TCHAR
 #include <dbghelp.h>
 
+static JPDIAG_SESSION_HANDLE DiagSession = NULL;
+
 /*----------------------------------------------------------------------
  *
  * Helpers.
@@ -144,6 +146,23 @@ static VOID CountTracepointsCallback(
 
 /*----------------------------------------------------------------------
  *
+ * Setup/teardown.
+ *
+ */
+
+static VOID SetupTrcSession()
+{
+	DiagSession = CreateDiagSession();
+}
+
+static VOID TeardownTrcSession()
+{
+	JpdiagDereferenceSession( DiagSession );
+	DiagSession = NULL;
+}
+
+/*----------------------------------------------------------------------
+ *
  * Test cases.
  *
  */
@@ -205,7 +224,6 @@ static VOID TestTraceNotepad()
 {
 	PROCESS_INFORMATION pi;
 	JPFSV_HANDLE NpCtx;
-	JPDIAG_SESSION_HANDLE DiagSession;
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 	UINT Tracepoints, Count;
@@ -370,7 +388,6 @@ static VOID TestTraceNotepadAndDoHarshCleanup()
 {
 	PROCESS_INFORMATION pi;
 	JPFSV_HANDLE NpCtx;
-	JPDIAG_SESSION_HANDLE DiagSession;
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 
@@ -441,7 +458,6 @@ static VOID TestDyingPeerWithoutTracing()
 {
 	PROCESS_INFORMATION pi;
 	JPFSV_HANDLE NpCtx;
-	JPDIAG_SESSION_HANDLE DiagSession;
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 
@@ -513,7 +529,6 @@ static VOID TestDyingPeerWithTracing()
 {
 	PROCESS_INFORMATION pi;
 	JPFSV_HANDLE NpCtx;
-	JPDIAG_SESSION_HANDLE DiagSession;
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 
@@ -585,6 +600,8 @@ static VOID TestDyingPeerWithTracing()
 
 
 BEGIN_FIXTURE( TraceSession )
+	FIXTURE_SETUP( SetupTrcSession )
+	FIXTURE_TEARDOWN( SetupTrcSession )
 	FIXTURE_ENTRY( TestAttachDetachNotepad )
 	FIXTURE_ENTRY( TestTraceNotepad )
 	FIXTURE_ENTRY( TestTraceNotepadAndDoHarshCleanup )

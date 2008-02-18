@@ -18,36 +18,36 @@ static void TestCmdProc()
 	JPFSV_HANDLE Processor;
 	WCHAR Buffer[ 50 ];
 
-	TEST_OK( JpfsvCreateCommandProcessor( &Processor ) );
+	TEST_OK( JpfsvCreateCommandProcessor( Output, &Processor ) );
 
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"  ", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"a", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"a b", Output ) );
-	TEST_OK( JpfsvProcessCommand( Processor, L"echo a b c ", Output ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"" ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"  " ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"a" ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"a b" ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"echo a b c " ) );
 	
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|foo", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|1   ", Output ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|foo" ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|1   " ) );
 	
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|4 echo s", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|0n1echo a", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|0n123456789echo a", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|0x1echo a", Output ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|4 echo s" ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|0n1echo a" ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|0n123456789echo a" ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"|0x1echo a" ) );
 
-	TEST_OK( JpfsvProcessCommand( Processor, L" | ", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L" | " ) );
 
 	TEST_OK( StringCchPrintf( Buffer, _countof( Buffer ), L"|%xs", GetCurrentProcessId() ) );
-	TEST_OK( JpfsvProcessCommand( Processor, Buffer, Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, Buffer ) );
 
 	TEST_OK( StringCchPrintf( Buffer, _countof( Buffer ), L"|0x%Xlm", GetCurrentProcessId() ) );
-	TEST_OK( JpfsvProcessCommand( Processor, Buffer, Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, Buffer ) );
 
 	TEST_OK( StringCchPrintf( Buffer, _countof( Buffer ), L"|0n%d|", GetCurrentProcessId() ) );
-	TEST_OK( JpfsvProcessCommand( Processor, Buffer, Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, Buffer ) );
 
-	TEST_OK( JpfsvProcessCommand( Processor, L"lm", Output ) );
-	TEST_OK( JpfsvProcessCommand( Processor, L" x kernel32!Cre* ", Output ) );
-	TEST_OK( JpfsvProcessCommand( Processor, L" ? ", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"lm" ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L" x kernel32!Cre* " ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L" ? " ) );
 
 	TEST_OK( JpfsvCloseCommandProcessor( Processor ) );
 }
@@ -71,7 +71,7 @@ static void TestAttachDetachCommands()
 	WCHAR Cmd[ 64 ];
 	UINT Index;
 
-	TEST_OK( JpfsvCreateCommandProcessor( &Processor ) );
+	TEST_OK( JpfsvCreateCommandProcessor( Output, &Processor ) );
 
 	for ( Index = 0; Index < _countof( AttachCommands ); Index++ )
 	{
@@ -91,7 +91,7 @@ static void TestAttachDetachCommands()
 			_countof( Cmd ), 
 			AttachCommands[ Index ].CommandTemplate,
 			pi.dwProcessId ) );
-		Hr = JpfsvProcessCommand( Processor, Cmd, Output );
+		Hr = JpfsvProcessCommand( Processor, Cmd );
 		if ( AttachCommands[ Index ].Ok )
 		{
 			TEST_OK( Hr );
@@ -101,7 +101,7 @@ static void TestAttachDetachCommands()
 				_countof( Cmd ), 
 				L"|%x.detach", 
 				pi.dwProcessId ) );
-			TEST_OK( JpfsvProcessCommand( Processor, Cmd, Output ) );
+			TEST_OK( JpfsvProcessCommand( Processor, Cmd ) );
 		}
 		else
 		{
@@ -127,7 +127,7 @@ static void TestTracepoints()
 	WCHAR Cmd[ 64 ];
 	UINT Count;
 		
-	TEST_OK( JpfsvCreateCommandProcessor( &Processor ) );
+	TEST_OK( JpfsvCreateCommandProcessor( Output, &Processor ) );
 
 	//
 	// Launch notepad.
@@ -146,42 +146,42 @@ static void TestTracepoints()
 		Cmd, _countof( Cmd ), 
 		L"|0n%ds",
 		pi.dwProcessId ) );
-	TEST_OK( JpfsvProcessCommand( Processor, Cmd, Output ) );
-	TEST_OK( JpfsvProcessCommand( Processor, L".attach", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, Cmd ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L".attach" ) );
 
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"tc", Output ) );
-	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"tp", Output ) );
-	TEST_OK( JpfsvProcessCommand( Processor, L"tl", Output ) );
-	TEST_OK( JpfsvProcessCommand( Processor, L"tc kernel32!idonotexist", Output ) );
-	TEST_OK( JpfsvProcessCommand( Processor, L"tp kernel32!idonotexist", Output ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"tc" ) );
+	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"tp" ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tl" ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tc kernel32!idonotexist" ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tp kernel32!idonotexist" ) );
 
 	TEST_OK( JpfsvCountTracePointsContext(
 		JpfsvGetCurrentContextCommandProcessor( Processor ), &Count ) );
 	TEST( Count == 0 );
 
 	// Set
-	TEST_OK( JpfsvProcessCommand( Processor, L"tp advapi32!Reg*", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tp advapi32!Reg*" ) );
 	TEST_OK( JpfsvCountTracePointsContext(
 		JpfsvGetCurrentContextCommandProcessor( Processor ), &Count ) );
 	TEST( Count > 0 );
 
-	TEST_OK( JpfsvProcessCommand( Processor, L"tl", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tl" ) );
 
 	//// Clear
-	//TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!RegQ*", Output ) );
+	//TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!RegQ*" ) );
 	//TEST( JpfsvCountTracePointsContext(
 	//	JpfsvGetCurrentContextCommandProcessor( Processor ) ) > 0 );
-	//TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!*", Output ) );
+	//TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!*" ) );
 	//TEST( JpfsvCountTracePointsContext(
 	//	JpfsvGetCurrentContextCommandProcessor( Processor ) ) == 0 );
 	
 	// Clear
-	TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!Reg*", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L"tc advapi32!Reg*" ) );
 	TEST_OK( JpfsvCountTracePointsContext(
 		JpfsvGetCurrentContextCommandProcessor( Processor ), &Count ) );
 	TEST( Count == 0 );
 
-	TEST_OK( JpfsvProcessCommand( Processor, L".detach", Output ) );
+	TEST_OK( JpfsvProcessCommand( Processor, L".detach" ) );
 
 	//
 	// Kill notepad.

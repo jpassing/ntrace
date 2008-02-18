@@ -1,32 +1,6 @@
 #include <jpfsv.h>
 #include "test.h"
 
-void LaunchNotepad(
-	__out PPROCESS_INFORMATION ppi
-	)
-{
-	STARTUPINFO si;
-	WCHAR Cmd[] = L"\"notepad.exe\"";
-
-	ZeroMemory( &si, sizeof( STARTUPINFO ) );
-	ZeroMemory( ppi, sizeof( PROCESS_INFORMATION ) );
-	si.cb = sizeof( STARTUPINFO );
-	si.dwFlags = STARTF_USESHOWWINDOW;
-	si.wShowWindow = SW_MINIMIZE;
-
-	TEST( CreateProcess(
-		NULL,
-		Cmd,
-		NULL,
-		NULL,
-		FALSE,
-		0,
-		NULL,
-		NULL,
-		&si,
-		ppi ) );
-}
-
 static void TestLoadModules()
 {
 	JPFSV_HANDLE ResolverOwn;

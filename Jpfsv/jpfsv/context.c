@@ -45,6 +45,11 @@ typedef struct _JPFSV_CONTEXT
 		BOOL TraceStarted;
 
 		//
+		// Event Processor - Non-NULL iff trace started.
+		//
+		PJPFSV_EVENT_PROESSOR EventProcessor;
+
+		//
 		// Table of Tracepoints. Must be held in sync with actual
 		// state.
 		//
@@ -222,8 +227,9 @@ static HRESULT JpfsvsCreateContext(
 	TempContext->ReferenceCount = 0;
 
 	InitializeCriticalSection( &TempContext->ProtectedMembers.Lock );
-	TempContext->ProtectedMembers.TraceSession	= NULL;
-	TempContext->ProtectedMembers.TraceStarted	= FALSE;
+	TempContext->ProtectedMembers.TraceSession		= NULL;
+	TempContext->ProtectedMembers.TraceStarted		= FALSE;
+	TempContext->ProtectedMembers.EventProcessor	= FALSE;
 
 	Hr = JpfsvpInitializeTracepointTable( &TempContext->ProtectedMembers.Tracepoints );
 	if ( SUCCEEDED( Hr ) )
@@ -810,6 +816,7 @@ HRESULT JpfsvStartTraceContext(
 	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
 	PJPFSV_TRACE_SESSION TraceSession;
 	HRESULT Hr;
+	PJPFSV_EVENT_PROESSOR EventProcessor;
 
 	if ( ! Context ||
 		 Context->Signature != JPFSV_CONTEXT_SIGNATURE )
@@ -819,25 +826,46 @@ HRESULT JpfsvStartTraceContext(
 
 	EnterCriticalSection( &Context->ProtectedMembers.Lock );
 
-	TraceSession = Context->ProtectedMembers.TraceSession;
-
-	if ( ! TraceSession )
+	//
+	// Create EventProcessor.
+	//
+	Hr = JpfsvpCreateDiagEventProcessor(
+		Session,
+		ContextHandle,
+		&EventProcessor );
+	if ( SUCCEEDED( Hr ) )
 	{
-		Hr = JPFSV_E_NO_TRACESESSION;
-	}
-	else
-	{
-		Hr = TraceSession->Start( 
-			TraceSession,
-			BufferCount,
-			BufferSize,
-			Session );
+		TraceSession = Context->ProtectedMembers.TraceSession;
 
-		Context->ProtectedMembers.TraceStarted |= SUCCEEDED( Hr );
+		if ( ! TraceSession )
+		{
+			Hr = JPFSV_E_NO_TRACESESSION;
+		}
+		else
+		{
+			Hr = TraceSession->Start( 
+				TraceSession,
+				BufferCount,
+				BufferSize,
+				EventProcessor );
+
+			Context->ProtectedMembers.TraceStarted |= SUCCEEDED( Hr );
+
+			if ( SUCCEEDED( Hr ) )
+			{
+				Context->ProtectedMembers.EventProcessor = EventProcessor;
+			}
+			else
+			{
+				EventProcessor->Delete( EventProcessor );
+			}
+		}
 	}
 
 	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
 	
+	ASSERT( Context->ProtectedMembers.TraceStarted ==
+		( Context->ProtectedMembers.EventProcessor != NULL ) );
 	return Hr;
 }
 
@@ -860,6 +888,9 @@ HRESULT JpfsvStopTraceContext(
 		return E_UNEXPECTED;
 	}
 
+	ASSERT( Context->ProtectedMembers.TraceStarted ==
+		( Context->ProtectedMembers.EventProcessor != NULL ) );
+	
 	//
 	// Execute under lock protection to make sure the tracepoint table
 	// is in sync with reality.
@@ -880,9 +911,19 @@ HRESULT JpfsvStopTraceContext(
 		if ( SUCCEEDED( Hr ) )
 		{
 			Hr = TraceSession->Stop( TraceSession );
-			if ( SUCCEEDED( Hr ) )
+			if ( S_OK == Hr || JPFSV_E_PEER_DIED == Hr )
 			{
 				Context->ProtectedMembers.TraceStarted = FALSE;
+
+				//
+				// Tear down EventProcessor.
+				//
+				if ( Context->ProtectedMembers.EventProcessor )
+				{
+					Context->ProtectedMembers.EventProcessor->Delete(
+						Context->ProtectedMembers.EventProcessor );
+					Context->ProtectedMembers.EventProcessor = NULL;
+				}
 			}
 		}
 	}

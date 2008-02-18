@@ -1,3 +1,4 @@
+BUILD: Computing Include file dependencies:
 BUILD: Examining d:\dev\wdev\fbt\ctrc directory tree for files to compile.
 before AssemblyIdentity_AfterReadAllSources
 after AssemblyIdentity_AfterReadAllSources
@@ -6,17 +7,5 @@ Compiling and Linking d:\dev\wdev\fbt\ctrc\ctrc *************
 'nmake.exe /nologo BUILDMSG=Stop. -i /nologo /f c:\winddk\6000\bin\makefile.def BUILD_PASS=PASS2 LINKONLY=1 NOPASS0=1 MAKEDIR_RELATIVE_TO_BASEDIR= MAKEDIR_LOWERCASE=d:\dev\wdev\fbt\ctrc\ctrc'
 d:\dev\wdev\fbt\ctrc\ctrc: TARGETPATH is ..\..\bin\chk
 BUILDMSG: _NT_TARGET_VERSION SET TO WINXP
-d:\dev\wdev\fbt\ctrc\ctrc\objchk_wxp_x86\i386\echo.msg not found
-d:\dev\wdev\fbt\ctrc\ctrc: TARGETPATH is ..\..\bin\chk
-BUILDMSG: _NT_TARGET_VERSION SET TO WINXP
-	del d:\dev\wdev\fbt\ctrc\ctrc\objchk_wxp_x86\i386\ctrc.o_manifest d:\dev\wdev\fbt\ctrc\ctrc\objchk_wxp_x86\i386\ctrc.o_manifest.temp 2>nul
-	preprocessor.exe -o d:\dev\wdev\fbt\ctrc\ctrc\objchk_wxp_x86\i386\ctrc.o_manifest.temp -i .\ctrc.manifest -DSXS_ASSEMBLY_NAME="\"Ctrc\"" -DSXS_LANGUAGE="\"0000\"" -DSXS_ASSEMBLY_LANGUAGE="\"0000\"" -DSXS_PROCESSOR_ARCHITECTURE="\"x86\""  -DSXS_TARGET="\"ctrc.exe\""   -DSYSTEM_COMPATIBLE_ASSEMBLY_NAME="\"Microsoft.Windows.SystemCompatible\""  -DLSYSTEM_COMPATIBLE_ASSEMBLY_NAME=L"\"Microsoft.Windows.SystemCompatible\""   -DSXS_ASSEMBLY_VERSION="\"1.0.0.0\""
-	move d:\dev\wdev\fbt\ctrc\ctrc\objchk_wxp_x86\i386\ctrc.o_manifest.temp d:\dev\wdev\fbt\ctrc\ctrc\objchk_wxp_x86\i386\ctrc.o_manifest >nul
-C:\Users\jp\AppData\Local\Temp\nm6D8C.tmp
-.\ctrc.rc
-        1 file(s) copied.
-Microsoft (R) Windows (R) Resource Compiler Version 6.0.5724.0
-Copyright (C) Microsoft Corporation.  All rights reserved.
-
 	cl.exe @d:\dev\wdev\fbt\ctrc\ctrc\objchk_wxp_x86\i386\cl.rsp
-	link.exe /out:..\..\bin\chk\i386\ctrc.exe /machine:ix86 @C:\Users\jp\AppData\Local\Temp\nm7441.tmp
+	link.exe /out:..\..\bin\chk\i386\ctrc.exe /machine:ix86 @C:\Users\jp\AppData\Local\Temp\nm753D.tmp

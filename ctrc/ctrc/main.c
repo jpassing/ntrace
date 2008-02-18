@@ -34,7 +34,7 @@ INT __cdecl wmain(
 	UNREFERENCED_PARAMETER( Argc );
 	UNREFERENCED_PARAMETER( Argv );
 	
-	Hr = JpfsvCreateCommandProcessor( &CmdProc );
+	Hr = JpfsvCreateCommandProcessor( CtrcsOutput, &CmdProc );
 	if ( FAILED( Hr ) )
 	{
 		wprintf( L"Failed to create command processor: 0x%08X\n", Hr );
@@ -58,8 +58,7 @@ INT __cdecl wmain(
 
 			Hr = JpfsvProcessCommand(
 				CmdProc,
-				Buffer,
-				CtrcsOutput );
+				Buffer );
 			if ( FAILED( Hr ) )
 			{
 				wprintf( L"Failed to process command: 0x%08X\n", Hr );
