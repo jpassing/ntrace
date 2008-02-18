@@ -482,7 +482,7 @@ NoStack:
 	push 0					; lpArguments
 	push 0					; nNumberOfArguments
 	push 1					; EXCEPTION_NONCONTINUABLE
-	push 0EFB20000h			; EXCEPTION_FBT_NO_THUNKSTACK
+	push 80049200h			; EXCEPTION_FBT_NO_THUNKSTACK
 	call RaiseException@16	
 	
 JpfbtpFunctionCallThunk endp

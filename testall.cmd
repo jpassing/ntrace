@@ -1,5 +1,7 @@
 @echo off
 
+copy /Y ..\Cfix\bin\chk\i386\jpdiag.dll bin\chk\i386\jpdiag.dll
+copy /Y ..\Cfix\bin\fre\i386\jpdiag.dll bin\fre\i386\jpdiag.dll
 
 
 echo i386 checked				>> testrun.log

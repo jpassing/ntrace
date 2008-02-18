@@ -26,6 +26,9 @@ TARGETNAME=jpfbt_um
 TARGETPATH=..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=LIBRARY
 
+PASS0_HEADERDIR=..\..\include
+PASS0_SOURCEDIR=obj$(BUILD_ALT_DIR)\$(TARGET_DIRECTORY)
+
 SOURCES=\
 	instrument.c \
 	main.c \
@@ -35,7 +38,8 @@ SOURCES=\
 	um_dbgtrace.c \
 	um_memalloc.c \
 	um_patch.c \
-	um_threadenum.c
+	um_threadenum.c \
+	jpfbtmsg.mc
 
 I386_SOURCES=i386\thunks.asm
 

@@ -120,6 +120,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\jpfsv\jpfsvmsg.mc"
+					>
+				</File>
+				<File
 					RelativePath=".\jpfsv\main.c"
 					>
 				</File>

@@ -84,6 +84,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\jpfbt\jpfbtmsg.mc"
+					>
+				</File>
+				<File
 					RelativePath=".\jpfbt\list.h"
 					>
 				</File>
@@ -184,6 +188,10 @@
 			</File>
 			<File
 				RelativePath="..\include\jpfbtdef.h"
+				>
+			</File>
+			<File
+				RelativePath="..\include\jpfbtmsg.h"
 				>
 			</File>
 		</Filter>

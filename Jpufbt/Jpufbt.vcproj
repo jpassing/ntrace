@@ -200,6 +200,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\jpufbt\jpufbtmsg_u.mc"
+					>
+				</File>
+				<File
 					RelativePath=".\jpufbt\main.c"
 					>
 				</File>

@@ -20,6 +20,4 @@ jpfsv
  * mc files
  * symsetopt( undnames )
  
- * memleak detection jpdiag, cfix
- 
  * Leaks?

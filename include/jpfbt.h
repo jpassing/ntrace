@@ -8,6 +8,8 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
+#include <jpfbtmsg.h>
+
 #ifdef _NT_TARGET_VERSION
 #include <wdm.h>
 #define JPFBT_KERNELMODE
@@ -26,37 +28,8 @@
 #define JPFBTCALLTYPE __stdcall
 #endif
 
-#ifndef _MAKE_NTSTATUS
-#define _MAKE_NTSTATUS( Sev, Cust, Fac, Code ) \
-    ( ( NTSTATUS ) (	\
-		( ( unsigned long ) ( Sev  & 0x03 ) << 30 ) | \
-		( ( unsigned long ) ( Cust & 0x01 ) << 29 ) | \
-		( ( unsigned long ) ( Fac  & 0x3F ) << 16 ) | \
-		( ( unsigned long ) ( Code ) ) ) )
-#endif
-
-//
-// Errors
-//
-#define STATUS_FBT_NO_THUNKSTACK		 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x1 )
-#define STATUS_FBT_PROC_NOT_PATCHABLE	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x2 )
-#define STATUS_FBT_PROC_ALREADY_PATCHED	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x3 )
-#define STATUS_FBT_PROC_TOO_FAR			 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x4 )
-#define STATUS_FBT_INIT_FAILURE			 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x5 )
-#define STATUS_FBT_THR_SUSPEND_FAILURE	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x6 )
-#define STATUS_FBT_THR_CTXUPD_FAILURE	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x7 )
-#define STATUS_FBT_STILL_PATCHED		 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x8 )
-#define STATUS_FBT_NOT_INITIALIZED		 _MAKE_NTSTATUS( 3, 1, 0xFB, 0x9 )
-#define STATUS_FBT_ALREADY_INITIALIZED	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0xA )
-#define STATUS_FBT_UNUSABLE_TLS_SLOT	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0xB )
-#define STATUS_FBT_AUPTR_IN_USE		 	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0xC )
-#define STATUS_FBT_NOT_PATCHED		 	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0xD )
-#define STATUS_FBT_PATCHES_ACTIVE	 	 _MAKE_NTSTATUS( 3, 1, 0xFB, 0xE )
-
-
 #define EXCEPTION_FBT_NO_THUNKSTACK		 STATUS_FBT_NO_THUNKSTACK
 #define EXCEPTION_FBT_AUPTR_IN_USE		 STATUS_FBT_AUPTR_IN_USE
-
 
 //
 // If defined, debug code is inserted into the trampoline.

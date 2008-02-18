@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\Jpht\Include;..\..\..\cfix\include
+INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\Jpht\Include;..\..\..\cfix\include;$(SDK_INC_PATH)\..\mfc42
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -31,6 +31,9 @@ TARGETNAME=jpfsv
 TARGETPATH=..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DYNLINK
 
+PASS0_HEADERDIR=..\..\include
+PASS0_SOURCEDIR=obj$(BUILD_ALT_DIR)\$(TARGET_DIRECTORY)
+
 SOURCES=\
 	psinfo.c \
 	main.c \
@@ -46,6 +49,7 @@ SOURCES=\
 	tracetab.c \
 	cmdattach.c \
 	cmdtracepnt.c \
-	jpfsv.rc
+	jpfsv.rc \
+	jpfsvmsg.mc
 	
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

@@ -11,30 +11,7 @@
  */
 
 #include <jpfbt.h>
-
-#ifndef _MAKE_NTSTATUS
-#define _MAKE_NTSTATUS( Sev, Cust, Fac, Code ) \
-    ( ( NTSTATUS ) (	\
-		( ( unsigned long ) ( Sev  & 0x03 ) << 30 ) | \
-		( ( unsigned long ) ( Cust & 0x01 ) << 29 ) | \
-		( ( unsigned long ) ( Fac  & 0x3F ) << 16 ) | \
-		( ( unsigned long ) ( Code ) ) ) )
-#endif
-
-//
-// Errors
-//
-#define STATUS_UFBT_STILL_ACTIVE		 		_MAKE_NTSTATUS( 3, 1, 0xFD, 0x1 )
-#define STATUS_UFBT_AGENT_NOT_FOUND	 			_MAKE_NTSTATUS( 3, 1, 0xFD, 0x2 )
-#define STATUS_UFBT_INJECTION_FAILED	 		_MAKE_NTSTATUS( 3, 1, 0xFD, 0x3 )
-#define STATUS_UFBT_PEER_FAILED		 			_MAKE_NTSTATUS( 3, 1, 0xFD, 0x4 )
-#define STATUS_UFBT_INVALID_PEER_MSG	 		_MAKE_NTSTATUS( 3, 1, 0xFD, 0x5 )
-#define STATUS_UFBT_UNEXPECTED_PEER_MSG	 		_MAKE_NTSTATUS( 3, 1, 0xFD, 0x6 )
-#define STATUS_UFBT_INVALID_PEER_MSG_FMT	 	_MAKE_NTSTATUS( 3, 1, 0xFD, 0x7 )
-#define STATUS_UFBT_TRACING_NOT_INITIALIZED		_MAKE_NTSTATUS( 3, 1, 0xFD, 0x8 )
-#define STATUS_UFBT_INVALID_HANDLE				_MAKE_NTSTATUS( 3, 1, 0xFD, 0x9 )
-#define STATUS_UFBT_TIMED_OUT					_MAKE_NTSTATUS( 3, 1, 0xFD, 0xa )
-#define STATUS_UFBT_PEER_DIED					_MAKE_NTSTATUS( 3, 1, 0xFD, 0xb )
+#include <jpufbtmsg.h>
 
 typedef enum
 {
