@@ -27,6 +27,7 @@ typedef struct _JPFSV_COMMAND
 		JPHT_HASHTABLE_ENTRY HashtableEntry;
 	} u;
 
+	
 	//
 	// Routine that implements the logic.
 	//
@@ -56,16 +57,13 @@ typedef struct _JPFSV_COMMAND_PROCESSOR
 	// State accessible by commands.
 	//
 	JPFSV_COMMAND_PROCESSOR_STATE State;
-
-	JPFSV_OUTPUT_ROUTINE OutputRoutine;
 } JPFSV_COMMAND_PROCESSOR, *PJPFSV_COMMAND_PROCESSOR;
 
 static BOOL JpfsvsHelp(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 static JPFSV_COMMAND JpfsvsBuiltInCommands[] =
@@ -128,8 +126,7 @@ static BOOL JpfsvsHelp(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	UINT Index;
@@ -149,7 +146,7 @@ static BOOL JpfsvsHelp(
 			JpfsvsBuiltInCommands[ Index ].u.Name,
 			JpfsvsBuiltInCommands[ Index ].Documentation ) ) )
 		{
-			( OutputRoutine ) ( Buffer );
+			( ProcessorState->OutputRoutine ) ( Buffer );
 		}
 	}
 
@@ -262,8 +259,7 @@ static BOOL JpfsvsDispatchCommand(
 	__in PJPFSV_COMMAND_PROCESSOR Processor,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PWSTR* Argv
 	)
 {
 	PJPHT_HASHTABLE_ENTRY Entry;
@@ -283,12 +279,11 @@ static BOOL JpfsvsDispatchCommand(
 			&Processor->State,
 			CommandName,
 			Argc,
-			Argv,
-			OutputRoutine );
+			Argv );
 	}
 	else
 	{
-		( OutputRoutine )( L"Unrecognized command.\n" );
+		( Processor->State.OutputRoutine )( L"Unrecognized command.\n" );
 		return FALSE;
 	}
 }
@@ -359,8 +354,7 @@ static HRESULT JpfsvsParseCommandPrefix(
 
 static BOOL JpfsvsParseAndDisparchCommandLine(
 	__in PJPFSV_COMMAND_PROCESSOR Processor,
-	__in PCWSTR CommandLine,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR CommandLine
 	)
 {
 	INT TokenCount;
@@ -377,12 +371,12 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 	Tokens = CommandLineToArgvW( CommandLine, &TokenCount );
 	if ( ! Tokens )
 	{
-		( OutputRoutine )( L"Parsing command line failed.\n" );
+		( Processor->State.OutputRoutine )( L"Parsing command line failed.\n" );
 		return FALSE;
 	}
 	else if ( TokenCount == 0 )
 	{
-		( OutputRoutine )( L"Invalid command.\n" );
+		( Processor->State.OutputRoutine )( L"Invalid command.\n" );
 		return FALSE;
 	}
 	else
@@ -415,7 +409,7 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 					//
 					// Senseless command like '|123'.
 					//
-					( OutputRoutine )( L"Invalid command.\n" );
+					( Processor->State.OutputRoutine )( L"Invalid command.\n" );
 					return FALSE;
 				}
 			}
@@ -441,8 +435,7 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 				Processor,
 				RemainingCommand,
 				Argc,
-				Argv,
-				OutputRoutine );
+				Argv );
 
 			if ( TempCtx )
 			{
@@ -456,7 +449,7 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 		}
 		else
 		{
-			JpfsvpOutputError( Hr, OutputRoutine );
+			JpfsvpOutputError( Hr, Processor->State.OutputRoutine );
 			return FALSE;
 		}
 	}
@@ -530,7 +523,7 @@ HRESULT JpfsvCreateCommandProcessor(
 	Processor->Signature			= JPFSV_COMMAND_PROCESSOR_SIGNATURE;
 	Processor->State.Context		= CurrentContext;
 	Processor->State.DiagSession	= DiagSession;
-	Processor->OutputRoutine		= OutputRoutine;
+	Processor->State.OutputRoutine	= OutputRoutine;
 	InitializeCriticalSection( &Processor->Lock );
 
 	JpfsvsRegisterBuiltinCommands( Processor );
@@ -611,8 +604,7 @@ HRESULT JpfsvProcessCommand(
 
 	if ( JpfsvsParseAndDisparchCommandLine(
 		Processor,
-		CommandLine,
-		Processor->OutputRoutine ) )
+		CommandLine ) )
 	{
 		Hr = S_OK;
 	}

@@ -86,8 +86,7 @@ BOOL JpfsvpEchoCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	UINT Index;
@@ -97,10 +96,10 @@ BOOL JpfsvpEchoCommand(
 
 	for ( Index = 0; Index < Argc; Index++ )
 	{
-		( OutputRoutine )( Argv[ Index ] );
-		( OutputRoutine )( L" " );
+		( ProcessorState->OutputRoutine )( Argv[ Index ] );
+		( ProcessorState->OutputRoutine )( L" " );
 	}
-	( OutputRoutine )( L"\n" );
+	( ProcessorState->OutputRoutine )( L"\n" );
 
 	return TRUE;
 }
@@ -195,8 +194,7 @@ BOOL JpfsvpListProcessesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	JPFSV_ENUM_HANDLE Enum;
@@ -220,7 +218,7 @@ BOOL JpfsvpListProcessesCommand(
 	Hr = JpfsvEnumProcesses( NULL, &Enum );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( Hr, OutputRoutine );
+		JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
 		return FALSE;
 	}
 
@@ -236,7 +234,7 @@ BOOL JpfsvpListProcessesCommand(
 		}
 		else if ( FAILED( Hr ) )
 		{
-			JpfsvpOutputError( Hr, OutputRoutine );
+			JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
 			ExitStatus = FALSE;
 			break;
 		}
@@ -258,7 +256,7 @@ BOOL JpfsvpListProcessesCommand(
 			CurrentProcessId, 
 			&Proc, 
 			Wow64,
-			OutputRoutine );
+			ProcessorState->OutputRoutine );
 	}
 
 	VERIFY( S_OK == JpfsvCloseEnum( Enum ) );
@@ -271,7 +269,7 @@ BOOL JpfsvpListProcessesCommand(
 		CurrentProcessId, 
 		&Kernel, 
 		FALSE,
-		OutputRoutine );
+		ProcessorState->OutputRoutine );
 
 	return ExitStatus;
 }
@@ -280,8 +278,7 @@ BOOL JpfsvpListModulesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	JPFSV_ENUM_HANDLE Enum;
@@ -299,11 +296,11 @@ BOOL JpfsvpListModulesCommand(
 	Hr = JpfsvEnumModules( NULL, CurrentProcessId, &Enum );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( Hr, OutputRoutine );
+		JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
 		return FALSE;
 	}
 
-	( OutputRoutine ) ( L"Start    Size     Name\n" );
+	( ProcessorState->OutputRoutine ) ( L"Start    Size     Name\n" );
 
 	for ( ;; )
 	{
@@ -316,7 +313,7 @@ BOOL JpfsvpListModulesCommand(
 		}
 		else if ( FAILED( Hr ) )
 		{
-			JpfsvpOutputError( Hr, OutputRoutine );
+			JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
 			ExitStatus = FALSE;
 			break;
 		}
@@ -329,7 +326,7 @@ BOOL JpfsvpListModulesCommand(
 			Mod.ModuleSize,
 			Mod.ModuleName ) ) )
 		{
-			( OutputRoutine ) ( Buffer );
+			( ProcessorState->OutputRoutine ) ( Buffer );
 		}
 	}
 

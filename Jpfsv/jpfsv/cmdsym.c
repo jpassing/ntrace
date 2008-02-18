@@ -92,8 +92,7 @@ BOOL JpfsvpSearchSymbolCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	SEARCH_SYMBOL_CTX Ctx;
@@ -103,11 +102,11 @@ BOOL JpfsvpSearchSymbolCommand(
 
 	if ( Argc < 1 )
 	{
-		( OutputRoutine ) ( L"Usage: x <mask>\n" );
+		( ProcessorState->OutputRoutine ) ( L"Usage: x <mask>\n" );
 		return FALSE;
 	}
 
-	Ctx.OutputRoutine = OutputRoutine;
+	Ctx.OutputRoutine = ProcessorState->OutputRoutine;
 	Ctx.Process = Process;
 
 	if ( ! SymEnumSymbols(
@@ -118,7 +117,8 @@ BOOL JpfsvpSearchSymbolCommand(
 		&Ctx ) )
 	{
 		DWORD Err = GetLastError();
-		JpfsvpOutputError( HRESULT_FROM_WIN32( Err ), OutputRoutine );
+		JpfsvpOutputError( 
+			HRESULT_FROM_WIN32( Err ), ProcessorState->OutputRoutine );
 		return FALSE;
 	}
 

@@ -281,8 +281,7 @@ BOOL JpfsvpSetTracepointCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 
@@ -290,7 +289,7 @@ BOOL JpfsvpSetTracepointCommand(
 
 	if ( Argc < 1 )
 	{
-		JpfsvpOutput( OutputRoutine, L"Usage: ts <mask>\n" );
+		JpfsvpOutput( ProcessorState->OutputRoutine, L"Usage: ts <mask>\n" );
 		return FALSE;
 	}
 
@@ -298,22 +297,21 @@ BOOL JpfsvpSetTracepointCommand(
 		ProcessorState,
 		JpfsvAddTracepoint,
 		Argv[ 0 ],
-		OutputRoutine );
+		ProcessorState->OutputRoutine );
 }
 
 BOOL JpfsvpClearTracepointCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	UNREFERENCED_PARAMETER( CommandName );
 
 	if ( Argc < 1 )
 	{
-		JpfsvpOutput( OutputRoutine, L"Usage: tc <mask>\n" );
+		JpfsvpOutput( ProcessorState->OutputRoutine, L"Usage: tc <mask>\n" );
 		return FALSE;
 	}
 
@@ -321,15 +319,14 @@ BOOL JpfsvpClearTracepointCommand(
 		ProcessorState,
 		JpfsvRemoveTracepoint,
 		Argv[ 0 ],
-		OutputRoutine );
+		ProcessorState->OutputRoutine );
 }
 
 BOOL JpfsvpListTracepointsCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	HRESULT Hr;
@@ -340,7 +337,7 @@ BOOL JpfsvpListTracepointsCommand(
 	UNREFERENCED_PARAMETER( Argv );
 
 	Ctx.Process = JpfsvGetProcessHandleContext( ProcessorState->Context );
-	Ctx.OutputRoutine = OutputRoutine;
+	Ctx.OutputRoutine = ProcessorState->OutputRoutine;
 
 	Hr = JpfsvEnumTracePointsContext(
 		ProcessorState->Context,
@@ -348,7 +345,7 @@ BOOL JpfsvpListTracepointsCommand(
 		&Ctx );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( Hr, OutputRoutine );
+		JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
 		return FALSE;
 	}
 	else

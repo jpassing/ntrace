@@ -315,14 +315,15 @@ typedef struct _JPFSV_COMMAND_PROCESSOR_STATE
 	// Jpdiag session for event processing.
 	//
 	JPDIAG_SESSION_HANDLE DiagSession;
+
+	JPFSV_OUTPUT_ROUTINE OutputRoutine;
 } JPFSV_COMMAND_PROCESSOR_STATE, *PJPFSV_COMMAND_PROCESSOR_STATE;
 
 typedef BOOL ( * JPFSV_COMMAND_ROUTINE ) (
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 /*----------------------------------------------------------------------
@@ -345,70 +346,61 @@ BOOL JpfsvpEchoCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 BOOL JpfsvpListProcessesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 BOOL JpfsvpListModulesCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 BOOL JpfsvpSearchSymbolCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 BOOL JpfsvpAttachCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 BOOL JpfsvpDetachCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 BOOL JpfsvpSetTracepointCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 BOOL JpfsvpClearTracepointCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);
 
 BOOL JpfsvpListTracepointsCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	);

@@ -14,8 +14,7 @@ BOOL JpfsvpAttachCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	DWORD BufferCount = 64;
@@ -27,7 +26,7 @@ BOOL JpfsvpAttachCommand(
 	if ( Argc == 1 && 0 == wcscmp( Argv[ 0 ], L"/?" ) )
 	{
 		JpfsvpOutput( 
-			OutputRoutine, 
+			ProcessorState->OutputRoutine, 
 			L"Usage: .attach [BufferCount [BufferSize]]\n" );
 		return TRUE;
 	}
@@ -37,7 +36,8 @@ BOOL JpfsvpAttachCommand(
 		PWSTR Remaining;
 		if ( ! JpfsvpParseInteger( Argv[ 0 ], &Remaining, &BufferCount ) )
 		{
-			JpfsvpOutput( OutputRoutine, L"Invalid buffer count.\n" );
+			JpfsvpOutput( 
+				ProcessorState->OutputRoutine, L"Invalid buffer count.\n" );
 			return FALSE;
 		}
 	}
@@ -47,13 +47,14 @@ BOOL JpfsvpAttachCommand(
 		PWSTR Remaining;
 		if ( ! JpfsvpParseInteger( Argv[ 1 ], &Remaining, &BufferSize ) )
 		{
-			JpfsvpOutput( OutputRoutine, L"Invalid buffer size.\n" );
+			JpfsvpOutput( 
+				ProcessorState->OutputRoutine, L"Invalid buffer size.\n" );
 			return FALSE;
 		}
 	}
 
 	JpfsvpOutput( 
-		OutputRoutine, 
+		ProcessorState->OutputRoutine, 
 		L"Using 0x%d buffers of size 0x%x\n",
 		BufferCount,
 		BufferSize );
@@ -73,13 +74,13 @@ BOOL JpfsvpAttachCommand(
 		else
 		{
 			VERIFY( S_OK == JpfsvDetachContext( ProcessorState->Context ) );
-			JpfsvpOutputError( Hr, OutputRoutine );
+			JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
 			return FALSE;
 		}
 	}
 	else
 	{
-		JpfsvpOutputError( Hr, OutputRoutine );
+		JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
 		return FALSE;
 	}
 }
@@ -88,8 +89,7 @@ BOOL JpfsvpDetachCommand(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR CommandName,
 	__in UINT Argc,
-	__in PCWSTR* Argv,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR* Argv
 	)
 {
 	HRESULT Hr1, Hr2;
@@ -103,12 +103,12 @@ BOOL JpfsvpDetachCommand(
 	
 	if ( FAILED( Hr1 ) )
 	{
-		JpfsvpOutputError( Hr1, OutputRoutine );
+		JpfsvpOutputError( Hr1, ProcessorState->OutputRoutine );
 		return FALSE;
 	}
 	if ( FAILED( Hr2 ) )
 	{
-		JpfsvpOutputError( Hr1, OutputRoutine );
+		JpfsvpOutputError( Hr1, ProcessorState->OutputRoutine );
 		return FALSE;
 	}
 
