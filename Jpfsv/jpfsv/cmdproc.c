@@ -449,7 +449,7 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 		}
 		else
 		{
-			JpfsvpOutputError( Hr, Processor->State.OutputRoutine );
+			JpfsvpOutputError( Processor->State.OutputRoutine, Hr );
 			return FALSE;
 		}
 	}

@@ -74,13 +74,13 @@ BOOL JpfsvpAttachCommand(
 		else
 		{
 			VERIFY( S_OK == JpfsvDetachContext( ProcessorState->Context ) );
-			JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
+			JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
 			return FALSE;
 		}
 	}
 	else
 	{
-		JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
+		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
 		return FALSE;
 	}
 }
@@ -103,12 +103,12 @@ BOOL JpfsvpDetachCommand(
 	
 	if ( FAILED( Hr1 ) )
 	{
-		JpfsvpOutputError( Hr1, ProcessorState->OutputRoutine );
+		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr1 );
 		return FALSE;
 	}
 	if ( FAILED( Hr2 ) )
 	{
-		JpfsvpOutputError( Hr1, ProcessorState->OutputRoutine );
+		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr2 );
 		return FALSE;
 	}
 

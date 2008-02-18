@@ -81,7 +81,7 @@ static BOOL JpfsvsCheckTracabilityFilter(
 		&Hotpatchable );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( Hr, Ctx->OutputRoutine );
+		JpfsvpOutputError( Ctx->OutputRoutine, Hr );
 		return FALSE;
 	}
 
@@ -212,7 +212,7 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 	Ctx.Procedures.Array = malloc( Ctx.Procedures.Capacity * sizeof( DWORD_PTR ) );
 	if ( ! Ctx.Procedures.Array )
 	{
-		JpfsvpOutputError( E_OUTOFMEMORY, OutputRoutine );
+		JpfsvpOutputError( OutputRoutine, E_OUTOFMEMORY );
 		return FALSE;
 	}
 
@@ -224,7 +224,7 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 		&Ctx ) )
 	{
 		DWORD Err = GetLastError();
-		JpfsvpOutputError( HRESULT_FROM_WIN32( Err ), OutputRoutine );
+		JpfsvpOutputError( OutputRoutine, HRESULT_FROM_WIN32( Err ) );
 		Result = FALSE;
 	}
 	else if ( Ctx.Procedures.Count == 0 )
@@ -254,7 +254,7 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 		}
 		else if ( FAILED( Hr ) )
 		{
-			JpfsvpOutputError( Hr, OutputRoutine );
+			JpfsvpOutputError( OutputRoutine, Hr );
 			JpfsvpOutput( 
 				OutputRoutine, 
 				L"Failed procedure: %p\n", ( PVOID ) FailedProc );
@@ -345,7 +345,7 @@ BOOL JpfsvpListTracepointsCommand(
 		&Ctx );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
+		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
 		return FALSE;
 	}
 	else

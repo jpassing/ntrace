@@ -16,8 +16,8 @@
 #pragma warning( pop )
 
 VOID JpfsvpOutputError( 
-	__in HRESULT Hr,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in HRESULT Hr
 	)
 {
 	WCHAR Msg[ 255 ];
@@ -157,14 +157,14 @@ static VOID JpfsvsOutputProcessListEntry(
 				else
 				{
 					Active = FALSE;
-					JpfsvpOutputError( Hr, OutputRoutine );
+					JpfsvpOutputError( OutputRoutine, Hr );
 				}
 
 				VERIFY( S_OK == JpfsvUnloadContext( Context ) );
 			}
 			else
 			{
-				JpfsvpOutputError( Hr, OutputRoutine );
+				JpfsvpOutputError( OutputRoutine, Hr );
 			}
 
 			if ( Active )
@@ -218,7 +218,7 @@ BOOL JpfsvpListProcessesCommand(
 	Hr = JpfsvEnumProcesses( NULL, &Enum );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
+		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
 		return FALSE;
 	}
 
@@ -234,7 +234,7 @@ BOOL JpfsvpListProcessesCommand(
 		}
 		else if ( FAILED( Hr ) )
 		{
-			JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
+			JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
 			ExitStatus = FALSE;
 			break;
 		}
@@ -296,7 +296,7 @@ BOOL JpfsvpListModulesCommand(
 	Hr = JpfsvEnumModules( NULL, CurrentProcessId, &Enum );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
+		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
 		return FALSE;
 	}
 
@@ -313,7 +313,7 @@ BOOL JpfsvpListModulesCommand(
 		}
 		else if ( FAILED( Hr ) )
 		{
-			JpfsvpOutputError( Hr, ProcessorState->OutputRoutine );
+			JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
 			ExitStatus = FALSE;
 			break;
 		}

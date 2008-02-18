@@ -332,8 +332,8 @@ typedef BOOL ( * JPFSV_COMMAND_ROUTINE ) (
  *
  */
 VOID JpfsvpOutputError( 
-	__in HRESULT Hr,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in HRESULT Hr
 	);
 
 VOID __cdecl JpfsvpOutput( 

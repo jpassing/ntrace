@@ -118,7 +118,7 @@ BOOL JpfsvpSearchSymbolCommand(
 	{
 		DWORD Err = GetLastError();
 		JpfsvpOutputError( 
-			HRESULT_FROM_WIN32( Err ), ProcessorState->OutputRoutine );
+			ProcessorState->OutputRoutine, HRESULT_FROM_WIN32( Err ) );
 		return FALSE;
 	}
 
