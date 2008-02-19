@@ -26,7 +26,7 @@ BOOL JpfsvpAttachCommand(
 	if ( Argc == 1 && 0 == wcscmp( Argv[ 0 ], L"/?" ) )
 	{
 		JpfsvpOutput( 
-			ProcessorState->OutputRoutine, 
+			ProcessorState, 
 			L"Usage: .attach [BufferCount [BufferSize]]\n" );
 		return TRUE;
 	}
@@ -37,7 +37,7 @@ BOOL JpfsvpAttachCommand(
 		if ( ! JpfsvpParseInteger( Argv[ 0 ], &Remaining, &BufferCount ) )
 		{
 			JpfsvpOutput( 
-				ProcessorState->OutputRoutine, L"Invalid buffer count.\n" );
+				ProcessorState, L"Invalid buffer count.\n" );
 			return FALSE;
 		}
 	}
@@ -48,13 +48,13 @@ BOOL JpfsvpAttachCommand(
 		if ( ! JpfsvpParseInteger( Argv[ 1 ], &Remaining, &BufferSize ) )
 		{
 			JpfsvpOutput( 
-				ProcessorState->OutputRoutine, L"Invalid buffer size.\n" );
+				ProcessorState, L"Invalid buffer size.\n" );
 			return FALSE;
 		}
 	}
 
 	JpfsvpOutput( 
-		ProcessorState->OutputRoutine, 
+		ProcessorState, 
 		L"Using 0x%d buffers of size 0x%x\n",
 		BufferCount,
 		BufferSize );
@@ -74,13 +74,13 @@ BOOL JpfsvpAttachCommand(
 		else
 		{
 			VERIFY( S_OK == JpfsvDetachContext( ProcessorState->Context ) );
-			JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
+			JpfsvpOutputError( ProcessorState, Hr );
 			return FALSE;
 		}
 	}
 	else
 	{
-		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
+		JpfsvpOutputError( ProcessorState, Hr );
 		return FALSE;
 	}
 }
@@ -103,12 +103,12 @@ BOOL JpfsvpDetachCommand(
 	
 	if ( FAILED( Hr1 ) )
 	{
-		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr1 );
+		JpfsvpOutputError( ProcessorState, Hr1 );
 		return FALSE;
 	}
 	if ( FAILED( Hr2 ) )
 	{
-		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr2 );
+		JpfsvpOutputError( ProcessorState, Hr2 );
 		return FALSE;
 	}
 

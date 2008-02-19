@@ -153,21 +153,49 @@ static BOOL JpfsvsHelp(
 	return TRUE;
 }
 
-static HRESULT JpfsvsCreateDiagSession(
+static HRESULT JpfsvsCreateDiagSessionAndResolver(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
-	__out JPDIAG_SESSION_HANDLE *DiagSession
+	__out JPDIAG_SESSION_HANDLE *DiagSession,
+	__out PJPDIAG_MESSAGE_RESOLVER *MessageResolver
 	)
 {
-	JPDIAG_SESSION_HANDLE Session;
+	JPDIAG_SESSION_HANDLE Session = NULL;
+	PJPDIAG_MESSAGE_RESOLVER Resolver = NULL;
 	PJPDIAG_HANDLER Handler;
 	HRESULT Hr;
 
-	*DiagSession = NULL;
+	*DiagSession		= NULL;
+	*MessageResolver	= NULL;
 
-	Hr = JpdiagCreateSession( NULL, NULL, &Session );
+	Hr = JpdiagCreateMessageResolver( &Resolver );
 	if ( FAILED( Hr ) )
 	{
-		return Hr;
+		goto Cleanup;
+	}
+
+	//
+	// Try to register all message DLLs that apply.
+	//
+	VERIFY( S_OK == Resolver->RegisterMessageDll(
+		Resolver,
+		L"jpdiag",
+		0,
+		0 ) );
+	VERIFY( S_OK == Resolver->RegisterMessageDll(
+		Resolver,
+		L"jpufbt",
+		0,
+		0 ) );
+	VERIFY( S_OK == Resolver->RegisterMessageDll(
+		Resolver,
+		L"jpfsv",
+		0,
+		0 ) );
+
+	Hr = JpdiagCreateSession( NULL, Resolver, &Session );
+	if ( FAILED( Hr ) )
+	{
+		goto Cleanup;
 	}
 
 	ASSERT( Session );
@@ -190,13 +218,23 @@ static HRESULT JpfsvsCreateDiagSession(
 		goto Cleanup;
 	}
 
-	*DiagSession = Session;
+	*DiagSession		= Session;
+	*MessageResolver	= Resolver;
+
 	Hr = S_OK;
 
 Cleanup:
 	if ( FAILED( Hr ) )
 	{
-		VERIFY( S_OK == JpdiagDereferenceSession( Session ) );
+		if ( Session )
+		{
+			VERIFY( S_OK == JpdiagDereferenceSession( Session ) );
+		}
+
+		if ( MessageResolver )
+		{
+			VERIFY( S_OK == JpdiagDereferenceSession( MessageResolver ) );
+		}
 	}
 
 	return Hr;
@@ -283,7 +321,7 @@ static BOOL JpfsvsDispatchCommand(
 	}
 	else
 	{
-		( Processor->State.OutputRoutine )( L"Unrecognized command.\n" );
+		JpfsvpOutput( &Processor->State, L"Unrecognized command.\n" );
 		return FALSE;
 	}
 }
@@ -371,12 +409,12 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 	Tokens = CommandLineToArgvW( CommandLine, &TokenCount );
 	if ( ! Tokens )
 	{
-		( Processor->State.OutputRoutine )( L"Parsing command line failed.\n" );
+		JpfsvpOutput( &Processor->State, L"Parsing command line failed.\n" );
 		return FALSE;
 	}
 	else if ( TokenCount == 0 )
 	{
-		( Processor->State.OutputRoutine )( L"Invalid command.\n" );
+		JpfsvpOutput( &Processor->State, L"Invalid command.\n" );
 		return FALSE;
 	}
 	else
@@ -409,7 +447,7 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 					//
 					// Senseless command like '|123'.
 					//
-					( Processor->State.OutputRoutine )( L"Invalid command.\n" );
+					JpfsvpOutput( &Processor->State, L"Invalid command.\n" );
 					return FALSE;
 				}
 			}
@@ -449,7 +487,7 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 		}
 		else
 		{
-			JpfsvpOutputError( Processor->State.OutputRoutine, Hr );
+			JpfsvpOutputError( &Processor->State, Hr );
 			return FALSE;
 		}
 	}
@@ -469,7 +507,9 @@ HRESULT JpfsvCreateCommandProcessor(
 	PJPFSV_COMMAND_PROCESSOR Processor = NULL;
 	JPFSV_HANDLE CurrentContext = NULL;
 	HRESULT Hr = E_UNEXPECTED;
+
 	JPDIAG_SESSION_HANDLE DiagSession;
+	PJPDIAG_MESSAGE_RESOLVER MessageResolver;
 
 	if ( ! OutputRoutine || ! ProcessorHandle )
 	{
@@ -479,13 +519,17 @@ HRESULT JpfsvCreateCommandProcessor(
 	//
 	// Create a jpdiag session for output handling.
 	//
-	Hr = JpfsvsCreateDiagSession(
+	Hr = JpfsvsCreateDiagSessionAndResolver(
 		OutputRoutine,
-		&DiagSession );
+		&DiagSession,
+		&MessageResolver );
 	if ( FAILED( Hr ) )
 	{
 		return Hr;
 	}
+
+	ASSERT( MessageResolver );
+	ASSERT( DiagSession );
 
 	//
 	// Create and initialize processor.
@@ -520,10 +564,11 @@ HRESULT JpfsvCreateCommandProcessor(
 		goto Cleanup;
 	}
 
-	Processor->Signature			= JPFSV_COMMAND_PROCESSOR_SIGNATURE;
-	Processor->State.Context		= CurrentContext;
-	Processor->State.DiagSession	= DiagSession;
-	Processor->State.OutputRoutine	= OutputRoutine;
+	Processor->Signature				= JPFSV_COMMAND_PROCESSOR_SIGNATURE;
+	Processor->State.Context			= CurrentContext;
+	Processor->State.DiagSession		= DiagSession;
+	Processor->State.MessageResolver	= MessageResolver;
+	Processor->State.OutputRoutine		= OutputRoutine;
 	InitializeCriticalSection( &Processor->Lock );
 
 	JpfsvsRegisterBuiltinCommands( Processor );
@@ -564,6 +609,8 @@ HRESULT JpfsvCloseCommandProcessor(
 	JphtDeleteHashtable( &Processor->Commands );
 
 	JpdiagDereferenceSession( Processor->State.DiagSession );
+	Processor->State.MessageResolver->Dereference(
+		Processor->State.MessageResolver );
 
 	free( Processor );
 	return S_OK;

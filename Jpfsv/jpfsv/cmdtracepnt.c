@@ -20,7 +20,7 @@
 
 typedef struct _JPFSVP_SEARCH_TRACEPOINT_CTX
 {
-	JPFSV_OUTPUT_ROUTINE OutputRoutine;
+	PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState;
 	JPFSV_HANDLE ContextHandle;
 
 	struct
@@ -38,7 +38,7 @@ typedef struct _JPFSVP_SEARCH_TRACEPOINT_CTX
 
 typedef struct _JPFSVP_LIST_TRACEPOINTS_CTX
 {
-	JPFSV_OUTPUT_ROUTINE OutputRoutine;
+	PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState;
 	HANDLE Process;
 } JPFSVP_LIST_TRACEPOINTS_CTX, *PJPFSVP_LIST_TRACEPOINTS_CTX;
 
@@ -61,7 +61,7 @@ static VOID JpfsvsOutputTracepoint(
 	if ( ! OutputCtx ) return;
 
 	JpfsvpOutput( 
-		OutputCtx->OutputRoutine, 
+		OutputCtx->ProcessorState, 
 		L"%p %s!%s\n",
 		( PVOID ) Tracepoint->Procedure,
 		Tracepoint->ModuleName,
@@ -81,14 +81,14 @@ static BOOL JpfsvsCheckTracabilityFilter(
 		&Hotpatchable );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( Ctx->OutputRoutine, Hr );
+		JpfsvpOutputError( Ctx->ProcessorState, Hr );
 		return FALSE;
 	}
 
 	if ( ! Hotpatchable )
 	{
 		JpfsvpOutput(
-			Ctx->OutputRoutine,
+			Ctx->ProcessorState,
 			L"%s not suitable for tracing (No hotpatchable prolog)\n",
 			SymInfo->Name );
 		return FALSE;
@@ -101,7 +101,7 @@ static BOOL JpfsvsCheckTracabilityFilter(
 	if ( PaddingCapacity < 5 )
 	{
 		JpfsvpOutput(
-			Ctx->OutputRoutine,
+			Ctx->ProcessorState,
 			L"%s not suitable for tracing (Padding to small)\n",
 			SymInfo->Name );
 		return FALSE;
@@ -180,8 +180,7 @@ static BOOL JpfsvsSearchTracepointsCallback(
 static BOOL JpfsvsSetTracepointCommandWorker(
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in JPFSV_TRACE_ACTION Action,
-	__in PCWSTR SymbolMask,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PCWSTR SymbolMask
 	)
 {
 	JPFSVP_SEARCH_TRACEPOINT_CTX Ctx;
@@ -201,7 +200,7 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 	{
 		Ctx.Filter = JpfsvsCheckTracepointExistsFilter;
 	}
-	Ctx.OutputRoutine = OutputRoutine;
+	Ctx.ProcessorState = ProcessorState;
 	Ctx.ContextHandle = ProcessorState->Context;
 	Ctx.Procedures.Count = 0;
 #if DBG
@@ -212,7 +211,7 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 	Ctx.Procedures.Array = malloc( Ctx.Procedures.Capacity * sizeof( DWORD_PTR ) );
 	if ( ! Ctx.Procedures.Array )
 	{
-		JpfsvpOutputError( OutputRoutine, E_OUTOFMEMORY );
+		JpfsvpOutputError( ProcessorState, E_OUTOFMEMORY );
 		return FALSE;
 	}
 
@@ -224,13 +223,13 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 		&Ctx ) )
 	{
 		DWORD Err = GetLastError();
-		JpfsvpOutputError( OutputRoutine, HRESULT_FROM_WIN32( Err ) );
+		JpfsvpOutputError( ProcessorState, HRESULT_FROM_WIN32( Err ) );
 		Result = FALSE;
 	}
 	else if ( Ctx.Procedures.Count == 0 )
 	{
 		JpfsvpOutput( 
-			OutputRoutine, 
+			ProcessorState, 
 			L"No matching symbols.\n" );
 		Result = TRUE;
 	}
@@ -248,15 +247,15 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 		if ( JPFSV_E_NO_TRACESESSION == Hr )
 		{
 			JpfsvpOutput( 
-				OutputRoutine, 
+				ProcessorState, 
 				L"No active trace session. Use .attach to attach to a process first\n" );
 			Result = FALSE;
 		}
 		else if ( FAILED( Hr ) )
 		{
-			JpfsvpOutputError( OutputRoutine, Hr );
+			JpfsvpOutputError( ProcessorState, Hr );
 			JpfsvpOutput( 
-				OutputRoutine, 
+				ProcessorState, 
 				L"Failed procedure: %p\n", ( PVOID ) FailedProc );
 			Result = FALSE;
 		}
@@ -289,15 +288,14 @@ BOOL JpfsvpSetTracepointCommand(
 
 	if ( Argc < 1 )
 	{
-		JpfsvpOutput( ProcessorState->OutputRoutine, L"Usage: ts <mask>\n" );
+		JpfsvpOutput( ProcessorState, L"Usage: ts <mask>\n" );
 		return FALSE;
 	}
 
 	return JpfsvsSetTracepointCommandWorker(
 		ProcessorState,
 		JpfsvAddTracepoint,
-		Argv[ 0 ],
-		ProcessorState->OutputRoutine );
+		Argv[ 0 ] );
 }
 
 BOOL JpfsvpClearTracepointCommand(
@@ -311,15 +309,14 @@ BOOL JpfsvpClearTracepointCommand(
 
 	if ( Argc < 1 )
 	{
-		JpfsvpOutput( ProcessorState->OutputRoutine, L"Usage: tc <mask>\n" );
+		JpfsvpOutput( ProcessorState, L"Usage: tc <mask>\n" );
 		return FALSE;
 	}
 
 	return JpfsvsSetTracepointCommandWorker(
 		ProcessorState,
 		JpfsvRemoveTracepoint,
-		Argv[ 0 ],
-		ProcessorState->OutputRoutine );
+		Argv[ 0 ] );
 }
 
 BOOL JpfsvpListTracepointsCommand(
@@ -337,7 +334,7 @@ BOOL JpfsvpListTracepointsCommand(
 	UNREFERENCED_PARAMETER( Argv );
 
 	Ctx.Process = JpfsvGetProcessHandleContext( ProcessorState->Context );
-	Ctx.OutputRoutine = ProcessorState->OutputRoutine;
+	Ctx.ProcessorState = ProcessorState;
 
 	Hr = JpfsvEnumTracePointsContext(
 		ProcessorState->Context,
@@ -345,7 +342,7 @@ BOOL JpfsvpListTracepointsCommand(
 		&Ctx );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
+		JpfsvpOutputError( ProcessorState, Hr );
 		return FALSE;
 	}
 	else

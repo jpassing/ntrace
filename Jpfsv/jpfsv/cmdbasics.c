@@ -16,21 +16,21 @@
 #pragma warning( pop )
 
 VOID JpfsvpOutputError( 
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in HRESULT Hr
 	)
 {
 	WCHAR Msg[ 255 ];
 	WCHAR Err[ 200 ] = { 0 };
 
-	if ( FormatMessage(
-		FORMAT_MESSAGE_FROM_SYSTEM,
-		NULL,
+	if ( SUCCEEDED( ProcessorState->MessageResolver->ResolveMessage(
+		ProcessorState->MessageResolver,
 		Hr,
-		0,
-		Err,
+		JPDIAG_MSGRES_RESOLVE_IGNORE_INSERTS 
+			| JPDIAG_MSGRES_FALLBACK_TO_DEFAULT,
+		NULL,
 		_countof( Err ),
-		NULL ) )
+		Err ) ) )
 	{
 		//
 		// Remove line breaks.
@@ -49,16 +49,16 @@ VOID JpfsvpOutputError(
 	if ( SUCCEEDED( StringCchPrintf(
 		Msg,
 		_countof( Msg ),
-		L"Command failed: %s (0x%08X)\n",
+		L"%s (0x%08X)\n",
 		Err, 
 		Hr ) ) )
 	{
-		( OutputRoutine ) ( Msg );
+		( ProcessorState->OutputRoutine ) ( Msg );
 	}
 }
 
 VOID __cdecl JpfsvpOutput( 
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR Format,
 	...
 	)
@@ -78,7 +78,7 @@ VOID __cdecl JpfsvpOutput(
 	
 	if ( SUCCEEDED( Hr ) )
 	{
-		( OutputRoutine ) ( Buffer );
+		( ProcessorState->OutputRoutine ) ( Buffer );
 	}
 }
 
@@ -108,13 +108,13 @@ static VOID JpfsvsOutputProcessListEntry(
 	__in DWORD CurrentProcessId,
 	__in PJPFSV_PROCESS_INFO Proc,
 	__in BOOL Wow64,
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState
 	)
 {
 	BOOL ContextLoaded;
 
 	JpfsvpOutput(
-		OutputRoutine,
+		ProcessorState,
 		L" %s id:%-8x %-20s %s",
 		Proc->ProcessId == CurrentProcessId ? L"." : L" ",
 		Proc->ProcessId,
@@ -124,7 +124,7 @@ static VOID JpfsvsOutputProcessListEntry(
 	if ( FAILED( JpfsvIsContextLoaded( Proc->ProcessId, &ContextLoaded ) ) )
 	{
 		JpfsvpOutput(
-			OutputRoutine,
+			ProcessorState,
 			L"(unknwon load state)\n" );
 	}
 	else
@@ -157,34 +157,34 @@ static VOID JpfsvsOutputProcessListEntry(
 				else
 				{
 					Active = FALSE;
-					JpfsvpOutputError( OutputRoutine, Hr );
+					JpfsvpOutputError( ProcessorState, Hr );
 				}
 
 				VERIFY( S_OK == JpfsvUnloadContext( Context ) );
 			}
 			else
 			{
-				JpfsvpOutputError( OutputRoutine, Hr );
+				JpfsvpOutputError( ProcessorState, Hr );
 			}
 
 			if ( Active )
 			{
 				JpfsvpOutput(
-					OutputRoutine,
+					ProcessorState,
 					L"(loaded, active, %d tracepoints)\n",
 					TracepointCount );
 			}
 			else
 			{
 				JpfsvpOutput(
-					OutputRoutine,
+					ProcessorState,
 					L"(loaded)\n" );
 			}
 		}
 		else
 		{
 			JpfsvpOutput(
-				OutputRoutine,
+				ProcessorState,
 				L"\n" );
 		}
 	}
@@ -218,7 +218,7 @@ BOOL JpfsvpListProcessesCommand(
 	Hr = JpfsvEnumProcesses( NULL, &Enum );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
+		JpfsvpOutputError( ProcessorState, Hr );
 		return FALSE;
 	}
 
@@ -234,7 +234,7 @@ BOOL JpfsvpListProcessesCommand(
 		}
 		else if ( FAILED( Hr ) )
 		{
-			JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
+			JpfsvpOutputError( ProcessorState, Hr );
 			ExitStatus = FALSE;
 			break;
 		}
@@ -256,7 +256,7 @@ BOOL JpfsvpListProcessesCommand(
 			CurrentProcessId, 
 			&Proc, 
 			Wow64,
-			ProcessorState->OutputRoutine );
+			ProcessorState );
 	}
 
 	VERIFY( S_OK == JpfsvCloseEnum( Enum ) );
@@ -269,7 +269,7 @@ BOOL JpfsvpListProcessesCommand(
 		CurrentProcessId, 
 		&Kernel, 
 		FALSE,
-		ProcessorState->OutputRoutine );
+		ProcessorState );
 
 	return ExitStatus;
 }
@@ -296,7 +296,7 @@ BOOL JpfsvpListModulesCommand(
 	Hr = JpfsvEnumModules( NULL, CurrentProcessId, &Enum );
 	if ( FAILED( Hr ) )
 	{
-		JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
+		JpfsvpOutputError( ProcessorState, Hr );
 		return FALSE;
 	}
 
@@ -313,7 +313,7 @@ BOOL JpfsvpListModulesCommand(
 		}
 		else if ( FAILED( Hr ) )
 		{
-			JpfsvpOutputError( ProcessorState->OutputRoutine, Hr );
+			JpfsvpOutputError( ProcessorState, Hr );
 			ExitStatus = FALSE;
 			break;
 		}

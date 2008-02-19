@@ -316,6 +316,11 @@ typedef struct _JPFSV_COMMAND_PROCESSOR_STATE
 	//
 	JPDIAG_SESSION_HANDLE DiagSession;
 
+	//
+	// Resolver for error messages (also used by diag session).
+	//
+	PJPDIAG_MESSAGE_RESOLVER MessageResolver;
+
 	JPFSV_OUTPUT_ROUTINE OutputRoutine;
 } JPFSV_COMMAND_PROCESSOR_STATE, *PJPFSV_COMMAND_PROCESSOR_STATE;
 
@@ -332,12 +337,12 @@ typedef BOOL ( * JPFSV_COMMAND_ROUTINE ) (
  *
  */
 VOID JpfsvpOutputError( 
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in HRESULT Hr
 	);
 
 VOID __cdecl JpfsvpOutput( 
-	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
 	__in PCWSTR Format,
 	...
 	);

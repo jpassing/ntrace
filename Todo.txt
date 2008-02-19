@@ -15,7 +15,6 @@ jpfsv
  * Grow tracetab
  * force detach w/ ufag unload if starttrace failed in JpfsvpAttachCommand
  * hang on peer death
- * Error messages: use jpdiag resolver
  * strip OutputRoutine param for commands
  * symsetopt( undnames )
  
