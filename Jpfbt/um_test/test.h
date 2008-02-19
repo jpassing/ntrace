@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <cfix.h>
 
-#define TEST_SUCCESS( expr ) TEST( 0 == ( expr ) )
+#define TEST CFIX_ASSERT
+#define TEST_SUCCESS( expr ) CFIX_ASSERT_EQUALS_DWORD( 0, ( expr ) )
 
 /*----------------------------------------------------------------------
  *

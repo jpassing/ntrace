@@ -231,6 +231,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\include\jpfsvmsg.h"
+				>
+			</File>
+			<File
 				RelativePath="..\include\jpufbt.h"
 				>
 			</File>

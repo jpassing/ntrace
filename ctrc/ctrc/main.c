@@ -59,7 +59,7 @@ INT __cdecl wmain(
 			Hr = JpfsvProcessCommand(
 				CmdProc,
 				Buffer );
-			if ( FAILED( Hr ) )
+			if ( FAILED( Hr ) && Hr != JPFSV_E_COMMAND_FAILED )
 			{
 				wprintf( L"Failed to process command: 0x%08X\n", Hr );
 			}

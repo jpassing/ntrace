@@ -4,7 +4,8 @@
 #include <cfix.h>
 #include <jpdiag.h>
 
-#define TEST_OK( expr )  TEST( S_OK == ( expr ) )
+#define TEST CFIX_ASSERT
+#define TEST_OK( expr ) CFIX_ASSERT_EQUALS_DWORD( 0, ( expr ) )
 
 void LaunchNotepad(
 	__out PPROCESS_INFORMATION ppi

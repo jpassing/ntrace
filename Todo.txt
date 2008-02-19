@@ -2,11 +2,11 @@ TODO
 
 jpfbt
 ------------------------------------------------------------------------
- * Exception codes in thunks.asm
-
+ * Flush threadbuffer on thread teardown?
+ 
 jpufbt
 ------------------------------------------------------------------------
- * VS_VERSION_INFO jpufbt, jpufag
+ * VS_VERSION_INFO jpufag
  * Force ufag unload
  * Check for shared memory overflow (large messages)
  
@@ -17,7 +17,6 @@ jpfsv
  * hang on peer death
  * Error messages: use jpdiag resolver
  * strip OutputRoutine param for commands
- * mc files
  * symsetopt( undnames )
  
  * Leaks?

@@ -108,6 +108,8 @@ DWORD ClientProc( PVOID PvPort )
 			( PJPQLPC_MESSAGE* ) &Msg ) );
 		TEST( Msg );
 		
+		if ( ! Msg ) return 0;
+
 		TEST( Msg->Base.MessageId == DATA_RES );
 		TEST( 0 == memcmp( Msg->Payload, Responses[ Iteration ], Msg->Base.PayloadSize ) );
 
@@ -130,8 +132,7 @@ DWORD ClientProc( PVOID PvPort )
 		( PJPQLPC_MESSAGE ) Msg,
 		FALSE, 
 		( PJPQLPC_MESSAGE* ) &Msg ) );
-	TEST( Msg );
-	TEST( Msg->Base.MessageId == SHUTDOWN_ACK );
+	TEST( Msg && Msg->Base.MessageId == SHUTDOWN_ACK );
 
 	JpqlpcClosePort( Port );
 	return 0;
