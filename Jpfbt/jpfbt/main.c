@@ -328,7 +328,7 @@ NTSTATUS JpfbtUninitialize()
 		PLIST_ENTRY NextEntry = ListEntry->Flink;
 
 		//
-		// Renmove from list.
+		// Remove from list.
 		//
 		RemoveEntryList( ListEntry );
 
@@ -342,7 +342,7 @@ NTSTATUS JpfbtUninitialize()
 		{
 			//
 			// This thread has frames of patched procedures on its stack.
-			// Deleting the thread data would inevitable lead to a crash.
+			// Deleting the thread data would inevitably lead to a crash.
 			// Thus we have to stop uninitialiting.
 			//
 			// Re-insert to list.

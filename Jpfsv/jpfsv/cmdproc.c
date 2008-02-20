@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------
  * Purpose:
- *		PS API Wrappers.
+ *		Command Processor.
  *
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)

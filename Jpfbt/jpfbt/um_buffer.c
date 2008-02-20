@@ -426,7 +426,7 @@ VOID JpfbtpShutdownDirtyBufferCollector()
 			0,
 			JpfbtpGlobalState->UserPointer ) )
 	{
-		TRACE( ( "Remaining buffer flushed\n" ) );
+		TRACE( ( "Remaining buffers flushed\n" ) );
 	}
 
 	//
