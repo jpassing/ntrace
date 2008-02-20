@@ -351,11 +351,6 @@ typedef struct _JPFBT_CODE_PATCH
 	// [out] Original code protection.
 	//
 	DWORD Protection;
-
-	//
-	// Trampoline, if any.
-	//
-	PUCHAR AssociatedTrampoline;
 } JPFBT_CODE_PATCH, *PJPFBT_CODE_PATCH;
 
 C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
@@ -482,30 +477,6 @@ VOID JpfbtpTriggerDirtyBufferCollection();
 		Shutdown buffer collector thread.
 --*/
 VOID JpfbtpShutdownDirtyBufferCollector();
-
-#ifdef TRAMPOLINE_TESTMODE
-#define JPFBTP_TRAMPOLINE_SIZE 18
-#else
-#define JPFBTP_TRAMPOLINE_SIZE 10
-#endif
-
-/*++
-	Routine Description:
-		Allocate memory to hold a trampoline. The memory must
-		be executable.
-
-	Return Value:
-		Pointer to memory or NULL on allocation failure.
---*/
-PUCHAR JpfbtpAllocateTrampoline();
-
-/*++
-	Routine Description:
-		Free memory allocated by JpfbtpAllocateTrampoline.
---*/
-VOID JpfbtpFreeTrampoline( 
-	__in PUCHAR Trampoline 
-	);
 
 /*++
 	Routine Description:

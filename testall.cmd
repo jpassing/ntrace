@@ -5,7 +5,7 @@ copy /Y ..\Cfix\bin\fre\i386\jpdiag.dll bin\fre\i386\jpdiag.dll
 
 
 echo i386 checked				>> testrun.log
-date /T 					>> testrun.log
+time /T 					>> testrun.log
 echo ----------------------------------------- 	>> testrun.log
 
 pushd bin\chk\i386
@@ -23,7 +23,7 @@ popd
 
 
 echo i386 free					>> testrun.log
-date /T 					>> testrun.log
+time /T 					>> testrun.log
 echo ----------------------------------------- 	>> testrun.log
 
 pushd bin\fre\i386
@@ -38,5 +38,6 @@ if ERRORLEVEL 2 (
 )
 popd
 
+echo -----------------------------------------  >> testrun.log
 
 :Exit

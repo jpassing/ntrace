@@ -32,13 +32,6 @@
 #define EXCEPTION_FBT_AUPTR_IN_USE		 STATUS_FBT_AUPTR_IN_USE
 
 //
-// If defined, debug code is inserted into the trampoline.
-//
-// Note: The debug code scraps eax!
-//
-//#define TRAMPOLINE_TESTMODE 1
-
-//
 // Stripped-down context as used by jpfbt.
 //
 #ifdef _M_IX86 

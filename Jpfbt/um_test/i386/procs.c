@@ -83,9 +83,7 @@ VOID CallProcNoArgs()
 		pop ebx;
 	}
 
-#ifndef TRAMPOLINE_TESTMODE
 	TEST( Eax_ == 0xBABEFACE );
-#endif
 
 	TEST( Ecx_ == 0xBABE0002 );
 	TEST( Edx_ == 0xBABE0003 );
@@ -171,9 +169,7 @@ VOID __stdcall CallProcArgs()
 	TEST( Arg2 == 0xBADCAFE2 );
 	TEST( Arg3 == 0xBADCAFE3 );
 
-#ifndef TRAMPOLINE_TESTMODE
 	TEST( Eax_ == 0xBABE0001 );
-#endif
 
 	TEST( Ecx_ == 0xBABE0002 );
 	TEST( Edx_ == 0xBABE0003 );
