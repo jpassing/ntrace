@@ -7,7 +7,7 @@
  */
 
 #include <jpfbt.h>
-#include "internal.h"
+#include "..\internal.h"
 #include "um_internal.h"
 
 #define BUFFER_COLLECTOR_AUTOCOLLECT_INTERVAL 101000

@@ -7,8 +7,8 @@
  */
 
 #include <jpfbt.h>
-#include "internal.h"
-#include "list.h"
+#include "..\internal.h"
+#include "..\list.h"
 #include "um_internal.h"
 
 typedef struct _SUSPEND_CONTEXT

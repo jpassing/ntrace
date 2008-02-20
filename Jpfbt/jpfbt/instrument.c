@@ -130,17 +130,15 @@ static NTSTATUS JpfbtsAssembleNearCall(
 		  call JpfbtpFunctionCallThunk
 
 	Parameters:
-		Payload   - Buffer - 10 bytes of space are required.
-		Procedure - Procedure to be hooked
+		Payload       - Buffer - 10 bytes of space are required.
+		InstructionVa - VA where to place code.
 --*/
 static NTSTATUS JpfbtsInitializeFunctionCallThunkTrampoline(
 	__in PUCHAR Payload,
-	__in DWORD_PTR InstructionVa,
-	__in CONST JPFBT_PROCEDURE Procedure
+	__in DWORD_PTR InstructionVa
 	)
 {
 	ASSERT( Payload );
-	ASSERT( Procedure.u.Procedure );
 
 	//
 	// jmp JpfbtpFunctionCallThunk
@@ -166,8 +164,7 @@ static NTSTATUS JpfbtsInitializeTrampolineAndProlog(
 {
 	NTSTATUS Status = JpfbtsInitializeFunctionCallThunkTrampoline(
 		Payload,
-		Procedure.u.ProcedureVa - 5,
-		Procedure );
+		Procedure.u.ProcedureVa - 5 );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		return Status;
