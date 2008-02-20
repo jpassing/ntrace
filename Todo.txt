@@ -3,6 +3,10 @@ TODO
 jpfbt
 ------------------------------------------------------------------------
  * Flush threadbuffer on thread teardown?
+ * Naming: Thunk vs. Proxy
+ 
+ Kernel
+   * KM-TLS?
  
 jpufbt
 ------------------------------------------------------------------------
@@ -14,8 +18,8 @@ jpfsv
 ------------------------------------------------------------------------
  * Grow tracetab
  * force detach w/ ufag unload if starttrace failed in JpfsvpAttachCommand
- * hang on peer death
- * strip OutputRoutine param for commands
  * symsetopt( undnames )
+ 
+ * Bugs
  
  * Leaks?

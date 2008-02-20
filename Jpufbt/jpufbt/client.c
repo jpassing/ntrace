@@ -86,10 +86,6 @@ static NTSTATUS JpufbtsCall(
 		//
 		// PeerDeathApc delivered.
 		//
-		// To avoid subsequent calls, set flag.
-		//
-		Session->Qlpc.PeerActive = FALSE;
-
 		return STATUS_UFBT_PEER_DIED;
 	}
 	else if ( STATUS_TIMEOUT == Status )

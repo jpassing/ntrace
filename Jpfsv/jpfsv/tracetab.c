@@ -110,22 +110,39 @@ static VOID JpfsvsTranslateHashtableCallback(
 }
 
 
-static VOID JpfsvsCollectProceduresAndDeleteEntriesHashtableCallback(
+static VOID JpfsvsCollectProceduresHashtableCallback(
 	__in PJPHT_HASHTABLE Hashtable,
 	__in PJPHT_HASHTABLE_ENTRY Entry,
 	__in_opt PVOID PvProcArray
 	)
 {
 	PPROCEDURE_ARRAY ProcArray = ( PPROCEDURE_ARRAY ) PvProcArray;
-	PJPHT_HASHTABLE_ENTRY OldEntry;
 	PTRACEPOINT_ENTRY TracePoint;
 	
+	UNREFERENCED_PARAMETER( Hashtable );
+
 	ASSERT( ProcArray );
 	if ( ! ProcArray ) return;
 
-	//
-	// Delete entry...
-	//
+	TracePoint = CONTAINING_RECORD(
+		Entry,
+		TRACEPOINT_ENTRY,
+		u.HashtableEntry );
+
+	ProcArray->Procedures[ ProcArray->Count++ ] = TracePoint->u.Procedure;
+}
+
+static VOID JpfsvsDeleteEntryHashtableCallback(
+	__in PJPHT_HASHTABLE Hashtable,
+	__in PJPHT_HASHTABLE_ENTRY Entry,
+	__in_opt PVOID Unused
+	)
+{
+	PJPHT_HASHTABLE_ENTRY OldEntry;
+	PTRACEPOINT_ENTRY TracePoint;
+	
+	UNREFERENCED_PARAMETER( Unused );
+
 	JphtRemoveEntryHashtable(
 		Hashtable,
 		Entry->Key,
@@ -137,11 +154,6 @@ static VOID JpfsvsCollectProceduresAndDeleteEntriesHashtableCallback(
 		Entry,
 		TRACEPOINT_ENTRY,
 		u.HashtableEntry );
-
-	//
-	// ...and collect procedure.
-	//
-	ProcArray->Procedures[ ProcArray->Count++ ] = TracePoint->u.Procedure;
 
 	free( TracePoint );
 }
@@ -171,7 +183,7 @@ HRESULT JpfsvpInitializeTracepointTable(
 	return S_OK;
 }
 
-HRESULT JpfsvpRemoveAllTracepointsInTracepointTable(
+HRESULT JpfsvpRemoveAllTracepointsButKeepThemInTracepointTable(
 	__in PJPFSV_TRACEPOINT_TABLE Table,
 	__in PJPFSV_TRACE_SESSION TraceSession
 	)
@@ -180,6 +192,8 @@ HRESULT JpfsvpRemoveAllTracepointsInTracepointTable(
 	PROCEDURE_ARRAY ProcedureArray;
 	HRESULT Hr;
 	JPFBT_PROCEDURE FailedProc;
+
+	ASSERT( Table );
 
 	if ( Entries == 0 )
 	{
@@ -198,12 +212,12 @@ HRESULT JpfsvpRemoveAllTracepointsInTracepointTable(
 	}
 
 	//
-	// Collect all procedures and at the same time remove them 
-	// from the table.
+	// Collect all procedures. Do not remove them yet, because the table
+	// is still required for symbol lookup.
 	//
 	JphtEnumerateEntries(
 		&Table->Table,
-		JpfsvsCollectProceduresAndDeleteEntriesHashtableCallback,
+		JpfsvsCollectProceduresHashtableCallback,
 		&ProcedureArray );
 
 	ASSERT( Entries == ProcedureArray.Count );
@@ -229,6 +243,21 @@ HRESULT JpfsvpRemoveAllTracepointsInTracepointTable(
 	free( ProcedureArray.Procedures );
 
 	return Hr;
+}
+
+VOID JpfsvpFlushTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table
+	)
+{
+	ASSERT( Table );
+
+	//
+	// Delete entries.
+	//
+	JphtEnumerateEntries(
+		&Table->Table,
+		JpfsvsDeleteEntryHashtableCallback,
+		NULL );
 }
 
 

@@ -215,11 +215,22 @@ HRESULT JpfsvpInitializeTracepointTable(
 
 /*++
 	Routine Description:
-		Remove all active tracepoints.
+		Remove all active tracepoints, but do not remove them 
+		from table yet. This call shouls be closely follows by
+		a call to JpfsvpFlushTracepointTable.
 --*/
-HRESULT JpfsvpRemoveAllTracepointsInTracepointTable(
+HRESULT JpfsvpRemoveAllTracepointsButKeepThemInTracepointTable(
 	__in PJPFSV_TRACEPOINT_TABLE Table,
 	__in PJPFSV_TRACE_SESSION TraceSession
+	);
+
+/*++
+	Routine Description:
+		Delete all entries from tracepoint table. Must be called
+		after JpfsvpRemoveAllTracepointsButKeepThemInTracepointTable.
+--*/
+VOID JpfsvpFlushTracepointTable(
+	__in PJPFSV_TRACEPOINT_TABLE Table
 	);
 
 /*++

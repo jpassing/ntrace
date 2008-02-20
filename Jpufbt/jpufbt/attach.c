@@ -48,6 +48,10 @@ static VOID JpufbtsPeerDeathCallback(
 	// at the same time as we fire the APC. That does not matter -
 	// QueueUserAPC will just fail with STATUS_INVALID_HANDLE.
 	//
+	// To avoid subsequent calls, additionally set flag.
+	//
+	Session->Qlpc.PeerActive = FALSE;
+
 	if ( Session->Qlpc.ActiveThread != NULL )
 	{
 		__try

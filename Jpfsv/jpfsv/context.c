@@ -902,9 +902,11 @@ HRESULT JpfsvStopTraceContext(
 	if ( TraceSession )
 	{
 		//
-		// Remove any outstanding tracepoints.
+		// Remove any outstanding tracepoints, but do not delete
+		// them from the table yet as they are still required
+		// for symbol lookup.
 		//
-		Hr = JpfsvpRemoveAllTracepointsInTracepointTable(
+		Hr = JpfsvpRemoveAllTracepointsButKeepThemInTracepointTable(
 			&Context->ProtectedMembers.Tracepoints,
 			TraceSession );
 
@@ -926,6 +928,11 @@ HRESULT JpfsvStopTraceContext(
 				}
 			}
 		}
+
+		//
+		// Now flush the tracepoint table.
+		//
+		JpfsvpFlushTracepointTable( &Context->ProtectedMembers.Tracepoints );
 	}
 	else
 	{
