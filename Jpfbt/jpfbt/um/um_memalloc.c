@@ -9,7 +9,6 @@
 
 #include <windows.h>
 #include <stdlib.h>
-#include "um_internal.h"
 
 #ifdef DBG
 

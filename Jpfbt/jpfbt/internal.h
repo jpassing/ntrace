@@ -264,12 +264,6 @@ typedef struct _JPFBT_GLOBAL_DATA
 
 #if defined(JPFBT_TARGET_USERMODE)
 	//
-	// Heap for dynamic code generation - allocated memory is 
-	// executable.
-	//
-	HANDLE CodeHeap;
-
-	//
 	// Thread handle to thread handling asynchronous buffer collection.
 	//
 	HANDLE BufferCollectorThread;

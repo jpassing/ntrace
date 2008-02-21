@@ -159,6 +159,14 @@
 						>
 					</File>
 				</Filter>
+				<Filter
+					Name="km"
+					>
+					<File
+						RelativePath=".\jpfbt\km\km_memalloc.c"
+						>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="testfbt_um"

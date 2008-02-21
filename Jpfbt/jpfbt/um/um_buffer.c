@@ -173,19 +173,8 @@ NTSTATUS JpfbtpAllocateGlobalState(
 	InitializeSListHead( &TempList->DirtyBuffersList );
 
 	//
-	// ...heaps, ...
+	// ...heap, ...
 	//
-	TempList->CodeHeap = HeapCreate(
-		HEAP_CREATE_ENABLE_EXECUTE,
-		4096,
-		0 );
-
-	if ( ! TempList->CodeHeap )
-	{
-		Status = STATUS_NO_MEMORY;
-		goto Cleanup;
-	}
-	
 	TempList->PatchDatabase.SpecialHeap = HeapCreate(
 		HEAP_NO_SERIALIZE,
 		4096,
@@ -296,11 +285,6 @@ Cleanup:
 			VERIFY( HeapDestroy( TempList->PatchDatabase.SpecialHeap ) );
 		}
 
-		if ( TempList->CodeHeap )
-		{
-			VERIFY( HeapDestroy( TempList->CodeHeap ) );
-		}
-
 		if ( TlsIndex != TLS_OUT_OF_INDEXES )
 		{
 			VERIFY( TlsFree( TlsIndex ) );
@@ -320,9 +304,7 @@ NTSTATUS JpfbtpFreeGlobalState(
 	)
 {
 	ASSERT( GlobalState );
-	ASSERT( GlobalState->CodeHeap );
 	
-	VERIFY( HeapDestroy( GlobalState->CodeHeap ) );
 	VERIFY( HeapDestroy( GlobalState->PatchDatabase.SpecialHeap ) );
 	
 	DeleteCriticalSection( &GlobalState->PatchDatabase.Lock );
