@@ -7,6 +7,10 @@
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
+#ifndef JPFBT_TARGET_USERMODE
+	#define JPFBT_TARGET_USERMODE
+#endif
+
 #include <jpfsv.h>
 #include <jpfbt.h>
 #include <jpfbtdef.h>

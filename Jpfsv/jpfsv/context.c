@@ -376,18 +376,18 @@ static DWORD JpfsvsHashProcessId(
 	return ( DWORD ) Key;
 }
 
-static BOOL JpfsvsEqualsProcessId(
+static BOOLEAN JpfsvsEqualsProcessId(
 	__in DWORD_PTR KeyLhs,
 	__in DWORD_PTR KeyRhs
 	)
 {
-	return ( ( DWORD ) KeyLhs ) == ( ( DWORD ) KeyRhs );
+	return ( BOOLEAN ) ( ( ( DWORD ) KeyLhs ) == ( ( DWORD ) KeyRhs ) );
 }
 
 BOOL JpfsvpInitializeLoadedContextsHashtable()
 {
 	InitializeCriticalSection( &JpfsvsLoadedContexts.Lock );
-	return JphtInitializeHashtable(
+	return ( BOOL ) JphtInitializeHashtable(
 		&JpfsvsLoadedContexts.Table,
 		JpfsvpAllocateHashtableMemory,
 		JpfsvpFreeHashtableMemory,

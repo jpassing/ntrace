@@ -105,7 +105,7 @@ static DWORD JpfsvsHashCommandName(
 }
 
 
-static BOOL JpfsvsEqualsCommandName(
+static BOOLEAN JpfsvsEqualsCommandName(
 	__in DWORD_PTR KeyLhs,
 	__in DWORD_PTR KeyRhs
 	)
@@ -113,7 +113,7 @@ static BOOL JpfsvsEqualsCommandName(
 	PWSTR Lhs = ( PWSTR ) ( PVOID ) KeyLhs;
 	PWSTR Rhs = ( PWSTR ) ( PVOID ) KeyRhs;
 	
-	return 0 == wcscmp( Lhs, Rhs );
+	return ( BOOLEAN ) ( 0 == wcscmp( Lhs, Rhs ) );
 }
 
 /*----------------------------------------------------------------------

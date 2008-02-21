@@ -14,7 +14,7 @@ static VOID __stdcall ProcedureEntry(
 	)
 {
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
-	UINT Index;
+	ULONG Index;
 	PUCHAR Buffer;
 
 	UNREFERENCED_PARAMETER( Context );
@@ -58,7 +58,7 @@ static VOID __stdcall ProcedureExit(
 	)
 {
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
-	UINT Index;
+	ULONG Index;
 
 	PUCHAR Buffer;
 
@@ -123,15 +123,15 @@ static BOOL PatchAll()
 {
 	JPFBT_PROCEDURE Temp = { NULL };
 	
-	UINT NoPatchProcCount = 0;
+	ULONG NoPatchProcCount = 0;
 	PJPFBT_PROCEDURE NoPatchProcs;
 	
-	UINT PatchProcCount = 0;
+	ULONG PatchProcCount = 0;
 	PJPFBT_PROCEDURE PatchProcs;
 
 	PSAMPLE_PROC_SET ProcSet;
 
-	UINT Index;
+	ULONG Index;
 	NTSTATUS Status;
 
 	//
@@ -207,11 +207,11 @@ static BOOL PatchAll()
 
 static VOID UnpatchAll()
 {
-	UINT PatchProcCount = 0;
+	ULONG PatchProcCount = 0;
 	PJPFBT_PROCEDURE PatchProcs;
 
 	PSAMPLE_PROC_SET ProcSet;
-	UINT Index;
+	ULONG Index;
 
 	//
 	// Get sample procs.
@@ -266,7 +266,7 @@ static VOID UnpatchAll()
 
 VOID PatchAndTestAllProcsSinglethreaded()
 {
-	UINT Index;
+	ULONG Index;
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
 
 	ExpectBufferDepletion = TRUE;
@@ -327,10 +327,10 @@ static HANDLE ProcsCalled;
 
 static DWORD CALLBACK CallProcsThreadProc( __in PVOID PvIterations )
 {
-	PUINT TotalIterations = ( PUINT ) PvIterations;
-	UINT Iteration = 0;
+	PULONG TotalIterations = ( PULONG ) PvIterations;
+	ULONG Iteration = 0;
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
-	UINT Index;
+	ULONG Index;
 
 	InterlockedIncrement( &CallProcsThreadsActive );
 
@@ -400,13 +400,13 @@ VOID PatchAndTestAllProcsMultithreaded()
 	#define CALLER_THREAD_COUNT 10
 	#define PATCHUNPATCH_THREAD_COUNT 5
 
-	UINT Iterations = 50;
+	ULONG Iterations = 50;
 
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
-	UINT Index;
+	ULONG Index;
 
 	HANDLE Threads[ CALLER_THREAD_COUNT + PATCHUNPATCH_THREAD_COUNT ];
-	UINT NextThreadIndex = 0;
+	ULONG NextThreadIndex = 0;
 
 	TEST_SUCCESS( JpfbtInitialize( 
 		15*5, 

@@ -129,11 +129,11 @@ static NTSTATUS JpfbtsResumeThread(
 
 NTSTATUS JpfbtpPatchCode(
 	__in JPFBT_PATCH_ACTION Action,
-	__in UINT PatchCount,
+	__in ULONG PatchCount,
 	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches 
 	)
 {
-	UINT PatchIndex;
+	ULONG PatchIndex;
 	NTSTATUS Status;
 	SUSPEND_CONTEXT SuspendContextBefore = { 0 };
 	SUSPEND_CONTEXT SuspendContextAfter = { 0 };
@@ -285,7 +285,7 @@ Cleanup:
 }
 
 PJPFBT_CODE_PATCH JpfbtpAllocateCodePatch(
-	__in UINT Count
+	__in ULONG Count
 	)
 {
 	if ( Count > MAXWORD )

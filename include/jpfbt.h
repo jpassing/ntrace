@@ -10,22 +10,21 @@
 
 #include <jpfbtmsg.h>
 
-#ifdef _NT_TARGET_VERSION
-#include <wdm.h>
-#define JPFBT_KERNELMODE
-#elif _WIN32
-#include <windows.h>
-#include <winnt.h>
-#include <ntsecapi.h>
-#define JPFBT_USERMODE
+#if defined(JPFBT_TARGET_KERNELMODE)
+	#include <wdm.h>
+	#define DWORD ULONG
+#elif defined(JPFBT_TARGET_USERMODE)
+	#include <windows.h>
+	#include <winnt.h>
+	#include <ntsecapi.h>
 #else
-#error Unknown mode - neither _NT_TARGET_VERSION nor _WIN32 defined
+	#error Unknown mode (User/Kernel)
 #endif
 
 #ifdef _WIN64
-#define JPFBTCALLTYPE
+	#define JPFBTCALLTYPE
 #else
-#define JPFBTCALLTYPE __stdcall
+	#define JPFBTCALLTYPE __stdcall
 #endif
 
 #define EXCEPTION_FBT_NO_THUNKSTACK		 STATUS_FBT_NO_THUNKSTACK
@@ -123,8 +122,8 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 		(any NTSTATUS) on failure.
 --*/
 NTSTATUS JPFBTCALLTYPE JpfbtInitialize(
-	__in UINT BufferCount,
-	__in UINT BufferSize,
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
 	__in DWORD Flags,
 	__in JPFBT_EVENT_ROUTINE  EntryEventRoutine,
 	__in JPFBT_EVENT_ROUTINE  ExitEventRoutine,
@@ -219,7 +218,7 @@ typedef struct _JPFBT_PROCEDURE
 --*/
 NTSTATUS JPFBTCALLTYPE JpfbtInstrumentProcedure(
 	__in JPFBT_INSTRUMENTATION_ACTION Action,
-	__in UINT ProcedureCount,
+	__in ULONG ProcedureCount,
 	__in_ecount(InstrCount) CONST PJPFBT_PROCEDURE Procedures,
 	__out_opt PJPFBT_PROCEDURE FailedProcedure
 	);
@@ -237,5 +236,5 @@ NTSTATUS JPFBTCALLTYPE JpfbtInstrumentProcedure(
 		Buffer or NULL if no left space available.
 --*/
 PUCHAR JPFBTCALLTYPE JpfbtGetBuffer(
-	__in UINT RequiredSize 
+	__in ULONG RequiredSize 
 	);

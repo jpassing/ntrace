@@ -10,6 +10,10 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
+#ifndef JPFBT_TARGET_USERMODE
+	#define JPFBT_TARGET_USERMODE
+#endif
+
 #include <jpfbt.h>
 #include <jpufbtmsg.h>
 

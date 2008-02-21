@@ -27,7 +27,7 @@ PJPFBT_GLOBAL_DATA JpfbtpGlobalState = NULL;
 --*/
 static PJPFBT_BUFFER JpfbtpsGetBuffer( 
 	__in PJPFBT_THREAD_DATA ThreadData,
-	__in UINT RequiredSize
+	__in ULONG RequiredSize
 	)
 {
 	BOOL FetchNewBuffer = FALSE;
@@ -149,12 +149,12 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
  */
 
 PUCHAR JpfbtGetBuffer(
-	__in UINT NetSize 
+	__in ULONG NetSize 
 	)
 {
 	PJPFBT_BUFFER Buffer;
 	PUCHAR BufferPtr;
-	UINT GrossSize = NetSize;
+	ULONG GrossSize = NetSize;
 
 	ASSERT ( JpfbtpGlobalState != NULL );
 
@@ -221,8 +221,8 @@ VOID JpfbtpCheckForBufferOverflow()
 }
 
 NTSTATUS JpfbtInitialize(
-	__in UINT BufferCount,
-	__in UINT BufferSize,
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
 	__in DWORD Flags,
 	__in JPFBT_EVENT_ROUTINE EntryEventRoutine,
 	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
@@ -251,7 +251,7 @@ NTSTATUS JpfbtInitialize(
 	Status = JpfbtpAllocateGlobalState(
 		BufferCount, 
 		BufferSize,
-		Flags == JPFBT_FLAG_AUTOCOLLECT,
+		( BOOLEAN ) Flags == JPFBT_FLAG_AUTOCOLLECT,
 		&JpfbtpGlobalState );
 
 	if ( NT_SUCCESS( Status ) )

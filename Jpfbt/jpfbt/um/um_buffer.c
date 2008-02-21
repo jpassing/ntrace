@@ -31,7 +31,7 @@ DWORD JpfbtpThreadDataTlsOffset = 0;
 
 static DWORD JpfbtsFindTlsSlotOffsetInTeb( __in DWORD TlsIndex )
 {
-	UINT Index;
+	ULONG Index;
 	DWORD_PTR *Teb = ( DWORD_PTR* ) ( PVOID ) NtCurrentTeb();
 	BOOL SlotFound = FALSE;
 	DWORD_PTR SampleValue = 0xBABEFACE;
@@ -67,18 +67,18 @@ static DWORD JpfbtsFindTlsSlotOffsetInTeb( __in DWORD TlsIndex )
 }
 
 NTSTATUS JpfbtpAllocateGlobalState(
-	__in UINT BufferCount,
-	__in UINT BufferSize,
-	__in BOOL StartCollectorThread,
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
+	__in BOOLEAN StartCollectorThread,
 	__out PJPFBT_GLOBAL_DATA *BufferList
 	)
 {
-	UINT64 TotalAllocationSize = 0;
-	UINT BufferStructSize = 0;
+	ULONG64 TotalAllocationSize = 0;
+	ULONG BufferStructSize = 0;
 	DWORD TlsIndex;
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempList = NULL;
-	UINT CurrentBufferIndex;
+	ULONG CurrentBufferIndex;
 	PJPFBT_BUFFER CurrentBuffer;
 	DWORD TlsSlotOffset;
 

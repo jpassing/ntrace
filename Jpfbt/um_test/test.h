@@ -27,7 +27,7 @@ typedef struct _SAMPLE_PROC
 
 typedef struct _SAMPLE_PROC_SET
 {
-	UINT SampleProcCount;
+	ULONG SampleProcCount;
 	PSAMPLE_PROC SampleProcs;
 } SAMPLE_PROC_SET, *PSAMPLE_PROC_SET;
 

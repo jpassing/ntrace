@@ -77,7 +77,7 @@ VOID JpfbtpFree(
 
 PVOID JpfbtpAllocatePagedMemory(
 	__in SIZE_T Size,
-	__in BOOL Zero
+	__in BOOLEAN Zero
 	)
 {
 	return JpfbtpMalloc( Size, Zero );
@@ -92,7 +92,7 @@ VOID JpfbtpFreePagedMemory(
 
 PVOID JpfbtpAllocateNonPagedMemory(
 	__in SIZE_T Size,
-	__in BOOL Zero
+	__in BOOLEAN Zero
 	)
 {
 	return JpfbtpMalloc( Size, Zero );

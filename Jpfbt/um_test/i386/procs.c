@@ -7,7 +7,7 @@ static LONG FastcallProcSmallArgsLargeRetCallCount = 0;
 static LONG StdcallRecursiveCallCount = 0;
 
 __declspec(naked)
-UINT CustomProlog()
+ULONG CustomProlog()
 {
 	_asm
 	{
@@ -31,7 +31,7 @@ VOID CallCustomProlog()
 }
 
 __declspec(naked)
-UINT ProcNoArgs()
+ULONG ProcNoArgs()
 {
 	_asm
 	{
@@ -51,7 +51,7 @@ UINT ProcNoArgs()
 
 VOID CallProcNoArgs()
 {
-	UINT Eax_, Ebx_, Ecx_, Edx_, Esi_, Edi_;
+	ULONG Eax_, Ebx_, Ecx_, Edx_, Esi_, Edi_;
 	_asm
 	{
 		// prep nonvolatiles
@@ -95,9 +95,9 @@ VOID CallProcNoArgs()
 
 __declspec(naked)
 VOID ProcArgs(
-	__inout PUINT Arg1,
-	__inout PUINT Arg2,
-	__inout PUINT Arg3
+	__inout PULONG Arg1,
+	__inout PULONG Arg2,
+	__inout PULONG Arg3
 	)
 {
 	_asm
@@ -120,7 +120,7 @@ VOID ProcArgs(
 
 VOID __stdcall CallProcArgs()
 {
-	UINT  Eax_, Ebx_, Ecx_, Edx_, Esi_, Edi_, Arg1, Arg2, Arg3;
+	ULONG  Eax_, Ebx_, Ecx_, Edx_, Esi_, Edi_, Arg1, Arg2, Arg3;
 	_asm
 	{
 		// prep nonvolatiles
@@ -180,9 +180,9 @@ VOID __stdcall CallProcArgs()
 }
 
 __declspec(naked)
-UINT __fastcall FastcallProcSmallArgsLargeRet(
-	__in UINT Hi,
-	__in UINT Lo 
+ULONG __fastcall FastcallProcSmallArgsLargeRet(
+	__in ULONG Hi,
+	__in ULONG Lo 
 	)
 {
 	UNREFERENCED_PARAMETER( Hi );
@@ -206,7 +206,7 @@ UINT __fastcall FastcallProcSmallArgsLargeRet(
 
 VOID CallFastcallProcSmallArgsLargeRet()
 {
-	UINT Eax_, Edx_, Ebx_, Esi_, Edi_;
+	ULONG Eax_, Edx_, Ebx_, Esi_, Edi_;
 	_asm
 	{
 		// prep nonvolatiles
@@ -249,8 +249,8 @@ VOID CallFastcallProcSmallArgsLargeRet()
 }
 
 __declspec(naked)
-UINT StdcallRecursive(
-	__in UINT N
+ULONG StdcallRecursive(
+	__in ULONG N
 	)
 {
 	_asm
@@ -309,7 +309,7 @@ Return:
 
 VOID CallStdcallRecursive()
 {
-	UINT Eax_, Ebx_, Esi_, Edi_;
+	ULONG Eax_, Ebx_, Esi_, Edi_;
 	_asm
 	{
 		// prep nonvolatiles

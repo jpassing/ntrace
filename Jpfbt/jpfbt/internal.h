@@ -27,6 +27,14 @@
 	#error Unknown mode (User/Kernel)
 #endif
 
+#ifndef VERIFY
+	#if defined(DBG) || defined( DBG )
+		#define VERIFY ASSERT
+	#else
+		#define VERIFY( x ) ( VOID ) ( x )
+	#endif
+#endif
+
 /*++
 	Routine Description:
 		Trace routine for debugging.
@@ -215,7 +223,7 @@ typedef struct _JPFBT_GLOBAL_DATA
 	//
 	// Size of each buffer.
 	//
-	UINT BufferSize;
+	ULONG BufferSize;
 
 	LONG NumberOfBuffersCollected;
 
@@ -303,7 +311,7 @@ NTSTATUS JpfbtpInitializePatchTable();
 VOID JpfbtpInitializePatchDatabaseLock();
 VOID JpfbtpAcquirePatchDatabaseLock();
 VOID JpfbtpReleasePatchDatabaseLock();
-BOOL JpfbtpIsPatchDatabaseLockHeld();
+BOOLEAN JpfbtpIsPatchDatabaseLockHeld();
 
 /*----------------------------------------------------------------------
  *
@@ -340,7 +348,7 @@ typedef struct _JPFBT_CODE_PATCH
 	//
 	// [in] Size of patch - smaller than JPFBT_MAX_CODE_PATCH_SIZE.
 	//
-	UINT CodeSize;
+	ULONG CodeSize;
 
 	//
 	// [in] Machine code to be written.
@@ -375,7 +383,7 @@ C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
 VOID JpfbtpTakeThreadOutOfCodePatch(
 	__in CONST PJPFBT_CODE_PATCH Patch,
 	__inout PCONTEXT Context,
-	__out PBOOL Updated
+	__out BOOLEAN* Updated
 	);
 
 
@@ -417,7 +425,7 @@ typedef enum _JPFBT_PATCH_ACTION
 --*/
 NTSTATUS JpfbtpPatchCode(
 	__in JPFBT_PATCH_ACTION Action,
-	__in UINT PatchCount,
+	__in ULONG PatchCount,
 	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches 
 	);
 
@@ -431,9 +439,9 @@ NTSTATUS JpfbtpPatchCode(
 		BufferList  - REsult
 --*/
 NTSTATUS JpfbtpAllocateGlobalState(
-	__in UINT BufferCount,
-	__in UINT BufferSize,
-	__in BOOL StartCollectorThread,
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
+	__in BOOLEAN StartCollectorThread,
 	__out PJPFBT_GLOBAL_DATA *BufferList
 	);
 
@@ -491,7 +499,7 @@ VOID JpfbtpShutdownDirtyBufferCollector();
 		Pointer to memory or NULL on allocation failure.
 --*/
 PJPFBT_CODE_PATCH JpfbtpAllocateCodePatch(
-	__in UINT Count
+	__in ULONG Count
 	);
 
 /*++
@@ -511,7 +519,7 @@ VOID JpfbtpFreeCodePatch(
 --*/
 PVOID JpfbtpAllocatePagedMemory(
 	__in SIZE_T Size,
-	__in BOOL Zero
+	__in BOOLEAN Zero
 	);
 
 /*++
@@ -531,7 +539,7 @@ VOID JpfbtpFreePagedMemory(
 --*/
 PVOID JpfbtpAllocateNonPagedMemory(
 	__in SIZE_T Size,
-	__in BOOL Zero
+	__in BOOLEAN Zero
 	);
 
 /*++

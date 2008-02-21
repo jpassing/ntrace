@@ -24,8 +24,8 @@ NTSTATUS JpfbtpForEachThread(
 {
 	SIZE_T AllocationSize;
 	PHANDLE Threads = NULL;
-	UINT ThreadCount = 0;
-	UINT Index;
+	ULONG ThreadCount = 0;
+	ULONG Index;
 	DWORD OwnThreadId = GetCurrentThreadId();
 	DWORD OwnProcessId = GetCurrentProcessId();
 	THREADENTRY32 Entry = { sizeof( THREADENTRY32 ) };

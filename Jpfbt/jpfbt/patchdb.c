@@ -31,12 +31,12 @@ VOID JpfbtpReleasePatchDatabaseLock()
 	LeaveCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
 }
 
-BOOL JpfbtpIsPatchDatabaseLockHeld()
+BOOLEAN JpfbtpIsPatchDatabaseLockHeld()
 {
 	if ( TryEnterCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock ) )
 	{
-		BOOL WasAlreadyHeld = 
-			JpfbtpGlobalState->PatchDatabase.Lock.RecursionCount > 1;
+		BOOLEAN WasAlreadyHeld = ( BOOLEAN ) 
+			( JpfbtpGlobalState->PatchDatabase.Lock.RecursionCount > 1 );
 		
 		LeaveCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
 
@@ -63,7 +63,7 @@ BOOL JpfbtpIsPatchDatabaseLockHeld()
 		&JpfbtpGlobalState->PatchDatabase.LockHandle )
 
 
-// JpfbtsIsPatchDatabaseLockHeld()???
+#define JpfbtsIsPatchDatabaseLockHeld() TRUE
 
 #else
 	#error Unknown mode (User/Kernel)
@@ -86,7 +86,7 @@ static DWORD JpfbtsPatchDbHash(
 	return ( DWORD ) Key;
 }
 
-static BOOL JpfbtsPatchDbEquals(
+static BOOLEAN JpfbtsPatchDbEquals(
 	__in DWORD_PTR KeyLhs,
 	__in DWORD_PTR KeyRhs
 	)
@@ -94,7 +94,7 @@ static BOOL JpfbtsPatchDbEquals(
 	//
 	// Keys are the procedure pointers.
 	//
-	return KeyLhs == KeyRhs;
+	return ( BOOLEAN ) ( KeyLhs == KeyRhs );
 }
 
 static PVOID JpfbtsPatchDbAllocate(

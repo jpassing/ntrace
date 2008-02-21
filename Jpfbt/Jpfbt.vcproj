@@ -151,6 +151,14 @@
 						>
 					</File>
 				</Filter>
+				<Filter
+					Name="km_wrk"
+					>
+					<File
+						RelativePath=".\jpfbt\km_wrk\SOURCES"
+						>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="testfbt_um"

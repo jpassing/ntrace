@@ -19,6 +19,7 @@ static UCHAR JpfbtsInt3Padding[] = { 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
 static UCHAR JpfbtsZeroPadding[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 
 									 0x00, 0x00, 0x00, 0x00, 0x00 };
 
+#define JPFBTP_MAX_PATCH_SET_SIZE 0xFFFF
 //
 // Disable warning: Function to PVOID casting
 //
@@ -35,16 +36,16 @@ extern void JpfbtpFunctionCallThunk();
 	Routine Description:
 		Check if procedure is preceeded with the specified padding.
 --*/
-static BOOL JpfbtsIsPaddingAvailable(
+static BOOLEAN JpfbtsIsPaddingAvailable(
 	__in CONST JPFBT_PROCEDURE Procedure,
 	__in PUCHAR PaddingContent,
 	__in SIZE_T AnticipatedLength
 	)
 {
-	return 0 == memcmp( 
+	return ( BOOLEAN ) ( 0 == memcmp( 
 		( PUCHAR ) Procedure.u.Procedure - AnticipatedLength,
 		PaddingContent,
-		AnticipatedLength );
+		AnticipatedLength ) );
 }
 
 /*++
@@ -52,12 +53,12 @@ static BOOL JpfbtsIsPaddingAvailable(
 		Check if procedure begins with mov edi, edi, which
 		makes it hotpatchable.
 --*/
-static BOOL JpfbtsIsHotpatchable(
+static BOOLEAN JpfbtsIsHotpatchable(
 	__in CONST JPFBT_PROCEDURE Procedure 
 	)
 {
 	USHORT MovEdiEdi = 0xFF8B;
-	return *( PUSHORT ) Procedure.u.Procedure == MovEdiEdi;
+	return ( BOOLEAN ) ( *( PUSHORT ) Procedure.u.Procedure == MovEdiEdi );
 }
 
 /*++
@@ -65,12 +66,12 @@ static BOOL JpfbtsIsHotpatchable(
 		Check if procedure begins with a short jmp, which
 		indicatews that it has already been patched.
 --*/
-static BOOL JpfbtsIsAlreadyPatched(
+static BOOLEAN JpfbtsIsAlreadyPatched(
 	__in CONST JPFBT_PROCEDURE Procedure 
 	)
 {
 	UCHAR ShortJmp[] = { 0xEB };
-	return 0 == memcmp( Procedure.u.Procedure, ShortJmp, 1 );
+	return ( BOOLEAN ) ( 0 == memcmp( Procedure.u.Procedure, ShortJmp, 1 ) );
 }
 
 /*++
@@ -208,17 +209,17 @@ static NTSTATUS JpfbtsInitializeCodePatch(
 
 #pragma optimize( "g", off ) 
 static NTSTATUS JpfbtsInstrumentProcedure(
-	__in UINT ProcedureCount,
+	__in ULONG ProcedureCount,
 	__in_ecount(ProcedureCount) CONST PJPFBT_PROCEDURE Procedures,
 	__out_opt PJPFBT_PROCEDURE FailedProcedure
 	)
 {
-	UINT Index;
+	ULONG Index;
 	PJPFBT_CODE_PATCH *PatchArray = NULL;
 	NTSTATUS Status = STATUS_SUCCESS;
 
 	ASSERT( ProcedureCount != 0 );
-	ASSERT( ProcedureCount <= MAXWORD );
+	ASSERT( ProcedureCount <= JPFBTP_MAX_PATCH_SET_SIZE );
 	ASSERT( Procedures );
 
 	if ( FailedProcedure )
@@ -388,17 +389,17 @@ static PJPFBT_CODE_PATCH JpfbtsFindCodePatch(
 }
 
 static NTSTATUS JpfbtsUninstrumentProcedure(
-	__in UINT ProcedureCount,
+	__in ULONG ProcedureCount,
 	__in_ecount(ProcedureCount) CONST PJPFBT_PROCEDURE Procedures,
 	__out_opt PJPFBT_PROCEDURE FailedProcedure
 	)
 {
 	PJPFBT_CODE_PATCH *PatchArray;
-	UINT Index;
+	ULONG Index;
 	NTSTATUS Status;
 
 	ASSERT( ProcedureCount != 0 );
-	ASSERT( ProcedureCount <= MAXWORD );
+	ASSERT( ProcedureCount <= JPFBTP_MAX_PATCH_SET_SIZE );
 	ASSERT( Procedures );
 
 	if ( FailedProcedure )
@@ -485,7 +486,7 @@ Cleanup:
 
 NTSTATUS JpfbtInstrumentProcedure(
 	__in JPFBT_INSTRUMENTATION_ACTION Action,
-	__in UINT ProcedureCount,
+	__in ULONG ProcedureCount,
 	__in_ecount(ProcedureCount) CONST PJPFBT_PROCEDURE Procedures,
 	__out_opt PJPFBT_PROCEDURE FailedProcedure
 	)
@@ -493,7 +494,7 @@ NTSTATUS JpfbtInstrumentProcedure(
 	if ( Action < 0 ||
 		 Action > JpfbtRemoveInstrumentation ||
 		 ProcedureCount == 0 ||
-		 ProcedureCount > MAXWORD ||
+		 ProcedureCount > JPFBTP_MAX_PATCH_SET_SIZE ||
 		 ! Procedures )
 	{
 		return STATUS_INVALID_PARAMETER;

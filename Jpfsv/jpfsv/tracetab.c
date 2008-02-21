@@ -54,7 +54,7 @@ static DWORD JpfsvsHashTracepoint(
 }
 
 
-static BOOL JpfsvsEqualsTracepoint(
+static BOOLEAN JpfsvsEqualsTracepoint(
 	__in DWORD_PTR KeyLhs,
 	__in DWORD_PTR KeyRhs
 	)
@@ -62,7 +62,7 @@ static BOOL JpfsvsEqualsTracepoint(
 	//
 	// N.B. Key is the ProcAddress.
 	//
-	return ( KeyLhs == KeyRhs );
+	return ( BOOLEAN ) ( KeyLhs == KeyRhs );
 }
 
 /*----------------------------------------------------------------------
