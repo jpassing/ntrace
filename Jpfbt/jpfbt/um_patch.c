@@ -13,7 +13,8 @@
 typedef struct _SUSPEND_CONTEXT
 {
 	//
-	// Sum of all previous suspend counts - used 
+	// Sum of all previous suspend counts.
+	//
 	DWORD SuspendCountChecksum;
 } SUSPEND_CONTEXT, *PSUSPEND_CONTEXT;
 
@@ -282,22 +283,4 @@ Cleanup:
 	//	SuspendContextAfter.SuspendCountChecksum );
 
 	return Status;
-}
-
-PJPFBT_CODE_PATCH JpfbtpAllocateCodePatch(
-	__in ULONG Count
-	)
-{
-	if ( Count > MAXWORD )
-	{
-		return NULL;
-	}
-	return JpfbtpMalloc( Count * sizeof( JPFBT_CODE_PATCH ), FALSE );
-}
-
-VOID JpfbtpFreeCodePatch( 
-	__in PJPFBT_CODE_PATCH Patch 
-	)
-{
-	JpfbtpFree( Patch );
 }

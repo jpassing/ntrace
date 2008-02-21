@@ -127,27 +127,27 @@
 						>
 					</File>
 					<File
-						RelativePath=".\jpfbt\um\um_buffer.c"
+						RelativePath=".\jpfbt\um_buffer.c"
 						>
 					</File>
 					<File
-						RelativePath=".\jpfbt\um\um_dbgtrace.c"
+						RelativePath=".\jpfbt\um_dbgtrace.c"
 						>
 					</File>
 					<File
-						RelativePath=".\jpfbt\um\um_internal.h"
+						RelativePath=".\jpfbt\um_internal.h"
 						>
 					</File>
 					<File
-						RelativePath=".\jpfbt\um\um_memalloc.c"
+						RelativePath=".\jpfbt\um_memalloc.c"
 						>
 					</File>
 					<File
-						RelativePath=".\jpfbt\um\um_patch.c"
+						RelativePath=".\jpfbt\um_patch.c"
 						>
 					</File>
 					<File
-						RelativePath=".\jpfbt\um\um_threadenum.c"
+						RelativePath=".\jpfbt\um_threadenum.c"
 						>
 					</File>
 				</Filter>
@@ -163,7 +163,15 @@
 					Name="km"
 					>
 					<File
-						RelativePath=".\jpfbt\km\km_memalloc.c"
+						RelativePath=".\jpfbt\km_buffer.c"
+						>
+					</File>
+					<File
+						RelativePath=".\jpfbt\km_memalloc.c"
+						>
+					</File>
+					<File
+						RelativePath=".\jpfbt\km_patch.c"
 						>
 					</File>
 				</Filter>

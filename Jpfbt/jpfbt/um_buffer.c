@@ -12,10 +12,6 @@
 
 #define BUFFER_COLLECTOR_AUTOCOLLECT_INTERVAL 101000
 
-#ifndef HEAP_CREATE_ENABLE_EXECUTE
-#define HEAP_CREATE_ENABLE_EXECUTE 0x00040000
-#endif
-	
 /*----------------------------------------------------------------------
  *
  * Global state.

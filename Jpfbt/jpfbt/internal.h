@@ -487,25 +487,6 @@ VOID JpfbtpShutdownDirtyBufferCollector();
 
 /*++
 	Routine Description:
-		Allocate memory to hold JPFBT_CODE_PATCH structure.
-
-	Return Value:
-		Pointer to memory or NULL on allocation failure.
---*/
-PJPFBT_CODE_PATCH JpfbtpAllocateCodePatch(
-	__in ULONG Count
-	);
-
-/*++
-	Routine Description:
-		Free memory a JPFBT_CODE_PATCH structure.
---*/
-VOID JpfbtpFreeCodePatch( 
-	__in PJPFBT_CODE_PATCH Patch 
-	);
-
-/*++
-	Routine Description:
 		Allocate temporary, paged memory.
 
 	Return Value:

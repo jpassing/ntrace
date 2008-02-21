@@ -244,7 +244,8 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 	//
 	for ( Index = 0; Index < ProcedureCount; Index++ )
 	{
-		PatchArray[ Index ] = JpfbtpAllocateCodePatch( 1 );
+		PatchArray[ Index ] = JpfbtpAllocateNonPagedMemory(
+			sizeof( JPFBT_CODE_PATCH ), FALSE );
 		if ( ! PatchArray[ Index ] )
 		{
 			Status = STATUS_NO_MEMORY;
@@ -358,7 +359,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 		{
 			if ( PatchArray[ Index ] != NULL )
 			{
-				JpfbtpFreeCodePatch( PatchArray[ Index ] );
+				JpfbtpFreeNonPagedMemory( PatchArray[ Index ] );
 			}
 		}
 	}
