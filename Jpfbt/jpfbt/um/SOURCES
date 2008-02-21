@@ -34,11 +34,11 @@ SOURCES=\
 	..\main.c \
 	..\thunksup.c \
 	..\patchdb.c \
-	um_buffer.c \
-	um_dbgtrace.c \
-	um_memalloc.c \
-	um_patch.c \
-	um_threadenum.c \
+	..\um_buffer.c \
+	..\um_dbgtrace.c \
+	..\um_memalloc.c \
+	..\um_patch.c \
+	..\um_threadenum.c \
 	..\jpfbtmsg.mc
 
 I386_SOURCES=..\i386\thunks.asm
