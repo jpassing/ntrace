@@ -113,6 +113,6 @@ static void TestPort()
 	JpqlpcClosePort( ExPort );
 }
 
-BEGIN_FIXTURE( QlpcPort )
-	FIXTURE_ENTRY( TestPort )
-END_FIXTURE()
+CFIX_BEGIN_FIXTURE( QlpcPort )
+	CFIX_FIXTURE_ENTRY( TestPort )
+CFIX_END_FIXTURE()

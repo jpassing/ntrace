@@ -162,7 +162,7 @@ static void TestDriverEnum()
 	EnumModules( JPFSV_KERNEL, Enum );
 }
 
-BEGIN_FIXTURE( PsInfoEnum )
-	FIXTURE_ENTRY( TestProcessEnum )
-	FIXTURE_ENTRY( TestDriverEnum )
-END_FIXTURE()
+CFIX_BEGIN_FIXTURE( PsInfoEnum )
+	CFIX_FIXTURE_ENTRY( TestProcessEnum )
+	CFIX_FIXTURE_ENTRY( TestDriverEnum )
+CFIX_END_FIXTURE()

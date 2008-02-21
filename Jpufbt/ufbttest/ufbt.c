@@ -186,6 +186,6 @@ static void TestUfbt()
 	FreeLibrary( GetModuleHandle( L"jpufag.dll" ) );
 }
 
-BEGIN_FIXTURE( Ufbt )
-	FIXTURE_ENTRY( TestUfbt )
-END_FIXTURE()
+CFIX_BEGIN_FIXTURE( Ufbt )
+	CFIX_FIXTURE_ENTRY( TestUfbt )
+CFIX_END_FIXTURE()

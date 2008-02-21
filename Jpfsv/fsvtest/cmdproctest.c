@@ -194,8 +194,8 @@ static void TestTracepoints()
 	TEST_OK( JpfsvCloseCommandProcessor( Processor ) );
 }
 
-BEGIN_FIXTURE( CmdProc )
-	FIXTURE_ENTRY( TestCmdProc )
-	FIXTURE_ENTRY( TestAttachDetachCommands )
-	FIXTURE_ENTRY( TestTracepoints )
-END_FIXTURE()
+CFIX_BEGIN_FIXTURE( CmdProc )
+	CFIX_FIXTURE_ENTRY( TestCmdProc )
+	CFIX_FIXTURE_ENTRY( TestAttachDetachCommands )
+	CFIX_FIXTURE_ENTRY( TestTracepoints )
+CFIX_END_FIXTURE()

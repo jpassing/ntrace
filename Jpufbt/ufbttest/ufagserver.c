@@ -274,6 +274,6 @@ static void TestServer()
 	FreeLibrary( UfagDll );
 }
 
-BEGIN_FIXTURE( UfagServer )
-	FIXTURE_ENTRY( TestServer )
-END_FIXTURE()
+CFIX_BEGIN_FIXTURE( UfagServer )
+	CFIX_FIXTURE_ENTRY( TestServer )
+CFIX_END_FIXTURE()

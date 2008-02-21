@@ -186,6 +186,6 @@ static void TestTransfer()
 	TEST( CloseHandle( Threads[ 1 ] ) );
 }
 
-BEGIN_FIXTURE( QlpcTransfer )
-	FIXTURE_ENTRY( TestTransfer )
-END_FIXTURE()
+CFIX_BEGIN_FIXTURE( QlpcTransfer )
+	CFIX_FIXTURE_ENTRY( TestTransfer )
+CFIX_END_FIXTURE()

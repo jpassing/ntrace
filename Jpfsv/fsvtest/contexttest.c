@@ -102,8 +102,8 @@ static void TestKernelContext()
 	}
 }
 
-BEGIN_FIXTURE( SymResolver )
-	FIXTURE_ENTRY( TestLoadModules )
-	FIXTURE_ENTRY( TestLoadKernelModules )
-	FIXTURE_ENTRY( TestKernelContext )
-END_FIXTURE()
+CFIX_BEGIN_FIXTURE( SymResolver )
+	CFIX_FIXTURE_ENTRY( TestLoadModules )
+	CFIX_FIXTURE_ENTRY( TestLoadKernelModules )
+	CFIX_FIXTURE_ENTRY( TestKernelContext )
+CFIX_END_FIXTURE()
