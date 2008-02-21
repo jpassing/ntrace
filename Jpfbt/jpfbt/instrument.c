@@ -10,10 +10,6 @@
 #include "internal.h"
 #include <stdlib.h>
 
-#ifdef JPFBT_USERMODE
-#include "list.h"
-#endif
-
 #ifdef _M_IX86
 
 static UCHAR JpfbtsNopPadding[] =  { 0x90, 0x90, 0x90, 0x90, 0x90, 

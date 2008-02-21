@@ -12,17 +12,20 @@
 #include <crtdbg.h>
 #include <hashtable.h>
 
-#ifdef JPFBT_USERMODE
+#if defined(JPFBT_TARGET_USERMODE)
+	#include <jpfbtdef.h>
+	#include <list.h>
 
-#include <jpfbtdef.h>
-
-//#if DBG
-#define TRACE( Args ) JpfbtDbgPrint##Args
-//#endif
-
-#else	// JPFBT_USERMODE
-#define TRACE KdPrint
-#endif	// JPFBT_USERMODE
+	#if DBG
+		#define TRACE( Args ) JpfbtDbgPrint##Args
+	#else
+		#define TRACE( Args ) 
+	#endif
+#elif defined(JPFBT_TARGET_KERNELMODE)
+	#define TRACE KdPrint
+#else
+	#error Unknown mode (User/Kernel)
+#endif
 
 /*++
 	Routine Description:
@@ -223,10 +226,12 @@ typedef struct _JPFBT_GLOBAL_DATA
 		// a patch/unpatch is performed or the library is in the
 		// state of being unloaded.
 		//
-#ifdef JPFBT_USERMODE
+#if defined(JPFBT_TARGET_USERMODE)
 		CRITICAL_SECTION Lock;
-#else
+#elif defined(JPFBT_TARGET_KERNELMODE)
 		KSPIN_LOCK Lock;
+#else
+	#error Unknown mode (User/Kernel)
 #endif
 		//
 		// Table of patches:
@@ -239,7 +244,7 @@ typedef struct _JPFBT_GLOBAL_DATA
 		//
 		LIST_ENTRY ThreadDataListHead;
 
-#ifdef JPFBT_USERMODE
+#if defined(JPFBT_TARGET_USERMODE)
 
 		//
 		// Non-interlocked heap (HEAP_NO_SERIALIZE). 
@@ -249,7 +254,7 @@ typedef struct _JPFBT_GLOBAL_DATA
 #endif
 	} PatchDatabase;
 
-#ifdef JPFBT_USERMODE
+#if defined(JPFBT_TARGET_USERMODE)
 	//
 	// Heap for dynamic code generation - allocated memory is 
 	// executable.

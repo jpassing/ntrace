@@ -14,7 +14,7 @@
  *
  */
 
-#ifdef JPFBT_USERMODE
+#if defined(JPFBT_TARGET_USERMODE)
 
 VOID JpfbtpInitializePatchDatabaseLock() 
 {
@@ -48,7 +48,7 @@ BOOL JpfbtpIsPatchDatabaseLockHeld()
 	}
 }
 
-#else
+#elif defined(JPFBT_TARGET_KERNELMODE)
 
 #define JpfbtpInitializePatchDatabaseLock() \
 	KeInitializeSpinLock( &JpfbtpGlobalState->PatchDatabase.Lock )
@@ -65,6 +65,8 @@ BOOL JpfbtpIsPatchDatabaseLockHeld()
 
 // JpfbtsIsPatchDatabaseLockHeld()???
 
+#else
+	#error Unknown mode (User/Kernel)
 #endif
 
 /*----------------------------------------------------------------------

@@ -9,10 +9,6 @@
 #include <jpfbt.h>
 #include "internal.h"
 
-#ifdef JPFBT_USERMODE
-#include "list.h"
-#endif
-
 PJPFBT_GLOBAL_DATA JpfbtpGlobalState = NULL;
 
 /*++
