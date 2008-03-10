@@ -233,60 +233,20 @@ JpfbtpFunctionCallThunk proc
 	call JpfbtpFunctionEntryThunk
 
 	;
-	; N.B. We do not know which calling convention the hooked 
-	; procedure used, neither do we know whether any out-parameters
-	; are used. As a result, we may not touch *any* registers
-	; and may even not touch the stack!
+	; N.B. This routine assumes that the stack above the SP (for
+	; cdecl, this is the space where the locals have been; for 
+	; stdcall, this is the space where the parameters are) can
+	; be used, i.e. the caller will not read from this space.
 	;
-	; In order to get the first free register, we leverage an 
-	; undocumented windows feature, the TEB ArbitraryUserPointer
-	; available at fs:[014h].
+	; Judging from compiler observation, this assuption seems
+	; to be safe.
 	;
-	; One register is a good start, but we need some memory 
-	; so that we can actually do something.
-	; Our redemption is thus to get some thread-local meomory by
-	; leveraging TLS. Alas, we cannot call JpfbtpGetCurrentThunkStack
-	; as we would need registers and stack for the call, so we are in
-	; a catch-22.
-	;
-	; In order to get out of this situation, we have to perform some
-	; nasty maneuver - as we can neither call JpfbtpGetCurrentThunkStack 
-	; nor TlsGetValue, we will directly access the TEB to achieve
-	; the same result as JpfbtpGetCurrentThunkStack, but without
-	; the requirement for stack & registers.
-	;
-	;
+	; This routine preserves all register values.
 	
 	;
-	; Store eax's value in the TIB's ArbitraryUserPointer.
+	; Reserve space for return address.
 	;
-	mov fs:[014h], eax;
-	
-	;
-	; Reach into TEB to get pointer to JPFBT_THREAD_DATA and fetch
-	; Sp value.
-	;
-	; Sp was the stack pointer when the hooked procedure was called -
-	; evth above Sp is now invalid (local variables of hooked 
-	; procedure), so we now finally have space to use.
-	;
-	mov eax, [JpfbtpThreadDataTlsOffset]
-	mov eax, fs:[eax]		
-
-	test eax, eax			; Check that we have got a pointer
-	jz NoStack
-	
-	mov eax, [eax+0ch]		; eax = threaddata.ThunkStack->StackPointer
-	mov eax, [eax]			; eax = StackPointer->Sp
-
-	sub eax, 4				; skip 1 stack location (RA)
-		
-	mov [eax], esp			; preserve esp
-	mov esp, eax			; skip untouchable stack space
-	
-	push fs:[014h]			; copy preserved eax onto stack
-							; to free ArbitraryUserPointer again
-	mov fs:[014h], 0
+	push 0;
 	
 	;
 	; Setup frame.
@@ -294,6 +254,7 @@ JpfbtpFunctionCallThunk proc
 	push ebp
 	mov ebp, esp
 	
+	push eax
 	push ecx
 	push edx
 
@@ -303,20 +264,15 @@ JpfbtpFunctionCallThunk proc
 	; Stack:
 	;   preserved edx		<- SP
 	;   preserved ecx
-	;   preserved ebp		<- BP
 	;   preserved eax
-	;   preserved esp         ---+
-	;   ???                      |
-	;   ...                      |
-	;   ???                      |
-	;   ??? (SP pointed here) <--+
-	;   ???
-	;   ...
+	;   preserved ebp		<- BP
+	;   0 (reserved)
+	;   ???                 <- original SP
 	;   ???
 	;
 
 	;
-	; Get thunkstack (now the regular way).
+	; Get thunkstack.
 	;
 	; N.B. All volatiles are free.
 	;
@@ -334,15 +290,11 @@ JpfbtpFunctionCallThunk proc
 	;  edx: free
 	;	
 	
-	
-	
 	;
-	; Restore RA to original ESP location 
-	; (i.e. as referred to by Sp field in current stack location).
+	; Restore RA. Use the space reserved earlier.
 	;
-	mov edx, [ecx]			; Get RA address (original Sp)
-	push [ecx+8]
-	pop fs:[014h]
+	mov edx, [ecx+8]		; Get RA address.
+	mov [ebp+4], edx		; Write to reserved slot.
 	
 	;
 	; Retrieve funcptr.
@@ -403,76 +355,17 @@ JpfbtpFunctionCallThunk proc
 	add esp, 028h	; sizeof( JPFBT_CONTEXT )
 	
 	;
-	; Tear down stack frame. Note that there are 3 possible ways to
-	; return to the caller:
-	;  1. Restore ESP as it was at beginning of *this* procedure, 
-	;     push real RA and ret.
-	;     --> pushing RA would overwrite the last parameter of the 
-	;         hooked procedure, which might be an out-parameter.
-	;  2. Use the ESP as it was at beginning of the hooked procedure,
-	;     and return. This will avoid the problem
-	;     of overwriting patrameters - however, in case of a stdcall
-	;     procedure, we must clean the right amount of stack space. 
-	;     Thus, we calculate how many parameters the hooked procedure
-	;     took.
-	;  3. Jmp rather than ret. Does not touch the stack, but undermines
-	;     return address predictor.
-	;
-	;  3. is the way to go for the moment.
-	;
-	
-	
-	
-	;
-	; Note that again, we have a kind of
-	; catch-22, due to the requirement of having to restore all registers
-	; without having any stack (we do have stack, but in order to address
-	; it, we need a register...).
-	; No matter in which order we try to restore registers,
-	; we will leave at least one srapped.
-	;
-	; Again, we have to use the TEB and use the Sp field of
-	; the current thunk stack frame as scrap memory.
-	;
-	
-	;
-	; Fill in Sp field of current thunk stack - we will need it later.
-	; Note that due to register shortage, we could not have done this
-	; assignment when we first accessed the TEB.
-	;
-	; N.B. For some callconvs the esp is not the same as the 
-	; esp initially saved to the thunk stack.
-	;
-	mov eax, [JpfbtpThreadDataTlsOffset]
-	mov eax, fs:[eax]		
-	mov eax, [eax+0ch]		; eax = threaddata.ThunkStack->StackPointer
-	mov ecx, [ebp+8]		; preserved esp
-	mov [eax], ecx			; StackPointer->Sp := preserved esp
-	
-	;
 	; Restore volatiles.
 	;
 	pop edx
 	pop ecx
-	mov eax, [ebp+4]
+	pop eax
 	pop ebp
-		
-	;
-	; Now the tricky part - esp... We have no register left, thus we
-	; use esp as general purpose register.
-	;
-	mov esp, [JpfbtpThreadDataTlsOffset]
-	mov esp, fs:[esp]		
-	mov esp, [esp+0ch]		; eax = threaddata.ThunkStack->StackPointer
-	mov esp, [esp]			; esp := StackPointer->Sp
 	
 	;
-	; Return  - if the real procedure is stcall or fastcall, it already  
-	; cleaned the stack. If it cdecl, the caller will. In any case,
-	; we are not in charge.
+	; The return address is now at [esp], so a ret will do.
 	;
-	jmp fs:[014h]
-
+	ret
 NoStack:
 	;
 	; Now we are in trouble - being in this procedure means
