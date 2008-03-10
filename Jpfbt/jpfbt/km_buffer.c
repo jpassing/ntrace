@@ -7,7 +7,7 @@
  */
 
 #include <jpfbt.h>
-#include "..\jpfbtp.h"
+#include "jpfbtp.h"
 
 /*----------------------------------------------------------------------
  *
@@ -22,19 +22,64 @@ NTSTATUS JpfbtpCreateGlobalState(
 	__out PJPFBT_GLOBAL_DATA *GlobalState
 	)
 {
-	UNREFERENCED_PARAMETER( BufferCount );
-	UNREFERENCED_PARAMETER( BufferSize );
-	UNREFERENCED_PARAMETER( StartCollectorThread );
-	UNREFERENCED_PARAMETER( GlobalState );
-	return STATUS_NOT_IMPLEMENTED;
+	NTSTATUS Status;
+	PJPFBT_GLOBAL_DATA TempState = NULL;
+	
+	if ( BufferCount == 0 || 
+		 BufferSize == 0 ||
+		 BufferSize > JPFBT_MAX_BUFFER_SIZE ||
+		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
+		 ! GlobalState )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	if ( StartCollectorThread )
+	{
+		return STATUS_NOT_IMPLEMENTED;
+	}
+
+	//
+	// Allocate.
+	//
+	Status = JpfbtpAllocateGlobalStateAndBuffers(
+		BufferCount,
+		BufferSize,
+		&TempState );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
+
+	//
+	// Initialize buffers.
+	//
+	JpfbtpInitializeBuffersGlobalState( 
+		BufferCount, 
+		BufferSize, 
+		TempState );
+
+	//
+	// Do kernel-specific initialization.
+	//
+	KeInitializeSpinLock( &TempState->PatchDatabase.Lock );
+	KeInitializeEvent( 
+		&TempState->BufferCollectorEvent, 
+		SynchronizationEvent ,
+		FALSE );
+
+	*GlobalState = TempState;
+
+	return STATUS_SUCCESS;
 }
 
-NTSTATUS JpfbtpFreeGlobalState(
+VOID JpfbtpFreeGlobalState(
 	__in PJPFBT_GLOBAL_DATA GlobalState
 	)
 {
-	UNREFERENCED_PARAMETER( GlobalState );
-	return STATUS_NOT_IMPLEMENTED;
+	ASSERT( GlobalState );
+
+	JpfbtpFreeNonPagedMemory( GlobalState );
 }
 
 
@@ -69,10 +114,18 @@ VOID JpfbtpFreeThreadData(
 
 VOID JpfbtpTriggerDirtyBufferCollection()
 {
+	if ( KeGetCurrentIrql() <= DISPATCH_LEVEL )
+	{
+		( VOID ) KeSetEvent( 
+			&JpfbtpGlobalState->BufferCollectorEvent,
+			IO_NO_INCREMENT,
+			FALSE );
+	}
 }
 
 VOID JpfbtpShutdownDirtyBufferCollector()
 {
+	ASSERT( !"Not implemented for kernel mode." );
 }
 
 NTSTATUS JpfbtProcessBuffer(

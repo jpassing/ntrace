@@ -108,6 +108,126 @@ static PJPFBT_BUFFER JpfbtpsGetBuffer(
  * Internals.
  *
  */
+NTSTATUS JpfbtpAllocateGlobalStateAndBuffers(
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
+	__out PJPFBT_GLOBAL_DATA *GlobalState
+	)
+{
+	ULONG BufferStructSize;
+	ULONG64 TotalAllocationSize = 0;
+
+	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
+	ASSERT( GlobalState );
+
+	*GlobalState = 0;
+
+	//
+	// Calculate effective size of JPFBT_BUFFER structure.
+	//
+	BufferStructSize = 
+		RTL_SIZEOF_THROUGH_FIELD( JPFBT_BUFFER, Buffer[ -1 ] ) +
+		BufferSize * sizeof( UCHAR );
+
+	//
+	// As we allocate multiple structs as a single blob, we must
+	// make sure that each struct is properly aligned s.t.
+	// all ListEntry-fields are aligned.
+	//
+	ASSERT( sizeof( JPFBT_GLOBAL_DATA ) % MEMORY_ALLOCATION_ALIGNMENT == 0 );
+
+	//
+	// Each buffer must be of appropriate size.
+	//
+	ASSERT( BufferStructSize % MEMORY_ALLOCATION_ALIGNMENT == 0 );
+
+	//
+	// Calculate allocation size:
+	//  BufferCount * JPFBT_BUFFER structs
+	//  1 * JPFBT_BUFFER_LIST struct
+	//
+	TotalAllocationSize = BufferCount * BufferStructSize;
+	if ( TotalAllocationSize > 0xffffffff )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+	
+	TotalAllocationSize += sizeof( JPFBT_GLOBAL_DATA );
+	if ( TotalAllocationSize > 0xffffffff)
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	*GlobalState = JpfbtpAllocateNonPagedMemory( 
+		( SIZE_T ) TotalAllocationSize, FALSE );
+	if ( ! *GlobalState )
+	{
+		return STATUS_NO_MEMORY;
+	}
+
+	ASSERT( ( ( ULONG_PTR ) *GlobalState ) % MEMORY_ALLOCATION_ALIGNMENT == 0 );
+
+	return STATUS_SUCCESS;
+}
+
+VOID JpfbtpInitializeBuffersGlobalState(
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
+	__in PJPFBT_GLOBAL_DATA GlobalState
+	)
+{
+	ULONG BufferStructSize;
+	ULONG CurrentBufferIndex;
+	PJPFBT_BUFFER CurrentBuffer;
+
+	ASSERT( GlobalState );
+
+	GlobalState->BufferSize					= BufferSize;
+	GlobalState->NumberOfBuffersCollected	= 0;
+
+	BufferStructSize = 
+		RTL_SIZEOF_THROUGH_FIELD( JPFBT_BUFFER, Buffer[ -1 ] ) +
+		BufferSize * sizeof( UCHAR );
+
+	InitializeSListHead( &GlobalState->FreeBuffersList );
+	InitializeSListHead( &GlobalState->DirtyBuffersList );
+
+	//
+	// ...buffers.
+	//
+	// First buffer is right after JPFBT_BUFFER_LIST structure.
+	//
+	CurrentBuffer = ( PJPFBT_BUFFER ) 
+		( ( PUCHAR ) GlobalState + sizeof( JPFBT_GLOBAL_DATA ) );
+	for ( CurrentBufferIndex = 0; CurrentBufferIndex < BufferCount; CurrentBufferIndex++ )
+	{
+		//
+		// Initialize and push onto free list.
+		//
+		CurrentBuffer->ThreadId = 0;				// initialized later
+		CurrentBuffer->ProcessId = 0;				// initialized later
+		CurrentBuffer->BufferSize = BufferSize;
+		CurrentBuffer->UsedSize = 0;
+
+#if DBG
+		CurrentBuffer->Guard = 0xDEADBEEF;
+#endif
+
+		ASSERT( ( ( ULONG_PTR ) &CurrentBuffer->ListEntry ) % 
+			MEMORY_ALLOCATION_ALIGNMENT == 0 );
+
+		InterlockedPushEntrySList( 
+			&GlobalState->FreeBuffersList,
+			&CurrentBuffer->ListEntry );
+
+		//
+		// N.B. JPFBT_BUFFER is variable length, so CurrentBuffer++
+		// does not work.
+		//
+		CurrentBuffer = ( PJPFBT_BUFFER )
+			( ( PUCHAR ) CurrentBuffer + BufferStructSize );
+	}
+}
 
 PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 {

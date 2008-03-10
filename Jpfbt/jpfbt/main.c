@@ -74,7 +74,6 @@ NTSTATUS JpfbtUninitialize()
 	PLIST_ENTRY ListEntry;
 	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_THREAD_DATA ThreadData;
-	NTSTATUS Status;
 
 	if ( JpfbtpGlobalState == NULL )
 	{
@@ -171,10 +170,9 @@ NTSTATUS JpfbtUninitialize()
 	//
 	// Free global state.
 	//
-	Status = JpfbtpFreeGlobalState(
-		JpfbtpGlobalState );
+	JpfbtpFreeGlobalState( JpfbtpGlobalState );
 
 	JpfbtpGlobalState = NULL;
 
-	return Status;
+	return STATUS_SUCCESS;
 }

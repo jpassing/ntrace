@@ -69,18 +69,14 @@ NTSTATUS JpfbtpCreateGlobalState(
 	__out PJPFBT_GLOBAL_DATA *GlobalState
 	)
 {
-	ULONG64 TotalAllocationSize = 0;
-	ULONG BufferStructSize = 0;
 	ULONG TlsIndex;
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
-	ULONG CurrentBufferIndex;
-	PJPFBT_BUFFER CurrentBuffer;
 	ULONG TlsSlotOffset;
 
 	if ( BufferCount == 0 || 
 		 BufferSize == 0 ||
-		 BufferSize > 16 * 1024 * 1024 ||
+		 BufferSize > JPFBT_MAX_BUFFER_SIZE ||
 		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
 		 ! GlobalState )
 	{
@@ -111,65 +107,27 @@ NTSTATUS JpfbtpCreateGlobalState(
 	}
 	JpfbtpThreadDataTlsOffset = TlsSlotOffset;
 
-
-	//
-	// Calculate effective size of JPFBT_BUFFER structure.
-	//
-	BufferStructSize = 
-		RTL_SIZEOF_THROUGH_FIELD( JPFBT_BUFFER, Buffer[ -1 ] ) +
-		BufferSize * sizeof( UCHAR );
-
-	//
-	// As we allocate multiple structs as a single blob, we must
-	// make sure that each struct is properly aligned s.t.
-	// all ListEntry-fields are aligned.
-	//
-	ASSERT( sizeof( JPFBT_GLOBAL_DATA ) % MEMORY_ALLOCATION_ALIGNMENT == 0 );
-
-	//
-	// Each buffer must be of appropriate size.
-	//
-	ASSERT( BufferStructSize % MEMORY_ALLOCATION_ALIGNMENT == 0 );
-
-	//
-	// Calculate allocation size:
-	//  BufferCount * JPFBT_BUFFER structs
-	//  1 * JPFBT_BUFFER_LIST struct
-	//
-	TotalAllocationSize = BufferCount * BufferStructSize;
-	if ( TotalAllocationSize > 0xffffffff )
+	Status = JpfbtpAllocateGlobalStateAndBuffers(
+		BufferCount,
+		BufferSize,
+		&TempState );
+	if ( ! NT_SUCCESS( Status ) )
 	{
-		Status = STATUS_INVALID_PARAMETER;
-		goto Cleanup;
-	}
-	
-	TotalAllocationSize += sizeof( JPFBT_GLOBAL_DATA );
-	if ( TotalAllocationSize > 0xffffffff)
-	{
-		Status = STATUS_INVALID_PARAMETER;
-		goto Cleanup;
+		return Status;
 	}
 
-	TempState = JpfbtpMalloc( ( SIZE_T ) TotalAllocationSize, FALSE );
-	if ( ! TempState )
-	{
-		Status = STATUS_NO_MEMORY;
-		goto Cleanup;
-	}
-
-	ASSERT( ( ( ULONG_PTR ) TempState ) % MEMORY_ALLOCATION_ALIGNMENT == 0 );
+	//
+	// Initialize buffers.
+	//
+	JpfbtpInitializeBuffersGlobalState( 
+		BufferCount, 
+		BufferSize, 
+		TempState );
 
 	//
-	// Initailize structure...
+	// Usermode specific initialization:
 	//
-	TempState->BufferSize = BufferSize;
-	TempState->NumberOfBuffersCollected = 0;
-
-	InitializeSListHead( &TempState->FreeBuffersList );
-	InitializeSListHead( &TempState->DirtyBuffersList );
-
-	//
-	// ...heap, ...
+	// Heap, ...
 	//
 	TempState->PatchDatabase.SpecialHeap = HeapCreate(
 		HEAP_NO_SERIALIZE,
@@ -218,42 +176,6 @@ NTSTATUS JpfbtpCreateGlobalState(
 		TempState->BufferCollectorThread = NULL;
 	}
 
-	//
-	// ...buffers.
-	//
-	// First buffer is right after JPFBT_BUFFER_LIST structure.
-	//
-	CurrentBuffer = ( PJPFBT_BUFFER ) 
-		( ( PUCHAR ) TempState + sizeof( JPFBT_GLOBAL_DATA ) );
-	for ( CurrentBufferIndex = 0; CurrentBufferIndex < BufferCount; CurrentBufferIndex++ )
-	{
-		//
-		// Initialize and push onto free list.
-		//
-		CurrentBuffer->ThreadId = 0;				// initialized later
-		CurrentBuffer->ProcessId = 0;				// initialized later
-		CurrentBuffer->BufferSize = BufferSize;
-		CurrentBuffer->UsedSize = 0;
-
-#if DBG
-		CurrentBuffer->Guard = 0xDEADBEEF;
-#endif
-
-		ASSERT( ( ( ULONG_PTR ) &CurrentBuffer->ListEntry ) % 
-			MEMORY_ALLOCATION_ALIGNMENT == 0 );
-
-		InterlockedPushEntrySList( 
-			&TempState->FreeBuffersList,
-			&CurrentBuffer->ListEntry );
-
-		//
-		// N.B. JPFBT_BUFFER is variable length, so CurrentBuffer++
-		// does not work.
-		//
-		CurrentBuffer = ( PJPFBT_BUFFER )
-			( ( PUCHAR ) CurrentBuffer + BufferStructSize );
-	}
-
 	InitializeCriticalSection( &TempState->PatchDatabase.Lock );
 
 	JpfbtsThreadDataTlsIndex = TlsIndex;
@@ -297,7 +219,7 @@ Cleanup:
 	return Status;
 }
 
-NTSTATUS JpfbtpFreeGlobalState(
+VOID JpfbtpFreeGlobalState(
 	__in PJPFBT_GLOBAL_DATA GlobalState
 	)
 {
@@ -315,8 +237,7 @@ NTSTATUS JpfbtpFreeGlobalState(
 	ASSERT( GlobalState->BufferCollectorThread == NULL );
 	ASSERT( GlobalState->BufferCollectorEvent == NULL );
 
-	JpfbtpFree( GlobalState );
-	return STATUS_SUCCESS;
+	JpfbtpFreeNonPagedMemory( GlobalState );
 }
 
 

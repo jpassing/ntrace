@@ -21,8 +21,12 @@
 	#else
 		#define TRACE( Args ) 
 	#endif
+
+	#define ASSERT_IRQL_LTE( Irql )
 #elif defined( JPFBT_TARGET_KERNELMODE )
 	#define TRACE KdPrint
+
+	#define ASSERT_IRQL_LTE( Irql ) ASSERT( KeGetCurrentIrql() <= ( Irql ) )
 #else
 	#error Unknown mode (User/Kernel)
 #endif
@@ -278,6 +282,11 @@ typedef struct _JPFBT_GLOBAL_DATA
 	// stop the collector thread.
 	//
 	volatile LONG StopBufferCollector;
+#elif defined(JPFBT_TARGET_KERNELMODE)
+	//
+	// Event - can be signalled to trigger the buffer collector.
+	//
+	KEVENT BufferCollectorEvent;
 #endif
 
 	PVOID UserPointer;
@@ -411,24 +420,59 @@ NTSTATUS JpfbtpPatchCode(
 
 /*++
 	Routine Description:
-		Initialize the global buffer list and allocate buffers.
+		Allocate enough memory to hold the global state structure as well
+		as [BufferSize] subsequent buffers. 
+
+		KM: NonPaged memory is used.
+
+		The memory is not zeroed out.
 
 	Parameters:
-		BufferCount - # of buffer to allocate
-		BufferSize  - size of each buffer in bytes
-		BufferList  - REsult
+		BufferCount 	 - # of buffer to allocate.
+		BufferSize  	 - size of each buffer in bytes.
+		GlobalState 	 - Result.
+		BufferStructSize - Size of each buffer in bytes.
+--*/
+NTSTATUS JpfbtpAllocateGlobalStateAndBuffers(
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
+	__out PJPFBT_GLOBAL_DATA *GlobalState
+	);
+
+/*++
+	Routine Description:
+		Initialize the buffer-related parts of the global state.
+
+		Callable at any IRQL.
+--*/
+VOID JpfbtpInitializeBuffersGlobalState(
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
+	__in PJPFBT_GLOBAL_DATA GlobalState
+	);
+
+/*++
+	Routine Description:
+		Initialize the global buffer list and allocate buffers.
+
+		Callable at IRQL <= DISPATCH_LEVEL.
+
+	Parameters:
+		BufferCount  - # of buffer to allocate.
+		BufferSize   - size of each buffer in bytes.
+		GlobalState  - Result.
 --*/
 NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in BOOLEAN StartCollectorThread,
-	__out PJPFBT_GLOBAL_DATA *BufferList
+	__out PJPFBT_GLOBAL_DATA *GlobalState
 	);
 
 /*++
 	Routine Description:
 --*/
-NTSTATUS JpfbtpFreeGlobalState(
+VOID JpfbtpFreeGlobalState(
 	__in PJPFBT_GLOBAL_DATA BufferList
 	);
 
@@ -462,6 +506,8 @@ VOID JpfbtpFreeThreadData(
 /*++
 	Routine Description:
 		Called if a dirty buffer was pushed on the dirty list. 
+
+		Callable at any IRQL.
 --*/
 VOID JpfbtpTriggerDirtyBufferCollection();
 
