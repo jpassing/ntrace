@@ -13,7 +13,7 @@ VOID JpfbtpAcquirePatchDatabaseLock(
 	__out PJPFBTP_LOCK_HANDLE LockHandle 
 	) 
 {
-	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
+	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
 
 	KeAcquireInStackQueuedSpinLock( 
 		&JpfbtpGlobalState->PatchDatabase.Lock,
@@ -24,7 +24,7 @@ VOID JpfbtpReleasePatchDatabaseLock(
 	__in PJPFBTP_LOCK_HANDLE LockHandle 
 	) 
 {
-	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
+	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
 
 	KeReleaseInStackQueuedSpinLock( LockHandle );
 }

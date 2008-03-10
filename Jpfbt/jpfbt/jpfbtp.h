@@ -309,18 +309,28 @@ extern PJPFBT_GLOBAL_DATA JpfbtpGlobalState;
 /*++
 	Routine Description:
 		Initialize the hashtable of the patch database.
+
+		Callable at IRQL <= DISPATCH_LEVEL.
 --*/
 NTSTATUS JpfbtpInitializePatchTable();
 
 
 /*++
 	Routine Description:
-		Init/lock/unlock routines for the patch database lock.
+		Acquire patch database lock.
+
+		Callable at IRQL <= DISPATCH_LEVEL.
 --*/
 VOID JpfbtpAcquirePatchDatabaseLock(
 	__out PJPFBTP_LOCK_HANDLE LockHandle
 	);
 
+/*++
+	Routine Description:
+		Release patch database lock.
+
+		Callable at IRQL <= DISPATCH_LEVEL.
+--*/
 VOID JpfbtpReleasePatchDatabaseLock(
 	__in PJPFBTP_LOCK_HANDLE LockHandle 
 	);
@@ -407,6 +417,8 @@ typedef enum _JPFBT_PATCH_ACTION
 		The caller MUST hold the patch database lock before calling
 		this procedure.
 
+		IRQL?
+
 	Parameters:
 		Action		- Patch/Unpatch.
 		PatchCount	- # of elements in Patches.
@@ -424,6 +436,8 @@ NTSTATUS JpfbtpPatchCode(
 		as [BufferSize] subsequent buffers. 
 
 		KM: NonPaged memory is used.
+
+		Callable at IRQL <= DISPATCH_LEVEL.
 
 		The memory is not zeroed out.
 
@@ -471,6 +485,9 @@ NTSTATUS JpfbtpCreateGlobalState(
 
 /*++
 	Routine Description:
+		Free global state.
+
+		Callable at IRQL <= DISPATCH_LEVEL.
 --*/
 VOID JpfbtpFreeGlobalState(
 	__in PJPFBT_GLOBAL_DATA BufferList
@@ -479,6 +496,8 @@ VOID JpfbtpFreeGlobalState(
 /*++
 	Routine Description:
 		Get (but do do not allocate) per-thread data.
+
+		Callable at any IRQL.
 
 	Return Value:
 		Thread Data or NULL if no thread data allocared yet for this
@@ -490,6 +509,8 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable();
 	Routine Description:
 		Allocate (but do not initialize) per-thread data.
 
+		Callable at any IRQL.
+
 	Return Value:
 		Thread Data or NULL if allocation failed.
 --*/
@@ -498,6 +519,8 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread();
 /*++
 	Routine Description:
 		Free memory allocated by JpfbtpAllocateThreadDataForCurrentThread.
+
+		IRQL?
 --*/
 VOID JpfbtpFreeThreadData(
 	__in PJPFBT_THREAD_DATA ThreadData 
@@ -521,6 +544,8 @@ VOID JpfbtpShutdownDirtyBufferCollector();
 	Routine Description:
 		Allocate temporary, paged memory.
 
+		Callable at IRQL <= APC_LEVEL.
+
 	Return Value:
 		Pointer to memory or NULL on allocation failure.
 --*/
@@ -532,6 +557,8 @@ PVOID JpfbtpAllocatePagedMemory(
 /*++
 	Routine Description:
 		Free memory allocated by JpfbtpAllocatePagedMemory.
+
+		Callable at IRQL <= APC_LEVEL.
 --*/
 VOID JpfbtpFreePagedMemory( 
 	__in PVOID Mem 
@@ -540,6 +567,8 @@ VOID JpfbtpFreePagedMemory(
 /*++
 	Routine Description:
 		Allocate nonpaged memory.
+
+		Callable at IRQL <= DISPATCH_LEVEL.
 
 	Return Value:
 		Pointer to memory or NULL on allocation failure.
@@ -552,6 +581,8 @@ PVOID JpfbtpAllocateNonPagedMemory(
 /*++
 	Routine Description:
 		Free memory allocated by JpfbtpAllocateNonPagedMemory.
+
+		Callable at IRQL <= DISPATCH_LEVEL.
 --*/
 VOID JpfbtpFreeNonPagedMemory( 
 	__in PVOID Mem 

@@ -165,9 +165,9 @@ VOID __stdcall CallProcArgs()
 		pop esi;
 		pop ebx;
 	}
-	TEST( Arg1 == 0xBADCAFE1 );
-	TEST( Arg2 == 0xBADCAFE2 );
-	TEST( Arg3 == 0xBADCAFE3 );
+	//TEST( Arg1 == 0xBADCAFE1 );
+	//TEST( Arg2 == 0xBADCAFE2 );
+	//TEST( Arg3 == 0xBADCAFE3 );
 
 	TEST( Eax_ == 0xBABE0001 );
 

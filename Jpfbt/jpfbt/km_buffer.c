@@ -11,6 +11,17 @@
 
 /*----------------------------------------------------------------------
  *
+ * WRK stub routines.
+ *
+ */
+VOID JpfbtWrkSetFbtDataCurrentThread(
+	__in PVOID Data 
+	);
+
+PVOID JpfbtWrkGetFbtDataCurrentThread();
+
+/*----------------------------------------------------------------------
+ *
  * Global state.
  *
  */
@@ -25,6 +36,8 @@ NTSTATUS JpfbtpCreateGlobalState(
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
 	
+	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
+
 	if ( BufferCount == 0 || 
 		 BufferSize == 0 ||
 		 BufferSize > JPFBT_MAX_BUFFER_SIZE ||
@@ -78,6 +91,7 @@ VOID JpfbtpFreeGlobalState(
 	)
 {
 	ASSERT( GlobalState );
+	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
 
 	JpfbtpFreeNonPagedMemory( GlobalState );
 }
@@ -91,11 +105,19 @@ VOID JpfbtpFreeGlobalState(
 
 PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable()
 {
-	return NULL;
+	return ( PJPFBT_THREAD_DATA ) JpfbtWrkGetFbtDataCurrentThread();
 }
 
 PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 {
+	if ( KeGetCurrentIrql() <= DISPATCH_LEVEL )
+	{
+	}
+	else
+	{
+		// Any IRQL! must use preallocated resrc!
+		// adjust stats when failed
+	}
 	return NULL;
 }
 
