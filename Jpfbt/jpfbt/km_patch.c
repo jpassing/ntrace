@@ -7,7 +7,7 @@
  */
 
 #include <jpfbt.h>
-#include "..\internal.h"
+#include "..\jpfbtp.h"
 
 
 NTSTATUS JpfbtpPatchCode(

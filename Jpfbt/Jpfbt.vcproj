@@ -80,15 +80,19 @@
 				Name="jpfbt"
 				>
 				<File
+					RelativePath=".\jpfbt\buffer.c"
+					>
+				</File>
+				<File
 					RelativePath=".\jpfbt\DIRS"
 					>
 				</File>
 				<File
-					RelativePath=".\jpfbt\internal.h"
+					RelativePath=".\jpfbt\jpfbtmsg.mc"
 					>
 				</File>
 				<File
-					RelativePath=".\jpfbt\jpfbtmsg.mc"
+					RelativePath=".\jpfbt\jpfbtp.h"
 					>
 				</File>
 				<File

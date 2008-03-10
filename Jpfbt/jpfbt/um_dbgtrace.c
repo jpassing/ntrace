@@ -14,7 +14,7 @@
 #include <strsafe.h>
 #pragma warning( pop )
 
-#include "internal.h"
+#include "jpfbtp.h"
 
 VOID JpfbtDbgPrint(
 	__in PSZ Format,

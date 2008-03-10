@@ -6,7 +6,7 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
-#include "internal.h"
+#include "jpfbtp.h"
 
 /*----------------------------------------------------------------------
  *
@@ -75,20 +75,20 @@ BOOLEAN JpfbtpIsPatchDatabaseLockHeld()
  *
  */
 
-static DWORD JpfbtsPatchDbHash(
-	__in DWORD_PTR Key
+static ULONG JpfbtsPatchDbHash(
+	__in ULONG_PTR Key
 	)
 {
 	//
 	// Key is the procedure pointer, use identity as hash
-	// (on Win64, truncat upper DWORD).
+	// (on Win64, truncat upper ULONG).
 	//
-	return ( DWORD ) Key;
+	return ( ULONG ) Key;
 }
 
 static BOOLEAN JpfbtsPatchDbEquals(
-	__in DWORD_PTR KeyLhs,
-	__in DWORD_PTR KeyRhs
+	__in ULONG_PTR KeyLhs,
+	__in ULONG_PTR KeyRhs
 	)
 {
 	//

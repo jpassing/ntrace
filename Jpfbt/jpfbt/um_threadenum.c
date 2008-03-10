@@ -7,12 +7,12 @@
  */
 
 #include <jpfbt.h>
-#include "..\internal.h"
+#include "..\jpfbtp.h"
 #include "um_internal.h"
 #include <Tlhelp32.h>
 
 NTSTATUS JpfbtpForEachThread(
-	__in DWORD DesiredAccess,
+	__in ULONG DesiredAccess,
 	__in NTSTATUS ( * ActionRoutine )( 
 		__in HANDLE Thread,
 		__in_opt PVOID Context ),
@@ -26,8 +26,8 @@ NTSTATUS JpfbtpForEachThread(
 	PHANDLE Threads = NULL;
 	ULONG ThreadCount = 0;
 	ULONG Index;
-	DWORD OwnThreadId = GetCurrentThreadId();
-	DWORD OwnProcessId = GetCurrentProcessId();
+	ULONG OwnThreadId = GetCurrentThreadId();
+	ULONG OwnProcessId = GetCurrentProcessId();
 	THREADENTRY32 Entry = { sizeof( THREADENTRY32 ) };
 	HANDLE Snapshot;
 	NTSTATUS Status = STATUS_SUCCESS;
@@ -142,7 +142,7 @@ NTSTATUS JpfbtpForEachThread(
 				// ActionRoutine may have failed because the thread
 				// has already died.
 				//
-				DWORD ExitCode; 
+				ULONG ExitCode; 
 				if ( GetExitCodeThread( Threads[ Index ], &ExitCode ) && 
 					 STILL_ACTIVE == ExitCode )
 				{

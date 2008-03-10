@@ -7,7 +7,7 @@
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
-#include "internal.h"
+#include "jpfbtp.h"
 
 //
 // Trace macro for use in thread suspension code:
@@ -37,7 +37,7 @@
 		Context		  - Context passed to routines.
 --*/
 NTSTATUS JpfbtpForEachThread(
-	__in DWORD DesiredAccess,
+	__in ULONG DesiredAccess,
 	__in NTSTATUS ( * ActionRoutine )( 
 		__in HANDLE Thread,
 		__in_opt PVOID Context ),

@@ -7,7 +7,7 @@
  */
 
 #include <jpfbt.h>
-#include "..\internal.h"
+#include "..\jpfbtp.h"
 #include "um_internal.h"
 
 #define BUFFER_COLLECTOR_AUTOCOLLECT_INTERVAL 101000
@@ -18,19 +18,19 @@
  *
  */
 
-static DWORD CALLBACK JpfbtsBufferCollectorThreadProc( __in PVOID Unused );
+static ULONG CALLBACK JpfbtsBufferCollectorThreadProc( __in PVOID Unused );
 
-static DWORD JpfbtsThreadDataTlsIndex = TLS_OUT_OF_INDEXES;
+static ULONG JpfbtsThreadDataTlsIndex = TLS_OUT_OF_INDEXES;
 
-DWORD JpfbtpThreadDataTlsOffset = 0;
+ULONG JpfbtpThreadDataTlsOffset = 0;
 
 
-static DWORD JpfbtsFindTlsSlotOffsetInTeb( __in DWORD TlsIndex )
+static ULONG JpfbtsFindTlsSlotOffsetInTeb( __in ULONG TlsIndex )
 {
 	ULONG Index;
-	DWORD_PTR *Teb = ( DWORD_PTR* ) ( PVOID ) NtCurrentTeb();
+	ULONG_PTR *Teb = ( ULONG_PTR* ) ( PVOID ) NtCurrentTeb();
 	BOOL SlotFound = FALSE;
-	DWORD_PTR SampleValue = 0xBABEFACE;
+	ULONG_PTR SampleValue = 0xBABEFACE;
 
 	//
 	// Write a characteristic value to TLS slot.
@@ -58,11 +58,11 @@ static DWORD JpfbtsFindTlsSlotOffsetInTeb( __in DWORD TlsIndex )
 	}
 	else
 	{
-		return Index * sizeof( DWORD_PTR );
+		return Index * sizeof( ULONG_PTR );
 	}
 }
 
-NTSTATUS JpfbtpAllocateGlobalState(
+NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in BOOLEAN StartCollectorThread,
@@ -71,12 +71,12 @@ NTSTATUS JpfbtpAllocateGlobalState(
 {
 	ULONG64 TotalAllocationSize = 0;
 	ULONG BufferStructSize = 0;
-	DWORD TlsIndex;
+	ULONG TlsIndex;
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempList = NULL;
 	ULONG CurrentBufferIndex;
 	PJPFBT_BUFFER CurrentBuffer;
-	DWORD TlsSlotOffset;
+	ULONG TlsSlotOffset;
 
 	if ( BufferCount == 0 || 
 		 BufferSize == 0 ||
@@ -157,7 +157,7 @@ NTSTATUS JpfbtpAllocateGlobalState(
 		goto Cleanup;
 	}
 
-	ASSERT( ( ( DWORD_PTR ) TempList ) % MEMORY_ALLOCATION_ALIGNMENT == 0 );
+	ASSERT( ( ( ULONG_PTR ) TempList ) % MEMORY_ALLOCATION_ALIGNMENT == 0 );
 
 	//
 	// Initailize structure...
@@ -239,7 +239,7 @@ NTSTATUS JpfbtpAllocateGlobalState(
 		CurrentBuffer->Guard = 0xDEADBEEF;
 #endif
 
-		ASSERT( ( ( DWORD_PTR ) &CurrentBuffer->ListEntry ) % 
+		ASSERT( ( ( ULONG_PTR ) &CurrentBuffer->ListEntry ) % 
 			MEMORY_ALLOCATION_ALIGNMENT == 0 );
 
 		InterlockedPushEntrySList( 
@@ -332,7 +332,7 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable()
 		TlsGetValue( JpfbtsThreadDataTlsIndex );
 }
 
-PJPFBT_THREAD_DATA JpfbtpAllocateThreadData()
+PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 {
 	PJPFBT_THREAD_DATA ThreadData = NULL;
 
@@ -366,7 +366,7 @@ VOID JpfbtpFreeThreadData(
  * Buffer management.
  *
  */
-static DWORD CALLBACK JpfbtsBufferCollectorThreadProc( __in PVOID Unused )
+static ULONG CALLBACK JpfbtsBufferCollectorThreadProc( __in PVOID Unused )
 {
 	UNREFERENCED_PARAMETER( Unused );
 
@@ -426,7 +426,7 @@ VOID JpfbtpShutdownDirtyBufferCollector()
 
 NTSTATUS JpfbtProcessBuffer(
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in DWORD Timeout,
+	__in ULONG Timeout,
 	__in_opt PVOID UserPointer
 	)
 {

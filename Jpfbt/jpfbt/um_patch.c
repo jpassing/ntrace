@@ -7,7 +7,7 @@
  */
 
 #include <jpfbt.h>
-#include "..\internal.h"
+#include "..\jpfbtp.h"
 #include "um_internal.h"
 
 typedef struct _SUSPEND_CONTEXT
@@ -15,17 +15,17 @@ typedef struct _SUSPEND_CONTEXT
 	//
 	// Sum of all previous suspend counts.
 	//
-	DWORD SuspendCountChecksum;
+	ULONG SuspendCountChecksum;
 } SUSPEND_CONTEXT, *PSUSPEND_CONTEXT;
 
-#define INVALID_SUSPEND_COUNT ( ( DWORD ) -1 )
+#define INVALID_SUSPEND_COUNT ( ( ULONG ) -1 )
 
 static NTSTATUS JpfbtsSuspendThread( 
 	__in HANDLE Thread,
 	__in PVOID Context
 	)
 {
-	DWORD PrevSuspendCount;
+	ULONG PrevSuspendCount;
 
 #if DBG
 	PSUSPEND_CONTEXT SuspendContext = ( PSUSPEND_CONTEXT ) Context;
@@ -57,7 +57,7 @@ static NTSTATUS JpfbtsResumeThread(
 	__in PVOID Context
 	)
 {
-	DWORD PrevSuspendCount;
+	ULONG PrevSuspendCount;
 
 #if DBG
 	PSUSPEND_CONTEXT SuspendContext = ( PSUSPEND_CONTEXT ) Context;

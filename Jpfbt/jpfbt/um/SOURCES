@@ -30,6 +30,7 @@ PASS0_HEADERDIR=..\..\..\include
 PASS0_SOURCEDIR=obj$(BUILD_ALT_DIR)\$(TARGET_DIRECTORY)
 
 SOURCES=\
+	..\buffer.c \
 	..\instrument.c \
 	..\main.c \
 	..\thunksup.c \

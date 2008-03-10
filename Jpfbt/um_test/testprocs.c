@@ -100,8 +100,8 @@ static VOID __stdcall ProcedureExit(
 static VOID ProcessBuffer(
 	__in SIZE_T BufferSize,
 	__in_bcount(BufferSize) PUCHAR Buffer,
-	__in DWORD ProcessId,
-	__in DWORD ThreadId,
+	__in ULONG ProcessId,
+	__in ULONG ThreadId,
 	__in_opt PVOID UserPointer
 	)
 {
@@ -325,7 +325,7 @@ static volatile LONG CallProcsThreadsActive = 0;
 
 static HANDLE ProcsCalled;
 
-static DWORD CALLBACK CallProcsThreadProc( __in PVOID PvIterations )
+static ULONG CALLBACK CallProcsThreadProc( __in PVOID PvIterations )
 {
 	PULONG TotalIterations = ( PULONG ) PvIterations;
 	ULONG Iteration = 0;
@@ -358,7 +358,7 @@ static DWORD CALLBACK CallProcsThreadProc( __in PVOID PvIterations )
 	return 0;
 }
 
-static DWORD CALLBACK PatchUnpatchThreadProc( __in PVOID Unused )
+static ULONG CALLBACK PatchUnpatchThreadProc( __in PVOID Unused )
 {
 	UNREFERENCED_PARAMETER( Unused );
 

@@ -12,7 +12,7 @@
 #include <crtdbg.h>
 #include <hashtable.h>
 
-#if defined(JPFBT_TARGET_USERMODE)
+#if defined( JPFBT_TARGET_USERMODE )
 	#include <jpfbtdef.h>
 	#include <list.h>
 
@@ -21,14 +21,14 @@
 	#else
 		#define TRACE( Args ) 
 	#endif
-#elif defined(JPFBT_TARGET_KERNELMODE)
+#elif defined( JPFBT_TARGET_KERNELMODE )
 	#define TRACE KdPrint
 #else
 	#error Unknown mode (User/Kernel)
 #endif
 
 #ifndef VERIFY
-	#if defined(DBG) || defined( DBG )
+	#if defined( DBG ) || defined( DBG )
 		#define VERIFY ASSERT
 	#else
 		#define VERIFY( x ) ( VOID ) ( x )
@@ -59,17 +59,17 @@ typedef struct _JPFBT_THUNK_STACK_FRAME
 	//
 	// SP value when call instruction was executed.
 	//
-	DWORD_PTR Sp;
+	ULONG_PTR Sp;
 
 	//
 	// Hooked procedure.
 	//
-	DWORD_PTR Procedure;
+	ULONG_PTR Procedure;
 
 	//
 	// Caller continuation address.
 	//
-	DWORD_PTR ReturnAddress;
+	ULONG_PTR ReturnAddress;
 } JPFBT_THUNK_STACK_FRAME, *PJPFBT_THUNK_STACK_FRAME;
 
 
@@ -128,8 +128,8 @@ typedef struct _JPFBT_BUFFER
 	//
 	// Thread & Process that last used this buffer.
 	//
-	DWORD ProcessId;
-	DWORD ThreadId;
+	ULONG ProcessId;
+	ULONG ThreadId;
 
 	//
 	// Total size of Buffer array.
@@ -142,13 +142,13 @@ typedef struct _JPFBT_BUFFER
 	SIZE_T UsedSize;
 
 #if DBG
-	DWORD Guard;		
+	ULONG Guard;		
 #endif
 
 	UCHAR Buffer[ ANYSIZE_ARRAY ];
 
 //#if DBG
-//	DWORD Guard;
+//	ULONG Guard;
 //#endif
 } JPFBT_BUFFER, *PJPFBT_BUFFER;
 
@@ -357,7 +357,7 @@ typedef struct _JPFBT_CODE_PATCH
 	//
 	// [out] Original code protection.
 	//
-	DWORD Protection;
+	ULONG Protection;
 } JPFBT_CODE_PATCH, *PJPFBT_CODE_PATCH;
 
 C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
@@ -432,7 +432,7 @@ NTSTATUS JpfbtpPatchCode(
 		BufferSize  - size of each buffer in bytes
 		BufferList  - REsult
 --*/
-NTSTATUS JpfbtpAllocateGlobalState(
+NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in BOOLEAN StartCollectorThread,
@@ -463,11 +463,11 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable();
 	Return Value:
 		Thread Data or NULL if allocation failed.
 --*/
-PJPFBT_THREAD_DATA JpfbtpAllocateThreadData();
+PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread();
 
 /*++
 	Routine Description:
-		Free memory allocated by JpfbtpAllocateThreadData.
+		Free memory allocated by JpfbtpAllocateThreadDataForCurrentThread.
 --*/
 VOID JpfbtpFreeThreadData(
 	__in PJPFBT_THREAD_DATA ThreadData 
@@ -524,3 +524,17 @@ PVOID JpfbtpAllocateNonPagedMemory(
 VOID JpfbtpFreeNonPagedMemory( 
 	__in PVOID Mem 
 	);
+
+/*----------------------------------------------------------------------
+ * 
+ * Support routines.
+ *
+ */
+
+#if defined( JPFBT_TARGET_USERMODE )
+#define JpfbtpGetCurrentProcessId	GetCurrentProcessId
+#define JpfbtpGetCurrentThreadId	GetCurrentThreadId
+#elif defined( JPFBT_TARGET_KERNELMODE )
+#define JpfbtpGetCurrentProcessId	( ULONG ) ( ULONG_PTR ) PsGetCurrentProcessId
+#define JpfbtpGetCurrentThreadId	( ULONG ) ( ULONG_PTR ) PsGetCurrentThreadId
+#endif

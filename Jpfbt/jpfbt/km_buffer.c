@@ -7,7 +7,7 @@
  */
 
 #include <jpfbt.h>
-#include "..\internal.h"
+#include "..\jpfbtp.h"
 
 /*----------------------------------------------------------------------
  *
@@ -15,17 +15,17 @@
  *
  */
 
-NTSTATUS JpfbtpAllocateGlobalState(
+NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in BOOLEAN StartCollectorThread,
-	__out PJPFBT_GLOBAL_DATA *BufferList
+	__out PJPFBT_GLOBAL_DATA *GlobalState
 	)
 {
 	UNREFERENCED_PARAMETER( BufferCount );
 	UNREFERENCED_PARAMETER( BufferSize );
 	UNREFERENCED_PARAMETER( StartCollectorThread );
-	UNREFERENCED_PARAMETER( BufferList );
+	UNREFERENCED_PARAMETER( GlobalState );
 	return STATUS_NOT_IMPLEMENTED;
 }
 
@@ -49,7 +49,7 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable()
 	return NULL;
 }
 
-PJPFBT_THREAD_DATA JpfbtpAllocateThreadData()
+PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 {
 	return NULL;
 }
@@ -77,7 +77,7 @@ VOID JpfbtpShutdownDirtyBufferCollector()
 
 NTSTATUS JpfbtProcessBuffer(
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in DWORD Timeout,
+	__in ULONG Timeout,
 	__in_opt PVOID UserPointer
 	)
 {

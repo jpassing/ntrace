@@ -7,7 +7,7 @@
  */
 
 #include <jpfbt.h>
-#include "internal.h"
+#include "jpfbtp.h"
 #include <stdlib.h>
 
 #ifdef _M_IX86
@@ -20,6 +20,7 @@ static UCHAR JpfbtsZeroPadding[] = { 0x00, 0x00, 0x00, 0x00, 0x00,
 									 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 #define JPFBTP_MAX_PATCH_SET_SIZE 0xFFFF
+
 //
 // Disable warning: Function to PVOID casting
 //
@@ -86,8 +87,8 @@ static BOOLEAN JpfbtsIsAlreadyPatched(
 --*/
 static NTSTATUS JpfbtsAssembleNearCall(
 	__in PUCHAR Payload,
-	__in DWORD_PTR InstructionVa,
-	__in DWORD_PTR TargetVa
+	__in ULONG_PTR InstructionVa,
+	__in ULONG_PTR TargetVa
 	)
 {
 	INT64 Displacement64;
@@ -116,7 +117,7 @@ static NTSTATUS JpfbtsAssembleNearCall(
 	}
 	*Payload++ = 0xE8;									// call near
 
-	memcpy( Payload, &Displacement32, sizeof( DWORD ) );
+	memcpy( Payload, &Displacement32, sizeof( ULONG ) );
 
 	return STATUS_SUCCESS;
 }
@@ -132,7 +133,7 @@ static NTSTATUS JpfbtsAssembleNearCall(
 --*/
 static NTSTATUS JpfbtsInitializeFunctionCallThunkTrampoline(
 	__in PUCHAR Payload,
-	__in DWORD_PTR InstructionVa
+	__in ULONG_PTR InstructionVa
 	)
 {
 	ASSERT( Payload );
@@ -143,7 +144,7 @@ static NTSTATUS JpfbtsInitializeFunctionCallThunkTrampoline(
 	return JpfbtsAssembleNearCall(
 		Payload,
 		InstructionVa,
-		( DWORD_PTR ) ( PVOID ) &JpfbtpFunctionCallThunk );
+		( ULONG_PTR ) ( PVOID ) &JpfbtpFunctionCallThunk );
 }
 
 /*++
@@ -532,7 +533,7 @@ NTSTATUS JpfbtInstrumentProcedure(
 //	)
 //{
 //	BOOL IpUpdateRequired = FALSE;
-//	DWORD_PTR BeginPatchedRegion;
+//	ULONG_PTR BeginPatchedRegion;
 //
 //	ASSERT( ThreadContext );
 //	ASSERT( Patch );
@@ -540,7 +541,7 @@ NTSTATUS JpfbtInstrumentProcedure(
 //
 //	*Updated = FALSE;
 //
-//	BeginPatchedRegion = ( DWORD_PTR ) Patch->Target;
+//	BeginPatchedRegion = ( ULONG_PTR ) Patch->Target;
 //
 //	if ( ThreadContext->Eip >= BeginPatchedRegion && 
 //		 ThreadContext->Eip < BeginPatchedRegion + Patch->CodeSize )
@@ -553,7 +554,7 @@ NTSTATUS JpfbtInstrumentProcedure(
 //
 //	if ( Patch->AssociatedTrampoline )
 //	{
-//		DWORD_PTR BeginTrampoline = ( DWORD_PTR ) Patch->AssociatedTrampoline;
+//		ULONG_PTR BeginTrampoline = ( ULONG_PTR ) Patch->AssociatedTrampoline;
 //		if ( ThreadContext->Eip >= BeginTrampoline && 
 //			 ThreadContext->Eip < BeginTrampoline + JPFBTP_TRAMPOLINE_SIZE )
 //		{
@@ -571,7 +572,7 @@ NTSTATUS JpfbtInstrumentProcedure(
 //		// Update IP s.t. it points to the resume location of the
 //		// patched procedure.
 //		//
-//		ThreadContext->Eip = ( DWORD ) ( Patch->u.Procedure.u.ProcedureVa + 2 );
+//		ThreadContext->Eip = ( ULONG ) ( Patch->u.Procedure.u.ProcedureVa + 2 );
 //		*Updated = TRUE;
 //	}
 //}
