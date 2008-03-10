@@ -84,50 +84,6 @@ static NTSTATUS JpfbtsResumeThread(
 	}
 }
 
-//static NTSTATUS JpfbtsUpdateThreadContext( 
-//	__in HANDLE Thread,
-//	__in PVOID PatchPtr
-//	)
-//{
-//	PJPFBT_CODE_PATCH Patch = ( PJPFBT_CODE_PATCH ) PatchPtr;
-//	CONTEXT ThreadContext;
-//	BOOL Updated = FALSE;
-//
-//	ASSERT( Thread );
-//	ASSERT( Patch );
-//	ASSERT( Patch->Target );
-//
-//	ThreadContext.ContextFlags = CONTEXT_CONTROL;
-//	if ( ! GetThreadContext( Thread, &ThreadContext ) )
-//	{
-//		RISKY_TRACE( ( "Patch: Unable to obtain context for thread 0x%x: %d\n", 
-//			Thread, GetLastError() ) );
-//		return STATUS_FBT_THR_CTXUPD_FAILURE;
-//	}
-//
-//	JpfbtpTakeThreadOutOfCodePatch( Patch, &ThreadContext, &Updated );
-//	if ( Updated )
-//	{
-//		RISKY_TRACE( ( "Patch: IP update required for thread 0x%x: EIP:%xh\n", 
-//			Thread, ThreadContext.Eip ) );
-//
-//		if ( ! SetThreadContext( Thread, &ThreadContext ) )
-//		{
-//			RISKY_TRACE( ( "Patch: Unable to update context for thread 0x%x: %d\n", 
-//				Thread, GetLastError() ) );
-//		
-//			return STATUS_FBT_THR_CTXUPD_FAILURE;
-//		}
-//	}
-//	else
-//	{
-//		RISKY_TRACE( ( "Patch: No IP update required for thread 0x%x: \n", 
-//			Thread) );
-//	}
-//
-//	return STATUS_SUCCESS;
-//}
-
 NTSTATUS JpfbtpPatchCode(
 	__in JPFBT_PATCH_ACTION Action,
 	__in ULONG PatchCount,

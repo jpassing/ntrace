@@ -8,66 +8,6 @@
 
 #include "jpfbtp.h"
 
-/*----------------------------------------------------------------------
- *
- * Locking.
- *
- */
-
-#if defined(JPFBT_TARGET_USERMODE)
-
-VOID JpfbtpInitializePatchDatabaseLock() 
-{
-	InitializeCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
-}
-
-VOID JpfbtpAcquirePatchDatabaseLock() 
-{
-	EnterCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
-}
-
-VOID JpfbtpReleasePatchDatabaseLock() 
-{
-	LeaveCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
-}
-
-BOOLEAN JpfbtpIsPatchDatabaseLockHeld()
-{
-	if ( TryEnterCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock ) )
-	{
-		BOOLEAN WasAlreadyHeld = ( BOOLEAN ) 
-			( JpfbtpGlobalState->PatchDatabase.Lock.RecursionCount > 1 );
-		
-		LeaveCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
-
-		return WasAlreadyHeld;
-	}
-	else
-	{
-		return FALSE;
-	}
-}
-
-#elif defined(JPFBT_TARGET_KERNELMODE)
-
-#define JpfbtpInitializePatchDatabaseLock() \
-	KeInitializeSpinLock( &JpfbtpGlobalState->PatchDatabase.Lock )
-
-#define JpfbtpAcquirePatchDatabaseLock() \
-	KeAcquireInStackQueuedSpinLock ( \
-		&JpfbtpGlobalState->PatchDatabase.Lock, \
-		&JpfbtpGlobalState->PatchDatabase.LockHandle )
-
-#define JpfbtpReleasePatchDatabaseLock() \
-	KeReleaseInStackQueuedSpinLock ( \
-		&JpfbtpGlobalState->PatchDatabase.LockHandle )
-
-
-#define JpfbtsIsPatchDatabaseLockHeld() TRUE
-
-#else
-	#error Unknown mode (User/Kernel)
-#endif
 
 /*----------------------------------------------------------------------
  *

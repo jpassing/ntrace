@@ -216,6 +216,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 	)
 {
 	ULONG Index;
+	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_CODE_PATCH *PatchArray = NULL;
 	NTSTATUS Status = STATUS_SUCCESS;
 
@@ -258,7 +259,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 	// Grab the lock early to avoid a TOCTOU issue between 
 	// JpfbtsIsAlreadyPatched and the actual patch.
 	//
-	JpfbtpAcquirePatchDatabaseLock();
+	JpfbtpAcquirePatchDatabaseLock( &LockHandle );
 
 	if ( NT_SUCCESS( Status ) )
 	{
@@ -365,7 +366,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 		}
 	}
 
-	JpfbtpReleasePatchDatabaseLock();
+	JpfbtpReleasePatchDatabaseLock( &LockHandle );
 
 	JpfbtpFreePagedMemory( PatchArray );
 	return Status;
@@ -396,8 +397,9 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 	__out_opt PJPFBT_PROCEDURE FailedProcedure
 	)
 {
-	PJPFBT_CODE_PATCH *PatchArray;
 	ULONG Index;
+	JPFBTP_LOCK_HANDLE LockHandle;
+	PJPFBT_CODE_PATCH *PatchArray;
 	NTSTATUS Status;
 
 	ASSERT( ProcedureCount != 0 );
@@ -423,7 +425,7 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 	//
 	// Protect against concurrent modifications or premature unload.
 	//
-	JpfbtpAcquirePatchDatabaseLock();
+	JpfbtpAcquirePatchDatabaseLock( &LockHandle );
 	
 	//
 	// Collect PJPFBT_CODE_PATCHes.
@@ -476,7 +478,7 @@ Cleanup:
 	//
 	// Safe to unlock Patch DB.
 	//
-	JpfbtpReleasePatchDatabaseLock();
+	JpfbtpReleasePatchDatabaseLock( &LockHandle );
 
 	if ( PatchArray )
 	{
@@ -525,57 +527,6 @@ NTSTATUS JpfbtInstrumentProcedure(
 		return STATUS_INVALID_PARAMETER;
 	}
 }
-
-//VOID JpfbtpTakeThreadOutOfCodePatch(
-//	__in CONST PJPFBT_CODE_PATCH Patch,
-//	__inout PCONTEXT ThreadContext,
-//	__out PBOOL Updated
-//	)
-//{
-//	BOOL IpUpdateRequired = FALSE;
-//	ULONG_PTR BeginPatchedRegion;
-//
-//	ASSERT( ThreadContext );
-//	ASSERT( Patch );
-//	ASSERT( Updated );
-//
-//	*Updated = FALSE;
-//
-//	BeginPatchedRegion = ( ULONG_PTR ) Patch->Target;
-//
-//	if ( ThreadContext->Eip >= BeginPatchedRegion && 
-//		 ThreadContext->Eip < BeginPatchedRegion + Patch->CodeSize )
-//	{
-//		//
-//		// IP is within patched region.
-//		//
-//		IpUpdateRequired = TRUE;
-//	}
-//
-//	if ( Patch->AssociatedTrampoline )
-//	{
-//		ULONG_PTR BeginTrampoline = ( ULONG_PTR ) Patch->AssociatedTrampoline;
-//		if ( ThreadContext->Eip >= BeginTrampoline && 
-//			 ThreadContext->Eip < BeginTrampoline + JPFBTP_TRAMPOLINE_SIZE )
-//		{
-//			//
-//			// IP is within trampoline - this is esoecially dangerous
-//			// as the trampoline is heap-allocated.
-//			//
-//			IpUpdateRequired = TRUE;
-//		}
-//	}
-//
-//	if ( IpUpdateRequired )
-//	{
-//		//
-//		// Update IP s.t. it points to the resume location of the
-//		// patched procedure.
-//		//
-//		ThreadContext->Eip = ( ULONG ) ( Patch->u.Procedure.u.ProcedureVa + 2 );
-//		*Updated = TRUE;
-//	}
-//}
 
 #pragma warning( pop ) 
 

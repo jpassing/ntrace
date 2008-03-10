@@ -48,8 +48,6 @@ NTSTATUS JpfbtInitialize(
 		//
 		// Initialize PatchDatabase.
 		//
-		JpfbtpInitializePatchDatabaseLock();
-		
 		Status = JpfbtpInitializePatchTable();
 		if ( ! NT_SUCCESS( Status ) )
 		{
@@ -74,6 +72,7 @@ NTSTATUS JpfbtUninitialize()
 {
 	BOOL EvthUnpatched = FALSE;
 	PLIST_ENTRY ListEntry;
+	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_THREAD_DATA ThreadData;
 	NTSTATUS Status;
 
@@ -85,12 +84,12 @@ NTSTATUS JpfbtUninitialize()
 	// 
 	// Check that all patches have been undone.
 	//
-	JpfbtpAcquirePatchDatabaseLock();
+	JpfbtpAcquirePatchDatabaseLock( &LockHandle );
 	
 	EvthUnpatched = JphtGetEntryCountHashtable(
 		&JpfbtpGlobalState->PatchDatabase.PatchTable ) == 0;
 		
-	JpfbtpReleasePatchDatabaseLock();
+	JpfbtpReleasePatchDatabaseLock( &LockHandle );
 
 	if ( ! EvthUnpatched )
 	{

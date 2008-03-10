@@ -235,8 +235,17 @@ typedef struct _JPFBT_GLOBAL_DATA
 		// state of being unloaded.
 		//
 #if defined(JPFBT_TARGET_USERMODE)
+		//
+		// Non-interlocked heap (HEAP_NO_SERIALIZE). 
+		// May only be used if patch database lock is held.
+		//
+		HANDLE SpecialHeap;
+
 		CRITICAL_SECTION Lock;
 #elif defined(JPFBT_TARGET_KERNELMODE)
+		//
+		// In stack queued spin lock.
+		//
 		KSPIN_LOCK Lock;
 #else
 	#error Unknown mode (User/Kernel)
@@ -251,15 +260,6 @@ typedef struct _JPFBT_GLOBAL_DATA
 		// List of JPFBT_THREAD_DATA structs.
 		//
 		LIST_ENTRY ThreadDataListHead;
-
-#if defined(JPFBT_TARGET_USERMODE)
-
-		//
-		// Non-interlocked heap (HEAP_NO_SERIALIZE). 
-		// May only be used if patch database lock is held.
-		//
-		HANDLE SpecialHeap;
-#endif
 	} PatchDatabase;
 
 #if defined(JPFBT_TARGET_USERMODE)
@@ -291,6 +291,12 @@ typedef struct _JPFBT_GLOBAL_DATA
 
 extern PJPFBT_GLOBAL_DATA JpfbtpGlobalState;
 
+#if defined(JPFBT_TARGET_KERNELMODE)
+	typedef KLOCK_QUEUE_HANDLE JPFBTP_LOCK_HANDLE, *PJPFBTP_LOCK_HANDLE;
+#elif defined(JPFBT_TARGET_USERMODE)
+	typedef ULONG JPFBTP_LOCK_HANDLE, *PJPFBTP_LOCK_HANDLE;
+#endif
+
 /*++
 	Routine Description:
 		Initialize the hashtable of the patch database.
@@ -302,9 +308,14 @@ NTSTATUS JpfbtpInitializePatchTable();
 	Routine Description:
 		Init/lock/unlock routines for the patch database lock.
 --*/
-VOID JpfbtpInitializePatchDatabaseLock();
-VOID JpfbtpAcquirePatchDatabaseLock();
-VOID JpfbtpReleasePatchDatabaseLock();
+VOID JpfbtpAcquirePatchDatabaseLock(
+	__out PJPFBTP_LOCK_HANDLE LockHandle
+	);
+
+VOID JpfbtpReleasePatchDatabaseLock(
+	__in PJPFBTP_LOCK_HANDLE LockHandle 
+	);
+
 BOOLEAN JpfbtpIsPatchDatabaseLockHeld();
 
 /*----------------------------------------------------------------------
@@ -363,32 +374,6 @@ typedef struct _JPFBT_CODE_PATCH
 C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
 		  FIELD_OFFSET( JPFBT_CODE_PATCH, u.HashtableEntry.Key ) );
 
-/*++
-	Routine Description:
-		Update Instruction Pointer of thread s.t. is outside
-		of the patched area. The thread is suspeded while this
-		routine is called.
-
-	Parameters:
-		Context	- Thread Context (only CONTEXT_CONTROL part is valid)
-		Patch	- Patch the thread is to leave.
-		Updated - Has Context been updated?
---*/
-VOID JpfbtpTakeThreadOutOfCodePatch(
-	__in CONST PJPFBT_CODE_PATCH Patch,
-	__inout PCONTEXT Context,
-	__out BOOLEAN* Updated
-	);
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -404,6 +389,7 @@ typedef enum _JPFBT_PATCH_ACTION
 	JpfbtPatch,
 	JpfbtUnpatch
 } JPFBT_PATCH_ACTION;
+
 /*++
 	Routine Description:
 		Patch code. This requires making the page writable, 

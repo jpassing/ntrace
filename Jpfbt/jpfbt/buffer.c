@@ -11,6 +11,12 @@
 
 PJPFBT_GLOBAL_DATA JpfbtpGlobalState = NULL;
 
+/*----------------------------------------------------------------------
+ *
+ * Helpers.
+ *
+ */
+
 /*++
 	Routine Description:
 		Retrieve current buffer from thread data. If no buffer
@@ -97,8 +103,15 @@ static PJPFBT_BUFFER JpfbtpsGetBuffer(
 	return ThreadData->CurrentBuffer;
 }
 
+/*----------------------------------------------------------------------
+ *
+ * Internals.
+ *
+ */
+
 PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 {
+	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_THREAD_DATA ThreadData;
 
 	ThreadData = JpfbtpGetCurrentThreadDataIfAvailable();
@@ -129,13 +142,13 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 		//
 		// Register.
 		//
-		JpfbtpAcquirePatchDatabaseLock();
+		JpfbtpAcquirePatchDatabaseLock( &LockHandle );
 
 		InsertTailList( 
 			&JpfbtpGlobalState->PatchDatabase.ThreadDataListHead,
 			&ThreadData->ListEntry );
 
-		JpfbtpReleasePatchDatabaseLock();
+		JpfbtpReleasePatchDatabaseLock( &LockHandle );
 	}
 
 	return ThreadData;

@@ -39,6 +39,7 @@ SOURCES=\
 	..\um_dbgtrace.c \
 	..\um_memalloc.c \
 	..\um_patch.c \
+	..\um_patchdb.c \
 	..\um_threadenum.c \
 	..\jpfbtmsg.mc
 

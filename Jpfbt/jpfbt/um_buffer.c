@@ -66,14 +66,14 @@ NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in BOOLEAN StartCollectorThread,
-	__out PJPFBT_GLOBAL_DATA *BufferList
+	__out PJPFBT_GLOBAL_DATA *GlobalState
 	)
 {
 	ULONG64 TotalAllocationSize = 0;
 	ULONG BufferStructSize = 0;
 	ULONG TlsIndex;
 	NTSTATUS Status;
-	PJPFBT_GLOBAL_DATA TempList = NULL;
+	PJPFBT_GLOBAL_DATA TempState = NULL;
 	ULONG CurrentBufferIndex;
 	PJPFBT_BUFFER CurrentBuffer;
 	ULONG TlsSlotOffset;
@@ -82,7 +82,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 		 BufferSize == 0 ||
 		 BufferSize > 16 * 1024 * 1024 ||
 		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
-		 ! BufferList )
+		 ! GlobalState )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -150,33 +150,33 @@ NTSTATUS JpfbtpCreateGlobalState(
 		goto Cleanup;
 	}
 
-	TempList = JpfbtpMalloc( ( SIZE_T ) TotalAllocationSize, FALSE );
-	if ( ! TempList )
+	TempState = JpfbtpMalloc( ( SIZE_T ) TotalAllocationSize, FALSE );
+	if ( ! TempState )
 	{
 		Status = STATUS_NO_MEMORY;
 		goto Cleanup;
 	}
 
-	ASSERT( ( ( ULONG_PTR ) TempList ) % MEMORY_ALLOCATION_ALIGNMENT == 0 );
+	ASSERT( ( ( ULONG_PTR ) TempState ) % MEMORY_ALLOCATION_ALIGNMENT == 0 );
 
 	//
 	// Initailize structure...
 	//
-	TempList->BufferSize = BufferSize;
-	TempList->NumberOfBuffersCollected = 0;
+	TempState->BufferSize = BufferSize;
+	TempState->NumberOfBuffersCollected = 0;
 
-	InitializeSListHead( &TempList->FreeBuffersList );
-	InitializeSListHead( &TempList->DirtyBuffersList );
+	InitializeSListHead( &TempState->FreeBuffersList );
+	InitializeSListHead( &TempState->DirtyBuffersList );
 
 	//
 	// ...heap, ...
 	//
-	TempList->PatchDatabase.SpecialHeap = HeapCreate(
+	TempState->PatchDatabase.SpecialHeap = HeapCreate(
 		HEAP_NO_SERIALIZE,
 		4096,
 		0 );
 
-	if ( ! TempList->PatchDatabase.SpecialHeap )
+	if ( ! TempState->PatchDatabase.SpecialHeap )
 	{
 		Status = STATUS_NO_MEMORY;
 		goto Cleanup;
@@ -185,14 +185,14 @@ NTSTATUS JpfbtpCreateGlobalState(
 	//
 	// ...buffer collector, ...
 	//
-	TempList->StopBufferCollector = FALSE;
+	TempState->StopBufferCollector = FALSE;
 
-	TempList->BufferCollectorEvent = CreateEvent(
+	TempState->BufferCollectorEvent = CreateEvent(
 		NULL,
 		FALSE,	// autoreset
 		FALSE,
 		NULL );
-	if ( TempList->BufferCollectorEvent == NULL )
+	if ( TempState->BufferCollectorEvent == NULL )
 	{
 		Status = STATUS_NO_MEMORY;
 		goto Cleanup;
@@ -200,14 +200,14 @@ NTSTATUS JpfbtpCreateGlobalState(
 
 	if ( StartCollectorThread )
 	{
-		TempList->BufferCollectorThread = CreateThread(
+		TempState->BufferCollectorThread = CreateThread(
 			NULL,
 			0,
 			JpfbtsBufferCollectorThreadProc,
 			NULL,
 			CREATE_SUSPENDED,
 			NULL );
-		if ( TempList->BufferCollectorThread == NULL )
+		if ( TempState->BufferCollectorThread == NULL )
 		{
 			Status = STATUS_NO_MEMORY;
 			goto Cleanup;
@@ -215,7 +215,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	}
 	else
 	{
-		TempList->BufferCollectorThread = NULL;
+		TempState->BufferCollectorThread = NULL;
 	}
 
 	//
@@ -224,7 +224,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	// First buffer is right after JPFBT_BUFFER_LIST structure.
 	//
 	CurrentBuffer = ( PJPFBT_BUFFER ) 
-		( ( PUCHAR ) TempList + sizeof( JPFBT_GLOBAL_DATA ) );
+		( ( PUCHAR ) TempState + sizeof( JPFBT_GLOBAL_DATA ) );
 	for ( CurrentBufferIndex = 0; CurrentBufferIndex < BufferCount; CurrentBufferIndex++ )
 	{
 		//
@@ -243,7 +243,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 			MEMORY_ALLOCATION_ALIGNMENT == 0 );
 
 		InterlockedPushEntrySList( 
-			&TempList->FreeBuffersList,
+			&TempState->FreeBuffersList,
 			&CurrentBuffer->ListEntry );
 
 		//
@@ -254,31 +254,33 @@ NTSTATUS JpfbtpCreateGlobalState(
 			( ( PUCHAR ) CurrentBuffer + BufferStructSize );
 	}
 
+	InitializeCriticalSection( &TempState->PatchDatabase.Lock );
+
 	JpfbtsThreadDataTlsIndex = TlsIndex;
-	*BufferList = TempList;
+	*GlobalState = TempState;
 	Status = STATUS_SUCCESS;
 	
 	if ( StartCollectorThread )
 	{
-		ResumeThread( TempList->BufferCollectorThread );
+		ResumeThread( TempState->BufferCollectorThread );
 	}
 
 Cleanup:
-	if ( ! NT_SUCCESS( Status ) && TempList )
+	if ( ! NT_SUCCESS( Status ) && TempState )
 	{
-		if ( TempList->BufferCollectorEvent )
+		if ( TempState->BufferCollectorEvent )
 		{
-			VERIFY( CloseHandle( TempList->BufferCollectorEvent ) );
+			VERIFY( CloseHandle( TempState->BufferCollectorEvent ) );
 		}
 
-		if ( TempList->BufferCollectorThread )
+		if ( TempState->BufferCollectorThread )
 		{
-			VERIFY( CloseHandle( TempList->BufferCollectorThread ) );
+			VERIFY( CloseHandle( TempState->BufferCollectorThread ) );
 		}
 
-		if ( TempList->PatchDatabase.SpecialHeap )
+		if ( TempState->PatchDatabase.SpecialHeap )
 		{
-			VERIFY( HeapDestroy( TempList->PatchDatabase.SpecialHeap ) );
+			VERIFY( HeapDestroy( TempState->PatchDatabase.SpecialHeap ) );
 		}
 
 		if ( TlsIndex != TLS_OUT_OF_INDEXES )
@@ -286,9 +288,9 @@ Cleanup:
 			VERIFY( TlsFree( TlsIndex ) );
 		}
 
-		if ( TempList )
+		if ( TempState )
 		{
-			JpfbtpFree( TempList );
+			JpfbtpFree( TempState );
 		}
 	}
 
