@@ -104,12 +104,6 @@ JpfbtpFunctionEntryThunk proc
 	jle StackOverflow
 	
 	;
-	; Save ESP value as it was at procedure entry.
-	;
-	lea edx, [ebp+0ch]
-	mov [ecx-0ch], edx
-	
-	;
 	; stash away funcptr on thunkstack.
 	;
 	mov edx, [ebp+8]
@@ -125,7 +119,7 @@ JpfbtpFunctionEntryThunk proc
 	; Adjust stack pointer:
 	;   thunkstack->StackPointer--
 	;
-	lea edx, [ecx-0ch]
+	lea edx, [ecx-8]
 	mov [eax], edx			
 	
 	;
@@ -293,19 +287,19 @@ JpfbtpFunctionCallThunk proc
 	;
 	; Restore RA. Use the space reserved earlier.
 	;
-	mov edx, [ecx+8]		; Get RA address.
+	mov edx, [ecx+4]		; Get RA address.
 	mov [ebp+4], edx		; Write to reserved slot.
 	
 	;
 	; Retrieve funcptr.
 	;
-	mov edx, [ecx+4]
+	mov edx, [ecx]
 	
 	;
 	; Adjust stack pointer:
 	;   thunkstack->StackPointer++
 	;
-	lea ecx, [ecx+0ch]
+	lea ecx, [ecx+8]
 	mov [eax], ecx
 	
 	;

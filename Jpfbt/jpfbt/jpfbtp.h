@@ -61,11 +61,6 @@ VOID JpfbtDbgPrint(
 typedef struct _JPFBT_THUNK_STACK_FRAME
 {
 	//
-	// SP value when call instruction was executed.
-	//
-	ULONG_PTR Sp;
-
-	//
 	// Hooked procedure.
 	//
 	ULONG_PTR Procedure;
