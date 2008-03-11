@@ -124,7 +124,7 @@ typedef struct _JPFSV_EVENT_PROESSOR
 } JPFSV_EVENT_PROESSOR, *PJPFSV_EVENT_PROESSOR;
 
 HRESULT JpfsvpCreateDiagEventProcessor(
-	__in JPDIAG_SESSION_HANDLE DiagSession,
+	__in CDIAG_SESSION_HANDLE DiagSession,
 	__in JPFSV_HANDLE ContextHandle,
 	__out PJPFSV_EVENT_PROESSOR *EvProc
 	);
@@ -327,14 +327,14 @@ typedef struct _JPFSV_COMMAND_PROCESSOR_STATE
 	JPFSV_HANDLE Context;
 
 	//
-	// Jpdiag session for event processing.
+	// Cdiag session for event processing.
 	//
-	JPDIAG_SESSION_HANDLE DiagSession;
+	CDIAG_SESSION_HANDLE DiagSession;
 
 	//
 	// Resolver for error messages (also used by diag session).
 	//
-	PJPDIAG_MESSAGE_RESOLVER MessageResolver;
+	PCDIAG_MESSAGE_RESOLVER MessageResolver;
 
 	JPFSV_OUTPUT_ROUTINE OutputRoutine;
 } JPFSV_COMMAND_PROCESSOR_STATE, *PJPFSV_COMMAND_PROCESSOR_STATE;

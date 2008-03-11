@@ -521,7 +521,7 @@ HRESULT JpfsvpCreateProcessTraceSession(
 
 	TempSession->ReferenceCount				= 1;
 
-	JpdiagReferenceSession( TraceSessionHandle );
+	CdiagReferenceSession( TraceSessionHandle );
 	TempSession->EventProcessor				= NULL;
 	TempSession->UfbtSession				= UfbtSession;
 	TempSession->EventPump.Thread			= NULL;

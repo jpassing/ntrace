@@ -24,7 +24,7 @@ TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(SDK_LIB_PATH)\psapi.lib \
 		   $(MAKEDIR)\..\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib \
-		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpdiag.lib
+		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cdiag.lib
 
 
 TARGETNAME=jpfsv

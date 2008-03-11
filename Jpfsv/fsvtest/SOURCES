@@ -25,7 +25,7 @@ TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfsv.lib \
 		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfix.lib \
 		   $(MAKEDIR)\..\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib \
-		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpdiag.lib
+		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cdiag.lib
 
 
 TARGETNAME=testfsv

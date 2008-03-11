@@ -16,9 +16,9 @@ typedef struct _JPFSVP_DIAG_EVENT_PROCESSOR
 	JPFSV_HANDLE ContextHandle;
 
 	//
-	// Jpdiag session (refereced).
+	// Cdiag session (refereced).
 	//
-	JPDIAG_SESSION_HANDLE DiagSession;
+	CDIAG_SESSION_HANDLE DiagSession;
 } JPFSVP_DIAG_EVENT_PROCESSOR, *PJPFSVP_DIAG_EVENT_PROCESSOR;
 
 /*----------------------------------------------------------------------
@@ -77,7 +77,7 @@ static VOID JpfsvsDeleteDiagEvProc(
 {
 	PJPFSVP_DIAG_EVENT_PROCESSOR Processor = ( PJPFSVP_DIAG_EVENT_PROCESSOR ) This;
 	
-	JpdiagDereferenceSession( Processor->DiagSession );
+	CdiagDereferenceSession( Processor->DiagSession );
 	free( Processor );
 }
 
@@ -87,7 +87,7 @@ static VOID JpfsvsDeleteDiagEvProc(
  *
  */
 HRESULT JpfsvpCreateDiagEventProcessor(
-	__in JPDIAG_SESSION_HANDLE DiagSession,
+	__in CDIAG_SESSION_HANDLE DiagSession,
 	__in JPFSV_HANDLE ContextHandle,
 	__out PJPFSV_EVENT_PROESSOR *EvProc
 	)
@@ -110,7 +110,7 @@ HRESULT JpfsvpCreateDiagEventProcessor(
 		return E_OUTOFMEMORY;
 	}
 	
-	JpdiagReferenceSession( DiagSession );
+	CdiagReferenceSession( DiagSession );
 	TempProc->ContextHandle		= ContextHandle;
 	TempProc->DiagSession		= DiagSession;
 	TempProc->Base.ProcessEvent = JpfsvsProcessEventDiagEvProc;

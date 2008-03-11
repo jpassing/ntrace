@@ -155,19 +155,19 @@ static BOOL JpfsvsHelp(
 
 static HRESULT JpfsvsCreateDiagSessionAndResolver(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
-	__out JPDIAG_SESSION_HANDLE *DiagSession,
-	__out PJPDIAG_MESSAGE_RESOLVER *MessageResolver
+	__out CDIAG_SESSION_HANDLE *DiagSession,
+	__out PCDIAG_MESSAGE_RESOLVER *MessageResolver
 	)
 {
-	JPDIAG_SESSION_HANDLE Session = NULL;
-	PJPDIAG_MESSAGE_RESOLVER Resolver = NULL;
-	PJPDIAG_HANDLER Handler;
+	CDIAG_SESSION_HANDLE Session = NULL;
+	PCDIAG_MESSAGE_RESOLVER Resolver = NULL;
+	PCDIAG_HANDLER Handler;
 	HRESULT Hr;
 
 	*DiagSession		= NULL;
 	*MessageResolver	= NULL;
 
-	Hr = JpdiagCreateMessageResolver( &Resolver );
+	Hr = CdiagCreateMessageResolver( &Resolver );
 	if ( FAILED( Hr ) )
 	{
 		goto Cleanup;
@@ -178,7 +178,7 @@ static HRESULT JpfsvsCreateDiagSessionAndResolver(
 	//
 	VERIFY( S_OK == Resolver->RegisterMessageDll(
 		Resolver,
-		L"jpdiag",
+		L"cdiag",
 		0,
 		0 ) );
 	VERIFY( S_OK == Resolver->RegisterMessageDll(
@@ -192,7 +192,7 @@ static HRESULT JpfsvsCreateDiagSessionAndResolver(
 		0,
 		0 ) );
 
-	Hr = JpdiagCreateSession( NULL, Resolver, &Session );
+	Hr = CdiagCreateSession( NULL, Resolver, &Session );
 	if ( FAILED( Hr ) )
 	{
 		goto Cleanup;
@@ -200,7 +200,7 @@ static HRESULT JpfsvsCreateDiagSessionAndResolver(
 
 	ASSERT( Session );
 
-	Hr = JpdiagCreateOutputHandler( Session, OutputRoutine, &Handler );
+	Hr = CdiagCreateOutputHandler( Session, OutputRoutine, &Handler );
 	if ( FAILED( Hr ) )
 	{
 		goto Cleanup;
@@ -208,9 +208,9 @@ static HRESULT JpfsvsCreateDiagSessionAndResolver(
 
 	ASSERT( Handler );
 
-	Hr = JpdiagSetInformationSession(
+	Hr = CdiagSetInformationSession(
 		Session,
-		JpdiagSessionDefaultHandler,
+		CdiagSessionDefaultHandler,
 		0,
 		Handler );
 	if ( FAILED( Hr ) )
@@ -228,12 +228,12 @@ Cleanup:
 	{
 		if ( Session )
 		{
-			VERIFY( S_OK == JpdiagDereferenceSession( Session ) );
+			VERIFY( S_OK == CdiagDereferenceSession( Session ) );
 		}
 
 		if ( MessageResolver )
 		{
-			VERIFY( S_OK == JpdiagDereferenceSession( MessageResolver ) );
+			VERIFY( S_OK == CdiagDereferenceSession( MessageResolver ) );
 		}
 	}
 
@@ -508,8 +508,8 @@ HRESULT JpfsvCreateCommandProcessor(
 	JPFSV_HANDLE CurrentContext = NULL;
 	HRESULT Hr = E_UNEXPECTED;
 
-	JPDIAG_SESSION_HANDLE DiagSession;
-	PJPDIAG_MESSAGE_RESOLVER MessageResolver;
+	CDIAG_SESSION_HANDLE DiagSession;
+	PCDIAG_MESSAGE_RESOLVER MessageResolver;
 
 	if ( ! OutputRoutine || ! ProcessorHandle )
 	{
@@ -517,7 +517,7 @@ HRESULT JpfsvCreateCommandProcessor(
 	}
 
 	//
-	// Create a jpdiag session for output handling.
+	// Create a cdiag session for output handling.
 	//
 	Hr = JpfsvsCreateDiagSessionAndResolver(
 		OutputRoutine,
@@ -608,7 +608,7 @@ HRESULT JpfsvCloseCommandProcessor(
 	JpfsvsUnegisterBuiltinCommands( Processor );
 	JphtDeleteHashtable( &Processor->Commands );
 
-	JpdiagDereferenceSession( Processor->State.DiagSession );
+	CdiagDereferenceSession( Processor->State.DiagSession );
 	Processor->State.MessageResolver->Dereference(
 		Processor->State.MessageResolver );
 

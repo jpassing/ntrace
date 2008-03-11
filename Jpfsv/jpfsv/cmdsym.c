@@ -30,6 +30,7 @@ static BOOL JpfsvsOutputSymbol(
 	__in PVOID UserContext
 	)
 {
+	ULONG Alignment;
 	PSEARCH_SYMBOL_CTX Ctx = ( PSEARCH_SYMBOL_CTX ) UserContext;
 	WCHAR Buffer[ 255 ];
 	BOOL Hotpatchable;
@@ -45,6 +46,23 @@ static BOOL JpfsvsOutputSymbol(
 		SymInfo->Name ) ) )
 	{
 		( Ctx->OutputRoutine ) ( Buffer );
+	}
+
+	if ( ( SymInfo->Address % 4 ) <= 2 )
+	{
+		Alignment = 4;
+	}
+	else if ( ( SymInfo->Address % 8 ) <= 6 )
+	{
+		Alignment = 8;
+	}
+	else if ( ( SymInfo->Address % 32 ) <= 30 )
+	{
+		Alignment = 32;
+	}
+	else
+	{
+		Alignment = 0;
 	}
 
 	Hr = JpfbtIsProcedureHotpatchable(
@@ -66,8 +84,9 @@ static BOOL JpfsvsOutputSymbol(
 				( VOID ) StringCchPrintf(
 					Msg,
 					_countof( Msg ),
-					L"(hotpatchable, %d bytes padding)\n",
-					PaddingSize );
+					L"(hotpatchable, %d bytes padding, aligned: %d)\n",
+					PaddingSize,
+					Alignment );
 				( Ctx->OutputRoutine ) ( Msg );
 			}
 			else

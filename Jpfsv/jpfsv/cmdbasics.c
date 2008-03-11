@@ -26,8 +26,8 @@ VOID JpfsvpOutputError(
 	if ( SUCCEEDED( ProcessorState->MessageResolver->ResolveMessage(
 		ProcessorState->MessageResolver,
 		Hr,
-		JPDIAG_MSGRES_RESOLVE_IGNORE_INSERTS 
-			| JPDIAG_MSGRES_FALLBACK_TO_DEFAULT,
+		CDIAG_MSGRES_RESOLVE_IGNORE_INSERTS 
+			| CDIAG_MSGRES_FALLBACK_TO_DEFAULT,
 		NULL,
 		_countof( Err ),
 		Err ) ) )

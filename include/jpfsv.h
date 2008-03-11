@@ -8,7 +8,7 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 #include <windows.h>
-#include <jpdiag.h>
+#include <cdiag.h>
 #include <jpfsvmsg.h>
 
 typedef PVOID JPFSV_HANDLE;
@@ -67,7 +67,7 @@ HRESULT JpfsvDetachContext(
 		After tracing has been started, procedures may be instrumented.
 
 		Note that any output is handled with severity
-		JpdiagTraceSeverity.
+		CdiagTraceSeverity.
 
 		Routine is threadsafe.
 
@@ -75,13 +75,13 @@ HRESULT JpfsvDetachContext(
 		ContextHandle	Context.
 		BufferCount		(See jpufbt).
 		BufferSize		(See jpufbt).
-		Session			jpdiag-Session to route output to.
+		Session			cdiag-Session to route output to.
 --*/
 HRESULT JpfsvStartTraceContext(
 	__in JPFSV_HANDLE ContextHandle,
 	__in UINT BufferCount,
 	__in UINT BufferSize,
-	__in JPDIAG_SESSION_HANDLE Session
+	__in CDIAG_SESSION_HANDLE Session
 	);
 
 /*++

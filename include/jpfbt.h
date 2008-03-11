@@ -11,8 +11,7 @@
 #include <jpfbtmsg.h>
 
 #if defined(JPFBT_TARGET_KERNELMODE)
-	#include <wdm.h>
-	#define DWORD ULONG
+	#include <ntddk.h>
 #elif defined(JPFBT_TARGET_USERMODE)
 	#include <windows.h>
 	#include <winnt.h>
@@ -30,22 +29,24 @@
 #define EXCEPTION_FBT_NO_THUNKSTACK		 STATUS_FBT_NO_THUNKSTACK
 #define EXCEPTION_FBT_AUPTR_IN_USE		 STATUS_FBT_AUPTR_IN_USE
 
+#define JPFBT_MAX_BUFFER_SIZE	( 16 * 1024 * 1024 )
+
 //
 // Stripped-down context as used by jpfbt.
 //
 #ifdef _M_IX86 
 typedef struct _JPFBT_CONTEXT {
-    DWORD   Edi;				// 0x0
-    DWORD   Esi;				// 0x4
-    DWORD   Ebx;				// 0x8
-    DWORD   Edx;				// 0xC
-    DWORD   Ecx;				// 0x10
-    DWORD   Eax;				// 0x14
+    ULONG   Edi;				// 0x0
+    ULONG   Esi;				// 0x4
+    ULONG   Ebx;				// 0x8
+    ULONG   Edx;				// 0xC
+    ULONG   Ecx;				// 0x10
+    ULONG   Eax;				// 0x14
 
-    DWORD   Ebp;				// 0x18
-    DWORD   Eip;				// 0x1C
-    DWORD   EFlags;				// 0x20
-    DWORD   Esp;				// 0x24
+    ULONG   Ebp;				// 0x18
+    ULONG   Eip;				// 0x1C
+    ULONG   EFlags;				// 0x20
+    ULONG   Esp;				// 0x24
 } JPFBT_CONTEXT, *PJPFBT_CONTEXT;
 #else
 #error Unsupported target architecture
@@ -85,8 +86,8 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_EVENT_ROUTINE ) (
 typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 	__in SIZE_T BufferSize,
 	__in_bcount(BufferSize) PUCHAR Buffer,
-	__in DWORD ProcessId,
-	__in DWORD ThreadId,
+	__in ULONG ProcessId,
+	__in ULONG ThreadId,
 	__in_opt PVOID UserPointer
 	);
 
@@ -102,6 +103,9 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 					  2 times the total number of threads.
 		BufferSize  - size of each buffer. Must be a multiple of 
 					  MEMORY_ALLOCATION_ALIGNMENT.
+		ThreadDataPreallocations - Number of ThreadData structures to
+					  be preallocated tp facilitate high-IRQL
+					  allocations. (Kernel mode only).
 		Flags		- JPFBT_FLAG_AUTOCOLLECT:
 						call ProcessBufferRoutine whenever buffers
 						are to be collected. JpfbtProcessBuffer
@@ -124,9 +128,20 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 NTSTATUS JPFBTCALLTYPE JpfbtInitialize(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
-	__in DWORD Flags,
+	__in ULONG Flags,
 	__in JPFBT_EVENT_ROUTINE  EntryEventRoutine,
 	__in JPFBT_EVENT_ROUTINE  ExitEventRoutine,
+	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
+	__in_opt PVOID UserPointer
+	);
+
+NTSTATUS JpfbtInitializeEx(
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
+	__in ULONG ThreadDataPreallocations,
+	__in ULONG Flags,
+	__in JPFBT_EVENT_ROUTINE EntryEventRoutine,
+	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
 	__in_opt PVOID UserPointer
 	);
@@ -174,7 +189,7 @@ NTSTATUS JPFBTCALLTYPE JpfbtUninitialize();
 --*/
 NTSTATUS JpfbtProcessBuffer(
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in DWORD Timeout,
+	__in ULONG Timeout,
 	__in_opt PVOID UserPointer
 	);
 
@@ -189,7 +204,7 @@ typedef struct _JPFBT_PROCEDURE
 	union
 	{
 		PVOID Procedure;
-		DWORD_PTR ProcedureVa;
+		ULONG_PTR ProcedureVa;
 	} u;
 } JPFBT_PROCEDURE, *PJPFBT_PROCEDURE;
 

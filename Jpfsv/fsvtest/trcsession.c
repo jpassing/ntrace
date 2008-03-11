@@ -1,11 +1,11 @@
 #include <jpfsv.h>
-#include <jpdiag.h>
+#include <cdiag.h>
 #include "test.h"
 
 #define DBGHELP_TRANSLATE_TCHAR
 #include <dbghelp.h>
 
-static JPDIAG_SESSION_HANDLE DiagSession = NULL;
+static CDIAG_SESSION_HANDLE DiagSession = NULL;
 
 /*----------------------------------------------------------------------
  *
@@ -157,7 +157,7 @@ static VOID SetupTrcSession()
 
 static VOID TeardownTrcSession()
 {
-	JpdiagDereferenceSession( DiagSession );
+	CdiagDereferenceSession( DiagSession );
 	DiagSession = NULL;
 }
 
@@ -230,7 +230,7 @@ static VOID TestTraceNotepad()
 	UINT EnumCount = 0;
 	JPFSV_TRACEPOINT Tracepnt;
 
-	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
+	TEST_OK( CdiagCreateSession( NULL, NULL, &DiagSession ) );
 
 	//
 	// Launch notepad.
@@ -369,7 +369,7 @@ static VOID TestTraceNotepad()
 	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
-	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
+	TEST_OK( CdiagDereferenceSession( DiagSession ) );
 
 	//
 	// Kill notepad.
@@ -391,7 +391,7 @@ static VOID TestTraceNotepadAndDoHarshCleanup()
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 
-	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
+	TEST_OK( CdiagCreateSession( NULL, NULL, &DiagSession ) );
 
 	//
 	// Launch notepad.
@@ -439,7 +439,7 @@ static VOID TestTraceNotepadAndDoHarshCleanup()
 	// Skip stopping, skip detach.
 	//
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
-	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
+	TEST_OK( CdiagDereferenceSession( DiagSession ) );
 
 	//
 	// Kill notepad.
@@ -461,7 +461,7 @@ static VOID TestDyingPeerWithoutTracing()
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 
-	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
+	TEST_OK( CdiagCreateSession( NULL, NULL, &DiagSession ) );
 
 	//
 	// Launch notepad.
@@ -517,7 +517,7 @@ static VOID TestDyingPeerWithoutTracing()
 	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
-	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
+	TEST_OK( CdiagDereferenceSession( DiagSession ) );
 
 	//
 	// Wait i.o. not to confuse further tests with dying process.
@@ -532,7 +532,7 @@ static VOID TestDyingPeerWithTracing()
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 
-	TEST_OK( JpdiagCreateSession( NULL, NULL, &DiagSession ) );
+	TEST_OK( CdiagCreateSession( NULL, NULL, &DiagSession ) );
 
 	//
 	// Launch notepad.
@@ -590,7 +590,7 @@ static VOID TestDyingPeerWithTracing()
 	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
-	TEST_OK( JpdiagDereferenceSession( DiagSession ) );
+	TEST_OK( CdiagDereferenceSession( DiagSession ) );
 
 	//
 	// Wait i.o. not to confuse further tests with dying process.

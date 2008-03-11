@@ -810,7 +810,7 @@ HRESULT JpfsvStartTraceContext(
 	__in JPFSV_HANDLE ContextHandle,
 	__in UINT BufferCount,
 	__in UINT BufferSize,
-	__in JPDIAG_SESSION_HANDLE Session
+	__in CDIAG_SESSION_HANDLE Session
 	)
 {
 	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;

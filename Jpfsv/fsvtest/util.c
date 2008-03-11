@@ -33,17 +33,17 @@ void LaunchNotepad(
 		ppi ) );
 }
 
-JPDIAG_SESSION_HANDLE CreateDiagSession()
+CDIAG_SESSION_HANDLE CreateDiagSession()
 {
-	JPDIAG_SESSION_HANDLE Session;
-	PJPDIAG_HANDLER Handler;
+	CDIAG_SESSION_HANDLE Session;
+	PCDIAG_HANDLER Handler;
 
-	TEST_OK( JpdiagCreateSession( NULL, NULL, &Session ) );
+	TEST_OK( CdiagCreateSession( NULL, NULL, &Session ) );
 
-	TEST_OK( JpdiagCreateOutputHandler( Session, Output, &Handler ) );
-	TEST_OK( JpdiagSetInformationSession(
+	TEST_OK( CdiagCreateOutputHandler( Session, Output, &Handler ) );
+	TEST_OK( CdiagSetInformationSession(
 		Session,
-		JpdiagSessionDefaultHandler,
+		CdiagSessionDefaultHandler,
 		0,
 		Handler ) );
 
