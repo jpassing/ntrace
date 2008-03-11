@@ -19,6 +19,28 @@ NTSTATUS JpfbtInitialize(
 	__in_opt PVOID UserPointer
 	)
 {
+	return JpfbtInitializeEx(
+		BufferCount,
+		BufferSize,
+		32,
+		Flags,
+		EntryEventRoutine,
+		ExitEventRoutine,
+		ProcessBufferRoutine,
+		UserPointer );
+}
+
+NTSTATUS JpfbtInitializeEx(
+	__in ULONG BufferCount,
+	__in ULONG BufferSize,
+	__in ULONG ThreadDataPreallocations,
+	__in ULONG Flags,
+	__in JPFBT_EVENT_ROUTINE EntryEventRoutine,
+	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
+	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
+	__in_opt PVOID UserPointer
+	)
+{
 	NTSTATUS Status;
 
 	if ( BufferCount == 0 ||
@@ -40,6 +62,7 @@ NTSTATUS JpfbtInitialize(
 	Status = JpfbtpCreateGlobalState(
 		BufferCount, 
 		BufferSize,
+		ThreadDataPreallocations,
 		( BOOLEAN ) Flags == JPFBT_FLAG_AUTOCOLLECT,
 		&JpfbtpGlobalState );
 
@@ -118,7 +141,7 @@ NTSTATUS JpfbtUninitialize()
 		ThreadData = CONTAINING_RECORD( 
 			ListEntry, 
 			JPFBT_THREAD_DATA, 
-			ListEntry );
+			u.ListEntry );
 
 		if ( ThreadData->ThunkStack.StackPointer != 
 			&ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ] )
@@ -163,7 +186,8 @@ NTSTATUS JpfbtUninitialize()
 	//
 	JpfbtpShutdownDirtyBufferCollector();
 
-	TRACE( ( "%d buffers collected\n", JpfbtpGlobalState->NumberOfBuffersCollected ) );
+	TRACE( ( "%d buffers collected\n", 
+		JpfbtpGlobalState->Counters.NumberOfBuffersCollected ) );
 
 	JphtDeleteHashtable( &JpfbtpGlobalState->PatchDatabase.PatchTable );
 

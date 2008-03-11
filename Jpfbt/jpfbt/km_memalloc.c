@@ -9,6 +9,7 @@
 
 #define JPFBTP_POOL_TAG 'tbfJ'
 
+
 PVOID JpfbtpAllocatePagedMemory(
 	__in SIZE_T Size,
 	__in BOOLEAN Zero

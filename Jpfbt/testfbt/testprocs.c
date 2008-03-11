@@ -494,7 +494,7 @@ void Teardown()
 	TEST( CloseHandle( ProcsCalled ) );
 }
 
-CFIX_BEGIN_FIXTURE(ConcurrentPatching)
+CFIX_BEGIN_FIXTURE( ConcurrentPatching )
 	CFIX_FIXTURE_SETUP( Setup )
 	CFIX_FIXTURE_TEARDOWN( Teardown )
 	CFIX_FIXTURE_ENTRY( PatchAndTestAllProcsSinglethreaded )

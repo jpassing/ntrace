@@ -1,0 +1,32 @@
+MSC_WARNING_LEVEL=/W4 /Wp64
+
+INCLUDES=..\;..\..\..\include;..\..\..\..\cfix\include
+
+C_DEFINES=/D_UNICODE /DUNICODE /DJPFBT_TARGET_USERMODE
+
+!if "$(DDKBUILDENV)"=="chk"
+DEBUG_CRTS=1
+!endif
+
+USER_C_FLAGS=/wd4054 /wd4276 /analyze
+
+USE_LIBCMT=1
+
+UMTYPE=console
+UMENTRY=wmain
+
+TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
+		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_um.lib \
+		   $(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
+		   $(MAKEDIR)\..\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfix.lib
+
+
+TARGETNAME=testfbt_um
+TARGETPATH=..\..\..\bin\$(DDKBUILDENV)
+TARGETTYPE=DYNLINK
+SOURCES=\
+	..\testprocs.c
+
+I386_SOURCES=..\i386\procs.c
+
+LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

@@ -22,7 +22,7 @@ typedef struct _SAMPLE_PROC
 	volatile LONG EntryThunkCallCount;
 	volatile LONG ExitThunkCallCount;
 	LONG CallMultiplier;
-	BOOL Patchable;
+	BOOLEAN Patchable;
 } SAMPLE_PROC, *PSAMPLE_PROC;
 
 typedef struct _SAMPLE_PROC_SET

@@ -182,8 +182,8 @@ VOID JpfbtpInitializeBuffersGlobalState(
 
 	ASSERT( GlobalState );
 
-	GlobalState->BufferSize					= BufferSize;
-	GlobalState->NumberOfBuffersCollected	= 0;
+	GlobalState->BufferSize							= BufferSize;
+	GlobalState->Counters.NumberOfBuffersCollected	= 0;
 
 	BufferStructSize = 
 		RTL_SIZEOF_THROUGH_FIELD( JPFBT_BUFFER, Buffer[ -1 ] ) +
@@ -266,7 +266,7 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 
 		InsertTailList( 
 			&JpfbtpGlobalState->PatchDatabase.ThreadDataListHead,
-			&ThreadData->ListEntry );
+			&ThreadData->u.ListEntry );
 
 		JpfbtpReleasePatchDatabaseLock( &LockHandle );
 	}

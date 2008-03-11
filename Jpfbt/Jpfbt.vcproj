@@ -192,19 +192,15 @@
 				Name="testfbt_um"
 				>
 				<File
-					RelativePath=".\um_test\SOURCES"
+					RelativePath=".\testfbt\DIRS"
 					>
 				</File>
 				<File
-					RelativePath=".\um_test\test.h"
+					RelativePath=".\testfbt\test.h"
 					>
 				</File>
 				<File
-					RelativePath=".\um_test\testfbt_um.def"
-					>
-				</File>
-				<File
-					RelativePath=".\um_test\testprocs.c"
+					RelativePath=".\testfbt\testprocs.c"
 					>
 				</File>
 				<Filter
@@ -212,6 +208,30 @@
 					>
 					<File
 						RelativePath=".\um_test\i386\procs.c"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="um"
+					>
+					<File
+						RelativePath=".\testfbt\um\SOURCES"
+						>
+					</File>
+					<File
+						RelativePath=".\testfbt\um\testfbt_um.def"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="km"
+					>
+					<File
+						RelativePath=".\testfbt\km_thralloc.c"
+						>
+					</File>
+					<File
+						RelativePath=".\testfbt\km_wrk\SOURCES"
 						>
 					</File>
 				</Filter>

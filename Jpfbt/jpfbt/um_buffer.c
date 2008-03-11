@@ -65,6 +65,7 @@ static ULONG JpfbtsFindTlsSlotOffsetInTeb( __in ULONG TlsIndex )
 NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
+	__in ULONG ThreadDataPreallocations,
 	__in BOOLEAN StartCollectorThread,
 	__out PJPFBT_GLOBAL_DATA *GlobalState
 	)
@@ -73,6 +74,8 @@ NTSTATUS JpfbtpCreateGlobalState(
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
 	ULONG TlsSlotOffset;
+
+	UNREFERENCED_PARAMETER( ThreadDataPreallocations );
 
 	if ( BufferCount == 0 || 
 		 BufferSize == 0 ||
@@ -263,13 +266,14 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 
 	ThreadData = ( PJPFBT_THREAD_DATA )
 		JpfbtpMalloc( 
-			FIELD_OFFSET( JPFBT_THREAD_DATA, ThunkStack ) 
-				+ JPFBT_THUNK_STACK_SIZE,
+			sizeof( JPFBT_THREAD_DATA ),
 			TRUE );
 
 	if ( ThreadData )
 	{
 		TlsSetValue( JpfbtsThreadDataTlsIndex, ThreadData );
+
+		ThreadData->AllocationType = JpfbtpPoolAllocated;
 	}
 
 	return ThreadData;
@@ -280,7 +284,7 @@ VOID JpfbtpFreeThreadData(
 	)
 {
 	ASSERT( ThreadData );
-
+	ASSERT( ThreadData->AllocationType == JpfbtpPoolAllocated );
 	JpfbtpFree( ThreadData );
 }
 
@@ -418,7 +422,7 @@ NTSTATUS JpfbtProcessBuffer(
 		 &JpfbtpGlobalState->FreeBuffersList,
 		 &Buffer->ListEntry );
 
-	InterlockedIncrement( &JpfbtpGlobalState->NumberOfBuffersCollected );
+	InterlockedIncrement( &JpfbtpGlobalState->Counters.NumberOfBuffersCollected );
 
 	return STATUS_SUCCESS;
 }

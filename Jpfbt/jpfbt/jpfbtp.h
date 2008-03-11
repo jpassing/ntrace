@@ -73,9 +73,6 @@ typedef struct _JPFBT_THUNK_STACK_FRAME
 
 
 #define JPFBT_THUNK_STACK_LOCATIONS 256
-#define JPFBT_THUNK_STACK_SIZE \
-	( ( ( JPFBT_THUNK_STACK_LOCATIONS ) * sizeof( JPFBT_THUNK_STACK_FRAME ) ) + \
-	  sizeof( PJPFBT_THUNK_STACK_FRAME ) )
 
 /*++
 	Structure Description:
@@ -158,18 +155,38 @@ typedef struct _JPFBT_BUFFER
  *
  */
 
+typedef enum
+{
+	//
+	// NonPagedPool-allocated.
+	//
+	JpfbtpPoolAllocated,
+
+	//
+	// Part of the preallocation blob.
+	//
+	JpfbtpPreAllocated,
+} JPFBTP_THREAD_DATA_ALLOCATION_TYPE;
+
 /*++
 	Structure Description:
 		Per-thread data.
 --*/
 typedef struct _JPFBT_THREAD_DATA
 {
-	LIST_ENTRY ListEntry;
+	union
+	{
+		LIST_ENTRY ListEntry;
+		SLIST_ENTRY SListEntry;
+	} u;
 
 	//
 	// Current buffer (obtained from FreeBuffersList).
 	//
 	PJPFBT_BUFFER CurrentBuffer;
+
+	JPFBTP_THREAD_DATA_ALLOCATION_TYPE AllocationType;
+
 	JPFBT_THUNK_STACK ThunkStack;
 } JPFBT_THREAD_DATA, *PJPFBT_THREAD_DATA;
 
@@ -223,8 +240,6 @@ typedef struct _JPFBT_GLOBAL_DATA
 	// Size of each buffer.
 	//
 	ULONG BufferSize;
-
-	LONG NumberOfBuffersCollected;
 
 	struct
 	{
@@ -282,7 +297,29 @@ typedef struct _JPFBT_GLOBAL_DATA
 	// Event - can be signalled to trigger the buffer collector.
 	//
 	KEVENT BufferCollectorEvent;
+
+	//
+	// Preallocated JPFBT_THREAD_DATA structures for use at
+	// IRQL > DISPATCH_LEVEL.
+	//
+	SLIST_HEADER ThreadDataPreallocationList;
+
+	//
+	// List of JPFBT_THREAD_DATA structures that is ready to be freed,
+	// yet could not be freed because of IRQL > DISPATCH_LEVEL.
+	//
+	SLIST_HEADER ThreadDataFreeList;
 #endif
+
+	struct
+	{
+		//
+		// # of allocations at DIRQL that failed because of a depleted
+		// preallocation list.
+		//
+		volatile LONG FailedDirqlThreadDataAllocations;
+		volatile LONG NumberOfBuffersCollected;
+	} Counters;
 
 	PVOID UserPointer;
 	struct
@@ -360,7 +397,7 @@ typedef struct _JPFBT_CODE_PATCH
 	} u;
 
 	//
-	// [in] Location of code to patch.
+	// [in] Location of code to patch (Virtual Address).
 	//
 	PVOID Target;
 
@@ -380,9 +417,27 @@ typedef struct _JPFBT_CODE_PATCH
 	UCHAR OldCode[ JPFBT_MAX_CODE_PATCH_SIZE ];
 
 	//
-	// [out] Original code protection.
+	// Data used during the patching process.
+	//
+#if defined(JPFBT_TARGET_USERMODE)
+	//
+	// Original code protection (only applies to user mode).
 	//
 	ULONG Protection;
+
+#elif defined(JPFBT_TARGET_KERNELMODE)
+	//
+	// MDL used for accessing Target.
+	//
+	PMDL Mdl;
+
+	//
+	// VirtualAddress for buffer described by MDL.
+	// MappedAddress != Target, but both addresses refer to the
+	// same physical memory.
+	//
+	PVOID MappedAddress;
+#endif
 } JPFBT_CODE_PATCH, *PJPFBT_CODE_PATCH;
 
 C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
@@ -412,7 +467,7 @@ typedef enum _JPFBT_PATCH_ACTION
 		The caller MUST hold the patch database lock before calling
 		this procedure.
 
-		IRQL?
+		Callable at IRQL <= APC_LEVEL.
 
 	Parameters:
 		Action		- Patch/Unpatch.
@@ -467,13 +522,17 @@ VOID JpfbtpInitializeBuffersGlobalState(
 		Callable at IRQL <= DISPATCH_LEVEL.
 
 	Parameters:
-		BufferCount  - # of buffer to allocate.
-		BufferSize   - size of each buffer in bytes.
-		GlobalState  - Result.
+		BufferCount  				- # of buffer to allocate.
+		BufferSize   				- size of each buffer in bytes.
+		ThreadDataPreallocations	- # of ThreadData sructures to be 
+									  preallocated (for high-IRQL
+									  allocations)
+		GlobalState					- Result.
 --*/
 NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
+	__in ULONG ThreadDataPreallocations,
 	__in BOOLEAN StartCollectorThread,
 	__out PJPFBT_GLOBAL_DATA *GlobalState
 	);
@@ -508,6 +567,7 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable();
 
 	Return Value:
 		Thread Data or NULL if allocation failed.
+		AllocationType is set if non-NULL.
 --*/
 PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread();
 
@@ -535,6 +595,12 @@ VOID JpfbtpTriggerDirtyBufferCollection();
 --*/
 VOID JpfbtpShutdownDirtyBufferCollector();
 
+/*----------------------------------------------------------------------
+ * 
+ * Memory allocation.
+ *
+ */
+
 /*++
 	Routine Description:
 		Allocate temporary, paged memory.
@@ -561,7 +627,7 @@ VOID JpfbtpFreePagedMemory(
 
 /*++
 	Routine Description:
-		Allocate nonpaged memory.
+		Allocate nonpaged memory (Applies to KM only).
 
 		Callable at IRQL <= DISPATCH_LEVEL.
 
