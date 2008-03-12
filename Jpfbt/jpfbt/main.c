@@ -93,7 +93,7 @@ NTSTATUS JpfbtInitializeEx(
 
 NTSTATUS JpfbtUninitialize()
 {
-	BOOL EvthUnpatched = FALSE;
+	BOOLEAN EvthUnpatched = FALSE;
 	PLIST_ENTRY ListEntry;
 	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_THREAD_DATA ThreadData;
@@ -108,8 +108,8 @@ NTSTATUS JpfbtUninitialize()
 	//
 	JpfbtpAcquirePatchDatabaseLock( &LockHandle );
 	
-	EvthUnpatched = JphtGetEntryCountHashtable(
-		&JpfbtpGlobalState->PatchDatabase.PatchTable ) == 0;
+	EvthUnpatched = ( BOOLEAN ) ( JphtGetEntryCountHashtable(
+		&JpfbtpGlobalState->PatchDatabase.PatchTable ) == 0 );
 		
 	JpfbtpReleasePatchDatabaseLock( &LockHandle );
 

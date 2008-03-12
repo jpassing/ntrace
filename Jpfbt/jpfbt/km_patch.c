@@ -7,8 +7,21 @@
  */
 
 #include <jpfbt.h>
-#include "..\jpfbtp.h"
+#include "jpfbtp.h"
+#include "km_undoc.h"
 
+typedef struct _JPFBTP_PATCH_CONTEXT
+{
+	JPFBT_PATCH_ACTION Action;
+	ULONG PatchCount;
+	PJPFBT_CODE_PATCH *Patches;
+} JPFBTP_PATCH_CONTEXT, *PJPFBTP_PATCH_CONTEXT;
+
+/*----------------------------------------------------------------------
+ *
+ * Helpers.
+ *
+ */
 static NTSTATUS JpfbtsLockMemory(
 	__in PVOID TargetAddress,
 	__in ULONG Size,
@@ -30,9 +43,6 @@ static NTSTATUS JpfbtsLockMemory(
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
-	//
-	// Lock memory.
-	//
 	__try
 	{
 		MmProbeAndLockPages( 
@@ -47,9 +57,6 @@ static NTSTATUS JpfbtsLockMemory(
 		return GetExceptionCode();
 	}
 
-	//
-	// Map.
-	//
 	*MappedAddress = MmGetSystemAddressForMdlSafe(
 		*Mdl,
 		NormalPagePriority );
@@ -65,12 +72,105 @@ static VOID JpfbtsUnlockMemory(
 	IoFreeMdl( Mdl );
 }
 
+/*++
+	Routine Description:
+		Called via KeGenericCallDpc, i.e. this routine runs on
+		each processor concurrently.
+--*/
+static VOID JpfbtsPatchRoutine(
+    __in PKDPC Dpc,
+    __in PVOID DeferredContext,
+    __in PVOID SystemArgument1,
+    __in PVOID SystemArgument2
+    )
+{
+	PJPFBTP_PATCH_CONTEXT Context = ( PJPFBTP_PATCH_CONTEXT ) DeferredContext;
+	KIRQL OldIrql;
+
+	UNREFERENCED_PARAMETER( Dpc );
+	
+	//
+	// Raise IRQL to protect against interrupts.
+	//
+	KeRaiseIrql( CLOCK1_LEVEL, &OldIrql );
+
+	//
+	// Decrement reverse barrier count.
+	//
+	if ( KeSignalCallDpcSynchronize( SystemArgument2 ) )
+	{
+		//
+		// This CPU is the chosen one. All other CPUs wait until
+		// we have finished patching.
+		//
+
+		ULONG PatchIndex;
+
+		//
+		// Copy code using the previously mapped addresses.
+		//
+		for ( PatchIndex = 0; PatchIndex < Context->PatchCount; PatchIndex++ )
+		{
+			if ( Context->Action == JpfbtPatch )
+			{
+				//
+				// Target -> OldCode
+				//
+				memcpy( 
+					Context->Patches[ PatchIndex ]->OldCode, 
+					Context->Patches[ PatchIndex ]->MappedAddress, 
+					Context->Patches[ PatchIndex ]->CodeSize );
+
+				//
+				// NewCode -> Target
+				//
+				memcpy( 
+					Context->Patches[ PatchIndex ]->MappedAddress, 
+					Context->Patches[ PatchIndex ]->NewCode, 
+					Context->Patches[ PatchIndex ]->CodeSize );
+			}
+			else if ( Context->Action == JpfbtUnpatch )
+			{
+				//
+				// OldCode -> Target
+				//
+				memcpy( 
+					Context->Patches[ PatchIndex ]->MappedAddress, 
+					Context->Patches[ PatchIndex ]->OldCode, 
+					Context->Patches[ PatchIndex ]->CodeSize );
+			}
+			else
+			{
+				ASSERT( !"Invalid Action" );
+			}
+
+			//
+			// N.B. i386 and amd64 do not require an instruction cache
+			// flush.
+			//
+		}
+	}
+
+	//
+	// Unfreeze other CPUs.
+	//
+	KeSignalCallDpcSynchronize( SystemArgument2 );
+	KeLowerIrql( OldIrql );
+	KeSignalCallDpcDone( SystemArgument1 );
+}
+
+/*----------------------------------------------------------------------
+ *
+ * Internal API.
+ *
+ */
 NTSTATUS JpfbtpPatchCode(
 	__in JPFBT_PATCH_ACTION Action,
 	__in ULONG PatchCount,
 	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches 
 	)
 {
+	JPFBTP_PATCH_CONTEXT Context;
 	ULONG Index;
 	NTSTATUS Status;
 
@@ -79,6 +179,10 @@ NTSTATUS JpfbtpPatchCode(
 	if ( PatchCount == 0 )
 	{
 		return STATUS_SUCCESS;
+	}
+	else if ( Action != JpfbtPatch && Action != JpfbtUnpatch )
+	{
+		return STATUS_INVALID_PARAMETER;
 	}
 
 	for ( Index = 0; Index < PatchCount; Index++ )
@@ -107,7 +211,17 @@ NTSTATUS JpfbtpPatchCode(
 
 	if ( NT_SUCCESS( Status ) )
 	{
-		UNREFERENCED_PARAMETER( Action );
+		//
+		// Now that the MDLs have been prepared, do the actual
+		// patching. A DPC is scheduled on each CPU.
+		//
+		Context.Action		= Action;
+		Context.PatchCount	= PatchCount;
+		Context.Patches		= Patches;
+	
+		KeGenericCallDpc(
+			JpfbtsPatchRoutine,
+			&Context );
 	}
 
 	//
@@ -121,4 +235,5 @@ NTSTATUS JpfbtpPatchCode(
 		}
 	}
 
+	return Status;
 }

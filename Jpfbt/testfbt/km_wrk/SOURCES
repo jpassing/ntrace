@@ -1,3 +1,4 @@
+
 MSC_WARNING_LEVEL=/W4 /Wp64
 
 INCLUDES=$(DDK_INC_PATH);..\;..\..\..\include;..\..\..\..\cfix\include;;..\..\..\..\Jpht\include
@@ -20,7 +21,9 @@ TARGETNAME=testfbt_km_wrk
 TARGETPATH=..\..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DRIVER
 SOURCES=\
-	..\km_thralloc.c
+	..\km_thralloc.c \
+	..\km_patching.c
+#	..\testprocs.c
 
 I386_SOURCES=..\i386\procs.c
 

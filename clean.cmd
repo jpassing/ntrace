@@ -16,8 +16,12 @@ rem project logs
 rem subproject intermediate dirs
 @for /D %%d IN (*) DO @for /D %%s IN (%%d\*) DO @rd /S /Q %%s\objchk_wxp_x86
 @for /D %%d IN (*) DO @for /D %%s IN (%%d\*) DO @rd /S /Q %%s\objfre_wxp_x86
+@for /D %%d IN (*) DO @for /D %%s IN (%%d\*) DO @rd /S /Q %%s\objchk_wnet_x86
+@for /D %%d IN (*) DO @for /D %%s IN (%%d\*) DO @rd /S /Q %%s\objfre_wnet_x86
 
 @rd /S /Q jpfbt\jpfbt\um\objchk_wxp_x86
 @rd /S /Q jpfbt\jpfbt\um\objchk_wxp_x86
+@rd /S /Q jpfbt\jpfbt\um\objchk_wnet_x86
+@rd /S /Q jpfbt\jpfbt\um\objchk_wnet_x86
 
 @del  Jpufbt\jpufbt\jpufbtmsg.mc

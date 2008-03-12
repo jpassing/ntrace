@@ -23,8 +23,8 @@
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir)"
-				ReBuildCommandLine="ddkbuild -WLHXP checked $(SolutionDir) -cZ"
+				BuildCommandLine="ddkbuild -WLHNET checked $(SolutionDir)"
+				ReBuildCommandLine="ddkbuild -WLHNET checked $(SolutionDir) -cZ"
 				CleanCommandLine=""
 				Output=""
 				PreprocessorDefinitions="_WIN32;DBG;_DEBUG;JPFBT_USERMODE"
@@ -43,8 +43,8 @@
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="ddkbuild -WLHXP free $(SolutionDir)"
-				ReBuildCommandLine="ddkbuild -WLHXP free $(SolutionDir) -cZ"
+				BuildCommandLine="ddkbuild -WLHNET free $(SolutionDir)"
+				ReBuildCommandLine="ddkbuild -WLHNET free $(SolutionDir) -cZ"
 				CleanCommandLine=""
 				Output="..\bin\fre\i386\um_test.exe"
 				PreprocessorDefinitions="_WIN32;NDEBUG;JPFBT_USERMODE"
@@ -186,6 +186,10 @@
 						RelativePath=".\jpfbt\km_patchdb.c"
 						>
 					</File>
+					<File
+						RelativePath=".\jpfbt\km_undoc.h"
+						>
+					</File>
 				</Filter>
 			</Filter>
 			<Filter
@@ -226,6 +230,10 @@
 				<Filter
 					Name="km"
 					>
+					<File
+						RelativePath=".\testfbt\km_patching.c"
+						>
+					</File>
 					<File
 						RelativePath=".\testfbt\km_thralloc.c"
 						>
