@@ -22,46 +22,6 @@ static ULONG CALLBACK JpfbtsBufferCollectorThreadProc( __in PVOID Unused );
 
 static ULONG JpfbtsThreadDataTlsIndex = TLS_OUT_OF_INDEXES;
 
-ULONG JpfbtpThreadDataTlsOffset = 0;
-
-
-static ULONG JpfbtsFindTlsSlotOffsetInTeb( __in ULONG TlsIndex )
-{
-	ULONG Index;
-	ULONG_PTR *Teb = ( ULONG_PTR* ) ( PVOID ) NtCurrentTeb();
-	BOOL SlotFound = FALSE;
-	ULONG_PTR SampleValue = 0xBABEFACE;
-
-	//
-	// Write a characteristic value to TLS slot.
-	//
-	TlsSetValue( TlsIndex, ( PVOID ) SampleValue );
-
-	for ( Index = 0; Index < 1024; Index++ )
-	{
-		if ( Teb[ Index ] == SampleValue )
-		{
-			//
-			// Found the slot.
-			//
-			SlotFound = TRUE;
-			break;
-		}
-	}
-
-	TlsSetValue( TlsIndex, NULL );
-
-	if ( ! SlotFound )
-	{
-		TRACE( ( "Unable to find TLS slot within TEB\n" ) );
-		return 0;
-	}
-	else
-	{
-		return Index * sizeof( ULONG_PTR );
-	}
-}
-
 NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
@@ -73,7 +33,6 @@ NTSTATUS JpfbtpCreateGlobalState(
 	ULONG TlsIndex;
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
-	ULONG TlsSlotOffset;
 
 	UNREFERENCED_PARAMETER( ThreadDataPreallocations );
 
@@ -94,21 +53,6 @@ NTSTATUS JpfbtpCreateGlobalState(
 	{
 		return STATUS_FBT_INIT_FAILURE;
 	}
-
-	//
-	// In order to help JpfbtpFunctionCallThunk, we now need to
-	// find the offset within the TEB that the TLS value
-	// occupies.
-	//
-	TlsSlotOffset = JpfbtsFindTlsSlotOffsetInTeb( TlsIndex );
-	if ( TlsSlotOffset == 0 )
-	{
-		//
-		// Slot not found, maybe we got an extension slot.
-		//
-		return STATUS_FBT_UNUSABLE_TLS_SLOT;
-	}
-	JpfbtpThreadDataTlsOffset = TlsSlotOffset;
 
 	Status = JpfbtpAllocateGlobalStateAndBuffers(
 		BufferCount,

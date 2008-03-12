@@ -16,8 +16,6 @@ extrn JpfbtpProcedureExit@8 : proc
 
 extrn RaiseException@16 : proc
 
-extrn JpfbtpThreadDataTlsOffset : DWORD
-
 .data
 .code
 
