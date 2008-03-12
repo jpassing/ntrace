@@ -32,6 +32,8 @@ static NTSTATUS JpfbtsLockMemory(
 	ASSERT( Mdl );
 	ASSERT( MappedAddress );
 
+	ASSERT_IRQL_LTE( APC_LEVEL );
+
 	*Mdl = IoAllocateMdl(
 		TargetAddress,
 		Size,

@@ -257,10 +257,7 @@ typedef struct _JPFBT_GLOBAL_DATA
 
 		CRITICAL_SECTION Lock;
 #elif defined(JPFBT_TARGET_KERNELMODE)
-		//
-		// In stack queued spin lock.
-		//
-		KSPIN_LOCK Lock;
+		KGUARDED_MUTEX Lock;
 #else
 	#error Unknown mode (User/Kernel)
 #endif
@@ -332,12 +329,6 @@ typedef struct _JPFBT_GLOBAL_DATA
 
 extern PJPFBT_GLOBAL_DATA JpfbtpGlobalState;
 
-#if defined(JPFBT_TARGET_KERNELMODE)
-	typedef KLOCK_QUEUE_HANDLE JPFBTP_LOCK_HANDLE, *PJPFBTP_LOCK_HANDLE;
-#elif defined(JPFBT_TARGET_USERMODE)
-	typedef ULONG JPFBTP_LOCK_HANDLE, *PJPFBTP_LOCK_HANDLE;
-#endif
-
 /*++
 	Routine Description:
 		Initialize the hashtable of the patch database.
@@ -351,21 +342,17 @@ NTSTATUS JpfbtpInitializePatchTable();
 	Routine Description:
 		Acquire patch database lock.
 
-		Callable at IRQL <= DISPATCH_LEVEL.
+		Callable at IRQL <= APC_LEVEL.
 --*/
-VOID JpfbtpAcquirePatchDatabaseLock(
-	__out PJPFBTP_LOCK_HANDLE LockHandle
-	);
+VOID JpfbtpAcquirePatchDatabaseLock();
 
 /*++
 	Routine Description:
 		Release patch database lock.
 
-		Callable at IRQL <= DISPATCH_LEVEL.
+		Callable at IRQL <= APC_LEVEL.
 --*/
-VOID JpfbtpReleasePatchDatabaseLock(
-	__in PJPFBTP_LOCK_HANDLE LockHandle 
-	);
+VOID JpfbtpReleasePatchDatabaseLock();
 
 BOOLEAN JpfbtpIsPatchDatabaseLockHeld();
 

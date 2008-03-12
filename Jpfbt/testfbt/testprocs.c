@@ -1,6 +1,14 @@
 #include "test.h"
 
-static BOOL ExpectBufferDepletion = FALSE;
+static BOOLEAN ExpectBufferDepletion = FALSE;
+
+#ifdef JPFBT_TARGET_KERNELMODE
+	#define PRINT( x ) KdPrint( ( x ) )
+	#define malloc( size ) ExAllocatePoolWithTag( PagedPool, size, 'tseT' )
+	#define free( p ) ExFreePoolWithTag( p, 'tseT' )
+#else
+	#define PRINT OutputDebugStringA
+#endif
 
 /*----------------------------------------------------------------------
  *
@@ -41,7 +49,7 @@ static VOID __stdcall ProcedureEntry(
 		}
 	}
 
-	OutputDebugString( L"--> ProcedureEntry\n" );
+	PRINT( "--> ProcedureEntry\n" );
 
 	// Garble volatiles
 	__asm
@@ -86,7 +94,7 @@ static VOID __stdcall ProcedureExit(
 		}
 	}
 
-	OutputDebugString( L"<-- ProcedureExit\n" );
+	PRINT( "<-- ProcedureExit\n" );
 
 	// Garble volatiles
 	__asm
@@ -119,7 +127,7 @@ static VOID ProcessBuffer(
  *
  */
 
-static BOOL PatchAll()
+static BOOLEAN PatchAll()
 {
 	JPFBT_PROCEDURE Temp = { NULL };
 	
@@ -150,7 +158,7 @@ static BOOL PatchAll()
 
 	if ( ! NoPatchProcs || ! PatchProcs )
 	{
-		return 0xC0000001L;
+		return FALSE;
 	}
 
 	for ( Index = 0; Index < ProcSet->SampleProcCount; Index++ )
@@ -202,7 +210,7 @@ static BOOL PatchAll()
 	free( NoPatchProcs );
 	free( PatchProcs );
 
-	return Status == 0;
+	return ( BOOLEAN ) ( Status == 0 );
 }
 
 static VOID UnpatchAll()
@@ -315,6 +323,7 @@ VOID PatchAndTestAllProcsSinglethreaded()
 	TEST_SUCCESS( JpfbtUninitialize() );
 }
 
+#ifdef JPFBT_TARGET_USERMODE
 /*----------------------------------------------------------------------
  *
  * Test case.
@@ -482,7 +491,6 @@ VOID PatchAndTestAllProcsMultithreaded()
 	}
 }
 
-
 void Setup()
 {
 	ProcsCalled = CreateEvent( NULL, TRUE, FALSE, NULL );
@@ -494,9 +502,13 @@ void Teardown()
 	TEST( CloseHandle( ProcsCalled ) );
 }
 
+#endif
+
 CFIX_BEGIN_FIXTURE( ConcurrentPatching )
+	CFIX_FIXTURE_ENTRY( PatchAndTestAllProcsSinglethreaded )
+#ifdef JPFBT_TARGET_USERMODE
 	CFIX_FIXTURE_SETUP( Setup )
 	CFIX_FIXTURE_TEARDOWN( Teardown )
-	CFIX_FIXTURE_ENTRY( PatchAndTestAllProcsSinglethreaded )
 	CFIX_FIXTURE_ENTRY( PatchAndTestAllProcsMultithreaded )
+#endif
 CFIX_END_FIXTURE()

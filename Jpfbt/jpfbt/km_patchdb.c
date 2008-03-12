@@ -9,24 +9,19 @@
 #include <jpfbt.h>
 #include "..\jpfbtp.h"
 
-VOID JpfbtpAcquirePatchDatabaseLock(
-	__out PJPFBTP_LOCK_HANDLE LockHandle 
-	) 
+VOID JpfbtpAcquirePatchDatabaseLock()
 {
-	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
+	ASSERT_IRQL_LTE( APC_LEVEL );
 
-	KeAcquireInStackQueuedSpinLock( 
-		&JpfbtpGlobalState->PatchDatabase.Lock,
-		LockHandle );
+	KeAcquireGuardedMutex( 
+		&JpfbtpGlobalState->PatchDatabase.Lock );
 }
 
-VOID JpfbtpReleasePatchDatabaseLock(
-	__in PJPFBTP_LOCK_HANDLE LockHandle 
-	) 
+VOID JpfbtpReleasePatchDatabaseLock()
 {
-	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
+	ASSERT_IRQL_LTE( APC_LEVEL );
 
-	KeReleaseInStackQueuedSpinLock( LockHandle );
+	KeReleaseGuardedMutex( &JpfbtpGlobalState->PatchDatabase.Lock );
 }
 
 BOOLEAN JpfbtpIsPatchDatabaseLockHeld()

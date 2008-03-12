@@ -231,7 +231,6 @@ VOID JpfbtpInitializeBuffersGlobalState(
 
 PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 {
-	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_THREAD_DATA ThreadData;
 
 	ThreadData = JpfbtpGetCurrentThreadDataIfAvailable();
@@ -262,13 +261,13 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 		//
 		// Register.
 		//
-		JpfbtpAcquirePatchDatabaseLock( &LockHandle );
+		JpfbtpAcquirePatchDatabaseLock();
 
 		InsertTailList( 
 			&JpfbtpGlobalState->PatchDatabase.ThreadDataListHead,
 			&ThreadData->u.ListEntry );
 
-		JpfbtpReleasePatchDatabaseLock( &LockHandle );
+		JpfbtpReleasePatchDatabaseLock();
 	}
 
 	return ThreadData;

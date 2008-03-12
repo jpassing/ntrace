@@ -95,7 +95,6 @@ NTSTATUS JpfbtUninitialize()
 {
 	BOOLEAN EvthUnpatched = FALSE;
 	PLIST_ENTRY ListEntry;
-	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_THREAD_DATA ThreadData;
 
 	if ( JpfbtpGlobalState == NULL )
@@ -106,12 +105,12 @@ NTSTATUS JpfbtUninitialize()
 	// 
 	// Check that all patches have been undone.
 	//
-	JpfbtpAcquirePatchDatabaseLock( &LockHandle );
+	JpfbtpAcquirePatchDatabaseLock();
 	
 	EvthUnpatched = ( BOOLEAN ) ( JphtGetEntryCountHashtable(
 		&JpfbtpGlobalState->PatchDatabase.PatchTable ) == 0 );
 		
-	JpfbtpReleasePatchDatabaseLock( &LockHandle );
+	JpfbtpReleasePatchDatabaseLock();
 
 	if ( ! EvthUnpatched )
 	{

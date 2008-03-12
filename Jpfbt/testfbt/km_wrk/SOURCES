@@ -22,8 +22,8 @@ TARGETPATH=..\..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DRIVER
 SOURCES=\
 	..\km_thralloc.c \
-	..\km_patching.c
-#	..\testprocs.c
+	..\km_patching.c \
+	..\testprocs.c
 
 I386_SOURCES=..\i386\procs.c
 

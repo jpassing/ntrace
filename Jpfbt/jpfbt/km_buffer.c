@@ -100,7 +100,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 
 	if ( StartCollectorThread )
 	{
-		return STATUS_NOT_IMPLEMENTED;
+		KdPrint( ( "StartCollectorThread ignored." ) );
 	}
 
 	//
@@ -140,7 +140,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	//
 	// Do kernel-specific initialization.
 	//
-	KeInitializeSpinLock( &TempState->PatchDatabase.Lock );
+	KeInitializeGuardedMutex( &TempState->PatchDatabase.Lock );
 	KeInitializeEvent( 
 		&TempState->BufferCollectorEvent, 
 		SynchronizationEvent ,
@@ -215,6 +215,12 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 		}
 	}
 
+	//
+	// N.B. ThreadData may be NULL.
+	//
+
+	JpfbtWrkSetFbtDataCurrentThread( ThreadData );
+
 	return ThreadData;
 }
 
@@ -288,7 +294,7 @@ VOID JpfbtpTriggerDirtyBufferCollection()
 
 VOID JpfbtpShutdownDirtyBufferCollector()
 {
-	ASSERT( !"Not implemented for kernel mode." );
+	KdPrint( ( "DirtyBufferCollector not implemented yet!" ) );
 }
 
 NTSTATUS JpfbtProcessBuffer(

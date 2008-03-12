@@ -211,7 +211,7 @@
 					Name="i386"
 					>
 					<File
-						RelativePath=".\um_test\i386\procs.c"
+						RelativePath=".\testfbt\i386\procs.c"
 						>
 					</File>
 				</Filter>

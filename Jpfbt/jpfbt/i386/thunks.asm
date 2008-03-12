@@ -14,7 +14,11 @@ extrn JpfbtpGetCurrentThunkStack@0 : proc
 extrn JpfbtpProcedureEntry@8 : proc
 extrn JpfbtpProcedureExit@8 : proc
 
+ifdef JPFBT_TARGET_USERMODE
 extrn RaiseException@16 : proc
+else
+extrn ExRaiseStatus@4 : proc
+endif
 
 .data
 .code
@@ -200,11 +204,16 @@ NoStack:
 	jmp JumpToTarget
 	
 StackOverflow:
+ifdef JPFBT_TARGET_USERMODE
 	push 0					; lpArguments
 	push 0					; nNumberOfArguments
 	push 1					; EXCEPTION_NONCONTINUABLE
 	push 0C00000FDh			; EXCEPTION_STACK_OVERFLOW
 	call RaiseException@16
+else
+	push 0C00000FDh			; STATUS_STACK_OVERFLOW
+	call ExRaiseStatus@4
+endif
 JpfbtpFunctionEntryThunk endp
 
 ;++
@@ -364,12 +373,16 @@ NoStack:
 	; that JpfbtpFunctionEntryThunk was able to obtain a stack,
 	; yet we did not get one. This must never happen, thus bail out.
 	;
+ifdef JPFBT_TARGET_USERMODE
 	push 0					; lpArguments
 	push 0					; nNumberOfArguments
 	push 1					; EXCEPTION_NONCONTINUABLE
 	push 80049200h			; EXCEPTION_FBT_NO_THUNKSTACK
 	call RaiseException@16	
-	
+else
+	push 80049200h			; STATUS_FBT_NO_THUNKSTACK
+	call ExRaiseStatus@4	
+endif
 JpfbtpFunctionCallThunk endp
 
 

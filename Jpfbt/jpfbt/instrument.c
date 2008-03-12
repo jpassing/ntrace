@@ -216,7 +216,6 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 	)
 {
 	ULONG Index;
-	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_CODE_PATCH *PatchArray = NULL;
 	NTSTATUS Status = STATUS_SUCCESS;
 
@@ -259,7 +258,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 	// Grab the lock early to avoid a TOCTOU issue between 
 	// JpfbtsIsAlreadyPatched and the actual patch.
 	//
-	JpfbtpAcquirePatchDatabaseLock( &LockHandle );
+	JpfbtpAcquirePatchDatabaseLock();
 
 	if ( NT_SUCCESS( Status ) )
 	{
@@ -333,8 +332,8 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 				//
 				// Resize hashtable if more than 75% filled.
 				//
-				if ( JphtGetEntryCountHashtable( 
-						&JpfbtpGlobalState->PatchDatabase.PatchTable ) * 0.75 >=
+				if ( ( JphtGetEntryCountHashtable( 
+						&JpfbtpGlobalState->PatchDatabase.PatchTable ) * 3 ) / 4 >=
 					 JphtGetBucketCountHashtable(
 						&JpfbtpGlobalState->PatchDatabase.PatchTable ) )
 				{
@@ -366,7 +365,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 		}
 	}
 
-	JpfbtpReleasePatchDatabaseLock( &LockHandle );
+	JpfbtpReleasePatchDatabaseLock();
 
 	JpfbtpFreePagedMemory( PatchArray );
 	return Status;
@@ -398,7 +397,6 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 	)
 {
 	ULONG Index;
-	JPFBTP_LOCK_HANDLE LockHandle;
 	PJPFBT_CODE_PATCH *PatchArray;
 	NTSTATUS Status;
 
@@ -425,7 +423,7 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 	//
 	// Protect against concurrent modifications or premature unload.
 	//
-	JpfbtpAcquirePatchDatabaseLock( &LockHandle );
+	JpfbtpAcquirePatchDatabaseLock();
 	
 	//
 	// Collect PJPFBT_CODE_PATCHes.
@@ -478,7 +476,7 @@ Cleanup:
 	//
 	// Safe to unlock Patch DB.
 	//
-	JpfbtpReleasePatchDatabaseLock( &LockHandle );
+	JpfbtpReleasePatchDatabaseLock();
 
 	if ( PatchArray )
 	{

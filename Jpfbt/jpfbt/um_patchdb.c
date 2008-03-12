@@ -7,24 +7,16 @@
  */
 
 #include <jpfbt.h>
-#include "..\jpfbtp.h"
+#include "jpfbtp.h"
 #include "um_internal.h"
 
-VOID JpfbtpAcquirePatchDatabaseLock(
-	__out PJPFBTP_LOCK_HANDLE LockHandle 
-	) 
+VOID JpfbtpAcquirePatchDatabaseLock()
 {
-	UNREFERENCED_PARAMETER( LockHandle );
-
 	EnterCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
 }
 
-VOID JpfbtpReleasePatchDatabaseLock(
-	__in PJPFBTP_LOCK_HANDLE LockHandle 
-	)
+VOID JpfbtpReleasePatchDatabaseLock()
 {
-	UNREFERENCED_PARAMETER( LockHandle );
-
 	LeaveCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
 }
 
