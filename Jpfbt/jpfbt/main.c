@@ -200,3 +200,8 @@ NTSTATUS JpfbtUninitialize()
 
 	return STATUS_SUCCESS;
 }
+
+VOID JpfbtCleanupThread()
+{
+	JpfbtpTeardownThreadDataForExitingThread();
+}

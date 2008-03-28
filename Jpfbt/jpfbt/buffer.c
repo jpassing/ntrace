@@ -442,3 +442,38 @@ NTSTATUS JpfbtProcessBuffer(
 
 	return STATUS_SUCCESS;
 }
+
+VOID JpfbtpTeardownThreadDataForExitingThread()
+{
+	PJPFBT_THREAD_DATA ThreadData;
+
+	ASSERT_IRQL_LTE( APC_LEVEL );
+
+	ThreadData = JpfbtpGetCurrentThreadDataIfAvailable();
+	if ( ThreadData != NULL )
+	{
+		if ( ThreadData->CurrentBuffer )
+		{
+			//
+			// Get rid of old, dirty buffer.
+			//
+			InterlockedPushEntrySList( 
+				&JpfbtpGlobalState->DirtyBuffersList,
+				&ThreadData->CurrentBuffer->ListEntry );
+			ThreadData->CurrentBuffer = NULL;
+		}
+
+		//
+		// Remove from list s.t. JpfbtUninitialize will not try to
+		// use this structure.
+		//
+		JpfbtpAcquirePatchDatabaseLock();
+		RemoveEntryList( &ThreadData->u.ListEntry );
+		JpfbtpReleasePatchDatabaseLock();
+
+		//
+		// Thread data torn down, now free it.
+		//
+		JpfbtpFreeThreadData( ThreadData );
+	}
+}

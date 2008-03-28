@@ -84,6 +84,14 @@ BOOL WINAPI DllMain(
 	{
 		return JpufagpInitialize();
 	}
+	else if ( DLL_THREAD_DETACH == Reason )
+	{
+		//
+		// Be a good citizen and notify FBT library about it.
+		//
+		JpfbtCleanupThread();
+		return TRUE;
+	}
 	else
 	{
 		return TRUE;

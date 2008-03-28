@@ -257,3 +257,14 @@ NTSTATUS JPFBTCALLTYPE JpfbtInstrumentProcedure(
 PUCHAR JPFBTCALLTYPE JpfbtGetBuffer(
 	__in ULONG RequiredSize 
 	);
+
+/*++
+	Routine Description:
+		Should be called by an application whenever a thread that
+		may have been affected by instrumentated routines is about 
+		to exit. It is safe to call this routine from DllMain
+		or a PS Thread Notify Routine.
+
+		Callable at IRQL <= APC_LEVEL.
+--*/
+VOID JPFBTCALLTYPE JpfbtCleanupThread();

@@ -175,6 +175,7 @@ VOID JpfbtpFreeGlobalState()
 		DeleteCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
 
 		VERIFY( TlsFree( JpfbtsThreadDataTlsIndex ) );
+		JpfbtsThreadDataTlsIndex = TLS_OUT_OF_INDEXES;
 
 		//
 		// Collector should have been shut down already.
@@ -196,7 +197,13 @@ VOID JpfbtpFreeGlobalState()
 
 PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable()
 {
-	ASSERT( JpfbtsThreadDataTlsIndex != TLS_OUT_OF_INDEXES );
+	if ( JpfbtsThreadDataTlsIndex == TLS_OUT_OF_INDEXES )
+	{
+		//
+		// This may be the case when called by JpfbtCleanupThread.
+		//
+		return NULL;
+	}
 
 	return ( PJPFBT_THREAD_DATA ) 
 		TlsGetValue( JpfbtsThreadDataTlsIndex );

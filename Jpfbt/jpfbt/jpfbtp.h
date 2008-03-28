@@ -191,7 +191,7 @@ typedef struct _JPFBT_THREAD_DATA
 } JPFBT_THREAD_DATA, *PJPFBT_THREAD_DATA;
 
 /*++
-	Structure Description:
+	Routine Description:
 		Get or lazily allocate per-thread data for the current thread.
 
 	Return Value:
@@ -200,12 +200,24 @@ typedef struct _JPFBT_THREAD_DATA
 PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData();
 
 /*++
-	Structure Description:
+	Routine Description:
 		(DBG only) Check if current buffer is intact by checking
 		guard values. Used to make sure that the client did not
 		mess with the buffer returned by JpfbtGetBuffer.
 --*/
 VOID JpfbtpCheckForBufferOverflow();
+
+/*++
+	Routine Description:
+		Can be called during thread teardown. Any resources
+		associated with this thread will be released. If
+		a thread exits without this routine being called,
+		the resources will not be cleaned up until
+		JpfbtUninitailize is called.
+
+		Callable at IRQL <= APC_LEVEL.
+--*/
+VOID JpfbtpTeardownThreadDataForExitingThread();
 
 /*----------------------------------------------------------------------
  *

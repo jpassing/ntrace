@@ -148,7 +148,7 @@ VOID JpufagpRunServerStateMachine(
 			// Exit - most likely due to timeout.
 			//
 			// N.B. We leave State->CurrentMessage untouched - important
-			// if we use nested statemacnines.
+			// if we use nested statemachines.
 			//
 			return;
 		}
