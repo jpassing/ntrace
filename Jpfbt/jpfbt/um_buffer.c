@@ -26,8 +26,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
-	__in BOOLEAN StartCollectorThread,
-	__out PJPFBT_GLOBAL_DATA *GlobalState
+	__in BOOLEAN StartCollectorThread
 	)
 {
 	ULONG TlsIndex;
@@ -39,8 +38,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	if ( BufferCount == 0 || 
 		 BufferSize == 0 ||
 		 BufferSize > JPFBT_MAX_BUFFER_SIZE ||
-		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
-		 ! GlobalState )
+		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0  )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -126,7 +124,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	InitializeCriticalSection( &TempState->PatchDatabase.Lock );
 
 	JpfbtsThreadDataTlsIndex = TlsIndex;
-	*GlobalState = TempState;
+	JpfbtpGlobalState = TempState;
 	Status = STATUS_SUCCESS;
 	
 	if ( StartCollectorThread )
@@ -166,25 +164,27 @@ Cleanup:
 	return Status;
 }
 
-VOID JpfbtpFreeGlobalState(
-	__in PJPFBT_GLOBAL_DATA GlobalState
-	)
+VOID JpfbtpFreeGlobalState()
 {
-	ASSERT( GlobalState );
+	ASSERT( JpfbtpGlobalState );
 	
-	VERIFY( HeapDestroy( GlobalState->PatchDatabase.SpecialHeap ) );
-	
-	DeleteCriticalSection( &GlobalState->PatchDatabase.Lock );
+	if ( JpfbtpGlobalState )
+	{
+		VERIFY( HeapDestroy( JpfbtpGlobalState->PatchDatabase.SpecialHeap ) );
+		
+		DeleteCriticalSection( &JpfbtpGlobalState->PatchDatabase.Lock );
 
-	VERIFY( TlsFree( JpfbtsThreadDataTlsIndex ) );
+		VERIFY( TlsFree( JpfbtsThreadDataTlsIndex ) );
 
-	//
-	// Collector should have been shut down already.
-	//
-	ASSERT( GlobalState->BufferCollectorThread == NULL );
-	ASSERT( GlobalState->BufferCollectorEvent == NULL );
+		//
+		// Collector should have been shut down already.
+		//
+		ASSERT( JpfbtpGlobalState->BufferCollectorThread == NULL );
+		ASSERT( JpfbtpGlobalState->BufferCollectorEvent == NULL );
 
-	JpfbtpFreeNonPagedMemory( GlobalState );
+		JpfbtpFreeNonPagedMemory( JpfbtpGlobalState );
+		JpfbtpGlobalState = NULL;
+	}
 }
 
 
@@ -267,7 +267,7 @@ VOID JpfbtpTriggerDirtyBufferCollection()
 VOID JpfbtpShutdownDirtyBufferCollector()
 {
 	//
-	// Collect remaining buffers.
+	// Drain remaining buffers.
 	//
 	while ( STATUS_TIMEOUT != 
 		JpfbtProcessBuffer( 
@@ -295,78 +295,3 @@ VOID JpfbtpShutdownDirtyBufferCollector()
 	JpfbtpGlobalState->BufferCollectorEvent = NULL;
 }
 
-NTSTATUS JpfbtProcessBuffer(
-	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in ULONG Timeout,
-	__in_opt PVOID UserPointer
-	)
-{
-	PSLIST_ENTRY ListEntry;
-	PJPFBT_BUFFER Buffer;
-
-	if ( ! ProcessBufferRoutine )
-	{
-		return STATUS_INVALID_PARAMETER;
-	}
-
-	if ( JpfbtpGlobalState == NULL )
-	{
-		return STATUS_FBT_NOT_INITIALIZED;
-	}
-
-	ListEntry = InterlockedPopEntrySList( &JpfbtpGlobalState->DirtyBuffersList );
-	while ( ! ListEntry && ! JpfbtpGlobalState->StopBufferCollector )
-	{
-		//
-		// List is empty, block.
-		//
-		if ( WAIT_TIMEOUT == WaitForSingleObject( 
-			JpfbtpGlobalState->BufferCollectorEvent,
-			Timeout ) )
-		{
-			return STATUS_TIMEOUT;
-		}
-		
-		ListEntry = InterlockedPopEntrySList( &JpfbtpGlobalState->DirtyBuffersList );
-	}
-
-	if ( ! ListEntry )
-	{
-		//
-		// BufferCollectorEvent must have been signalled due to
-		// shutdown.
-		//
-		ASSERT( JpfbtpGlobalState->StopBufferCollector );
-
-		return STATUS_UNSUCCESSFUL;
-	}
-
-	Buffer = CONTAINING_RECORD( ListEntry, JPFBT_BUFFER, ListEntry );
-
-	ASSERT( Buffer->ProcessId < 0xffff );
-	ASSERT( Buffer->ThreadId < 0xffff );
-
-	(ProcessBufferRoutine)(
-		Buffer->UsedSize,
-		Buffer->Buffer,
-		Buffer->ProcessId,
-		Buffer->ThreadId,
-		UserPointer );
-
-	//
-	// Reuse buffer.
-	//
-	Buffer->UsedSize = 0;
-#if DBG
-	Buffer->ProcessId = 0xDEADBEEF;
-	Buffer->ThreadId = 0xDEADBEEF;
-#endif
-
-	InterlockedPushEntrySList(
-		 &JpfbtpGlobalState->FreeBuffersList,
-		 &Buffer->ListEntry );
-
-	InterlockedIncrement( &JpfbtpGlobalState->Counters.NumberOfBuffersCollected );
-
-	return STATUS_SUCCESS;
-}

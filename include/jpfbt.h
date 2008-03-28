@@ -98,6 +98,8 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 		Initialize library. Initialization and Unininitialization
 		are not threadsafe.
 
+		Callable at PASSIVE_LEVEL.
+
 	Parameters
 		BufferCount - total number of buffers. Should be at least
 					  2 times the total number of threads.
@@ -152,6 +154,8 @@ NTSTATUS JpfbtInitializeEx(
 		are not threadsafe.
 
 		This routine may not be called from within one of the callbacks.
+
+		Callable at PASSIVE_LEVEL.
 
 	Parameters
 		None

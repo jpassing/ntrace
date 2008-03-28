@@ -159,7 +159,7 @@ NTSTATUS JpfbtpAllocateGlobalStateAndBuffers(
 	}
 
 	*GlobalState = JpfbtpAllocateNonPagedMemory( 
-		( SIZE_T ) TotalAllocationSize, FALSE );
+		( SIZE_T ) TotalAllocationSize, TRUE );
 	if ( ! *GlobalState )
 	{
 		return STATUS_NO_MEMORY;
@@ -180,13 +180,14 @@ VOID JpfbtpInitializeBuffersGlobalState(
 	ULONG CurrentBufferIndex;
 	PJPFBT_BUFFER CurrentBuffer;
 
+	ASSERT_IRQL_LTE( APC_LEVEL );
 	ASSERT( GlobalState );
 
 	GlobalState->BufferSize							= BufferSize;
 	GlobalState->Counters.NumberOfBuffersCollected	= 0;
 
 	BufferStructSize = 
-		RTL_SIZEOF_THROUGH_FIELD( JPFBT_BUFFER, Buffer[ -1 ] ) +
+		FIELD_OFFSET( JPFBT_BUFFER, Buffer ) +
 		BufferSize * sizeof( UCHAR );
 
 	InitializeSListHead( &GlobalState->FreeBuffersList );
@@ -273,6 +274,21 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 	return ThreadData;
 }
 
+VOID JpfbtpCheckForBufferOverflow()
+{
+#if DBG
+	if ( JpfbtpGetCurrentThreadData()->CurrentBuffer )
+	{
+		PJPFBT_BUFFER Buffer = JpfbtpGetCurrentThreadData()->CurrentBuffer;
+		ASSERT( Buffer->Guard == 0xDEADBEEF );
+
+		ASSERT( Buffer->Buffer[ Buffer->UsedSize ] == 0xEF );
+		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 1 ] == 0xBE );
+		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 2 ] == 0xAD );
+		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 3 ] == 0xDE );
+	}
+#endif
+}
 
 /*----------------------------------------------------------------------
  *
@@ -336,19 +352,93 @@ PUCHAR JpfbtGetBuffer(
 	}
 }
 
-VOID JpfbtpCheckForBufferOverflow()
+NTSTATUS JpfbtProcessBuffer(
+	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
+	__in ULONG Timeout,
+	__in_opt PVOID UserPointer
+	)
 {
-#if DBG
-	if ( JpfbtpGetCurrentThreadData()->CurrentBuffer )
+	PSLIST_ENTRY ListEntry;
+	PJPFBT_BUFFER Buffer;
+
+	if ( ! ProcessBufferRoutine )
 	{
-		PJPFBT_BUFFER Buffer = JpfbtpGetCurrentThreadData()->CurrentBuffer;
-		ASSERT( Buffer->Guard == 0xDEADBEEF );
-
-		ASSERT( Buffer->Buffer[ Buffer->UsedSize ] == 0xEF );
-		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 1 ] == 0xBE );
-		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 2 ] == 0xAD );
-		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 3 ] == 0xDE );
+		return STATUS_INVALID_PARAMETER;
 	}
-#endif
-}
 
+	if ( JpfbtpGlobalState == NULL )
+	{
+		return STATUS_FBT_NOT_INITIALIZED;
+	}
+
+	ListEntry = InterlockedPopEntrySList( &JpfbtpGlobalState->DirtyBuffersList );
+	while ( ! ListEntry && ! JpfbtpGlobalState->StopBufferCollector )
+	{
+		//
+		// List is empty, block.
+		//
+#if defined(JPFBT_TARGET_USERMODE)
+		if ( WAIT_TIMEOUT == WaitForSingleObject( 
+			JpfbtpGlobalState->BufferCollectorEvent,
+			Timeout ) )
+		{
+			return STATUS_TIMEOUT;
+		}
+#else
+		LARGE_INTEGER WaitTimeout;
+		WaitTimeout.QuadPart = - ( ( LONGLONG ) Timeout );
+
+		if ( STATUS_TIMEOUT == KeWaitForSingleObject(
+			&JpfbtpGlobalState->BufferCollectorEvent,
+			Executive,
+			KernelMode,
+			FALSE,
+			&WaitTimeout ) )
+		{
+			return STATUS_TIMEOUT;
+		}
+#endif
+
+		ListEntry = InterlockedPopEntrySList( &JpfbtpGlobalState->DirtyBuffersList );
+	}
+
+	if ( ! ListEntry )
+	{
+		//
+		// BufferCollectorEvent must have been signalled due to
+		// shutdown.
+		//
+		ASSERT( JpfbtpGlobalState->StopBufferCollector );
+
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	Buffer = CONTAINING_RECORD( ListEntry, JPFBT_BUFFER, ListEntry );
+
+	ASSERT( Buffer->ProcessId < 0xffff );
+	ASSERT( Buffer->ThreadId < 0xffff );
+
+	( ProcessBufferRoutine )(
+		Buffer->UsedSize,
+		Buffer->Buffer,
+		Buffer->ProcessId,
+		Buffer->ThreadId,
+		UserPointer );
+
+	//
+	// Reuse buffer.
+	//
+	Buffer->UsedSize = 0;
+#if DBG
+	Buffer->ProcessId = 0xDEADBEEF;
+	Buffer->ThreadId = 0xDEADBEEF;
+#endif
+
+	InterlockedPushEntrySList(
+		 &JpfbtpGlobalState->FreeBuffersList,
+		 &Buffer->ListEntry );
+
+	InterlockedIncrement( &JpfbtpGlobalState->Counters.NumberOfBuffersCollected );
+
+	return STATUS_SUCCESS;
+}

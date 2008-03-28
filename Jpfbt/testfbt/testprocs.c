@@ -274,6 +274,10 @@ static VOID UnpatchAll()
 
 VOID PatchAndTestAllProcsSinglethreaded()
 {
+#ifdef JPFBT_TARGET_KERNELMODE
+	KIRQL OldIrql;
+#endif
+
 	ULONG Index;
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
 
@@ -317,6 +321,42 @@ VOID PatchAndTestAllProcsSinglethreaded()
 		TEST( ProcSet->SampleProcs[ Index ].EntryThunkCallCount == ExpecedCount );
 		TEST( ProcSet->SampleProcs[ Index ].ExitThunkCallCount == ExpecedCount );
 	}
+
+#ifdef JPFBT_TARGET_KERNELMODE
+	//
+	// Do it again - but at DIRQL.
+	//
+	KeRaiseIrql( DISPATCH_LEVEL + 1, &OldIrql );
+
+	//
+	// Clear counters.
+	//
+	for ( Index = 0; Index < ProcSet->SampleProcCount; Index++ )
+	{
+		ProcSet->SampleProcs[ Index ].EntryThunkCallCount = 0;
+		ProcSet->SampleProcs[ Index ].ExitThunkCallCount = 0;
+		*ProcSet->SampleProcs[ Index ].CallCount = 0;
+	}
+
+	for ( Index = 0; Index < ProcSet->SampleProcCount; Index++ )
+	{
+		ProcSet->SampleProcs[ Index ].DriverProcedure();
+	}
+
+	for ( Index = 0; Index < ProcSet->SampleProcCount; Index++ )
+	{
+		LONG ExpecedCount = 
+			( ProcSet->SampleProcs[ Index ].Patchable ? 1 : 0 ) *
+				ProcSet->SampleProcs[ Index ].CallMultiplier;
+
+		TEST( *ProcSet->SampleProcs[ Index ].CallCount == 1 * 
+			ProcSet->SampleProcs[ Index ].CallMultiplier );
+
+		TEST( ProcSet->SampleProcs[ Index ].EntryThunkCallCount == ExpecedCount );
+		TEST( ProcSet->SampleProcs[ Index ].ExitThunkCallCount == ExpecedCount );
+	}
+	KeLowerIrql( OldIrql );
+#endif
 
 	UnpatchAll();
 

@@ -4,25 +4,18 @@
 
 void CreateGlobalState()
 {
-	KIRQL OldIrql;
-	PJPFBT_GLOBAL_DATA State;
-
-	KeRaiseIrql( DISPATCH_LEVEL, &OldIrql );
 	TEST_SUCCESS( JpfbtpCreateGlobalState(
 		1,
 		8,
 		0,
-		FALSE,
-		&State ) );
-	JpfbtpFreeGlobalState( State );
+		FALSE ) );
+	JpfbtpFreeGlobalState();
 	TEST_SUCCESS( JpfbtpCreateGlobalState(
 		1,
 		8,
 		32,
-		FALSE,
-		&State ) );
-	JpfbtpFreeGlobalState( State );
-	KeLowerIrql( OldIrql );
+		FALSE ) );
+	JpfbtpFreeGlobalState();
 }
 
 void AllocateThreadDataAtApcLevel()
@@ -34,8 +27,7 @@ void AllocateThreadDataAtApcLevel()
 		1,
 		8,
 		1,		// 1 preallocated struct
-		FALSE,
-		&JpfbtpGlobalState ) );
+		FALSE ) );
 
 	//
 	// Alloc & Free at low IRQL.
@@ -45,7 +37,7 @@ void AllocateThreadDataAtApcLevel()
 	JpfbtpFreeThreadData( ThreadData );
 	TEST( ExQueryDepthSList( &JpfbtpGlobalState->ThreadDataFreeList ) == 0 );
 
-	JpfbtpFreeGlobalState( JpfbtpGlobalState );
+	JpfbtpFreeGlobalState();
 	JpfbtpGlobalState = NULL;
 }
 
@@ -59,8 +51,7 @@ void AllocateThreadDataAtDirql()
 		1,
 		8,
 		1,		// 1 preallocated struct
-		FALSE,
-		&JpfbtpGlobalState ) );
+		FALSE ) );
 
 	//
 	// Alloc & Free at high IRQL. Shouuld grab the one prealloc'ed struct.
@@ -80,7 +71,7 @@ void AllocateThreadDataAtDirql()
 	TEST( ExQueryDepthSList( &JpfbtpGlobalState->ThreadDataFreeList ) == 0 );
 	KeLowerIrql( OldIrql );
 	
-	JpfbtpFreeGlobalState( JpfbtpGlobalState );
+	JpfbtpFreeGlobalState();
 	JpfbtpGlobalState = NULL;
 }
 
@@ -94,8 +85,7 @@ void AllocateThreadDataAtApcAndFreeAtDirql()
 		1,
 		8,
 		1,		// 1 preallocated struct
-		FALSE,
-		&JpfbtpGlobalState ) );
+		FALSE ) );
 
 	//
 	// Alloc at low IRQL. Shouuld grab the one prealloc'ed struct.
@@ -121,7 +111,7 @@ void AllocateThreadDataAtApcAndFreeAtDirql()
 
 	TEST( ExQueryDepthSList( &JpfbtpGlobalState->ThreadDataFreeList ) == 0 );
 	
-	JpfbtpFreeGlobalState( JpfbtpGlobalState );
+	JpfbtpFreeGlobalState();
 	JpfbtpGlobalState = NULL;
 }
 

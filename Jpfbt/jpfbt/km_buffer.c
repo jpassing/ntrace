@@ -17,6 +17,8 @@
 #include <jpfbt.h>
 #include "jpfbtp.h"
 
+static VOID JpfbtsBufferCollectorThreadProc( __in PVOID Unused );
+
 /*----------------------------------------------------------------------
  *
  * WRK stub routines.
@@ -64,7 +66,23 @@ static NTSTATUS JpfbtsPreallocateThreadData(
 			&Allocation[ Index ].u.SListEntry );
 	}
 
+	//
+	// Also save the raw pointer to the allocated memory s.t. we can
+	// free it in JpfbtsFreePreallocatedThreadData.
+	//
+	State->ThreadDataPreallocationBlob = Allocation;
+
 	return STATUS_SUCCESS;
+}
+
+static VOID JpfbtsFreePreallocatedThreadData(
+	__in PJPFBT_GLOBAL_DATA State
+	)
+{
+	if ( State->ThreadDataPreallocationBlob != NULL )
+	{
+		JpfbtpFreeNonPagedMemory( State->ThreadDataPreallocationBlob );
+	}
 }
 
 /*----------------------------------------------------------------------
@@ -77,14 +95,15 @@ NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
-	__in BOOLEAN StartCollectorThread,
-	__out PJPFBT_GLOBAL_DATA *GlobalState
+	__in BOOLEAN StartCollectorThread
 	)
 {
+	HANDLE CollectorThread;
+	OBJECT_ATTRIBUTES ObjectAttributes;
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
 	
-	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
+	ASSERT_IRQL_LTE( PASSIVE_LEVEL );
 
 	UNREFERENCED_PARAMETER( ThreadDataPreallocations );
 
@@ -92,15 +111,9 @@ NTSTATUS JpfbtpCreateGlobalState(
 		 BufferSize == 0 ||
 		 ThreadDataPreallocations > 1024 ||
 		 BufferSize > JPFBT_MAX_BUFFER_SIZE ||
-		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
-		 ! GlobalState )
+		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 )
 	{
 		return STATUS_INVALID_PARAMETER;
-	}
-
-	if ( StartCollectorThread )
-	{
-		KdPrint( ( "StartCollectorThread ignored." ) );
 	}
 
 	//
@@ -133,8 +146,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	Status = JpfbtsPreallocateThreadData( ThreadDataPreallocations, TempState );
 	if ( ! NT_SUCCESS( Status ) )
 	{
-		JpfbtpFreeNonPagedMemory( TempState );
-		return Status;
+		goto Cleanup;
 	}
 
 	//
@@ -146,19 +158,83 @@ NTSTATUS JpfbtpCreateGlobalState(
 		SynchronizationEvent ,
 		FALSE );
 
-	*GlobalState = TempState;
+	//
+	// Assign global variable now - the collector thread is going
+	// to access it immediately.
+	//
+	JpfbtpGlobalState = TempState;
 
-	return STATUS_SUCCESS;
+	if ( StartCollectorThread )
+	{
+		//
+		// Spawn collector thread.
+		//
+		InitializeObjectAttributes(
+			&ObjectAttributes, 
+			NULL, 
+			OBJ_KERNEL_HANDLE, 
+			NULL, 
+			NULL );
+
+		Status = PsCreateSystemThread(
+			&CollectorThread,
+			THREAD_ALL_ACCESS,
+			&ObjectAttributes,
+			NULL,
+			NULL,
+			JpfbtsBufferCollectorThreadProc,
+			NULL );
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			goto Cleanup;
+		}
+
+		Status = ObReferenceObjectByHandle(
+			CollectorThread,
+			THREAD_ALL_ACCESS,
+			*PsThreadType,
+			KernelMode,
+			&JpfbtpGlobalState->BufferCollectorThread,
+			NULL );
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			//
+			// Unlikely, but now we have pretty much lost control over
+			// this thread. Close the handle and hope for the best.
+			//
+			ZwClose( JpfbtpGlobalState->BufferCollectorThread );
+		}
+	}
+
+	Status = STATUS_SUCCESS;
+
+Cleanup:
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		JpfbtsFreePreallocatedThreadData( TempState );
+		JpfbtpFreeNonPagedMemory( TempState );
+		JpfbtpGlobalState = NULL;
+	}
+
+	return Status;
 }
 
-VOID JpfbtpFreeGlobalState(
-	__in PJPFBT_GLOBAL_DATA GlobalState
-	)
+VOID JpfbtpFreeGlobalState()
 {
-	ASSERT( GlobalState );
+	ASSERT( JpfbtpGlobalState );
 	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
 
-	JpfbtpFreeNonPagedMemory( GlobalState );
+	if ( JpfbtpGlobalState )
+	{
+		//
+		// Collector should have been shut down already.
+		//
+		ASSERT( JpfbtpGlobalState->BufferCollectorThread == NULL );
+
+		JpfbtsFreePreallocatedThreadData( JpfbtpGlobalState );
+		JpfbtpFreeNonPagedMemory( JpfbtpGlobalState );
+		JpfbtpGlobalState = NULL;
+	}
 }
 
 
@@ -281,6 +357,11 @@ VOID JpfbtpFreeThreadData(
  *
  */
 
+static VOID JpfbtsBufferCollectorThreadProc(  __in PVOID Unused )
+{
+	UNREFERENCED_PARAMETER( Unused );
+}
+
 VOID JpfbtpTriggerDirtyBufferCollection()
 {
 	if ( KeGetCurrentIrql() <= DISPATCH_LEVEL )
@@ -294,18 +375,38 @@ VOID JpfbtpTriggerDirtyBufferCollection()
 
 VOID JpfbtpShutdownDirtyBufferCollector()
 {
-	KdPrint( ( "DirtyBufferCollector not implemented yet!" ) );
-}
+	ASSERT_IRQL_LTE( PASSIVE_LEVEL );
 
-NTSTATUS JpfbtProcessBuffer(
-	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in ULONG Timeout,
-	__in_opt PVOID UserPointer
-	)
-{
-	UNREFERENCED_PARAMETER( ProcessBufferRoutine );
-	UNREFERENCED_PARAMETER( Timeout );
-	UNREFERENCED_PARAMETER( UserPointer );
-	
-	return STATUS_NOT_IMPLEMENTED;
+	//
+	// Drain remaining buffers.
+	//
+	while ( STATUS_TIMEOUT != 
+		JpfbtProcessBuffer( 
+			JpfbtpGlobalState->Routines.ProcessBuffer, 
+			0,
+			JpfbtpGlobalState->UserPointer ) )
+	{
+		TRACE( ( "Remaining buffers flushed\n" ) );
+	}
+
+	//
+	// Shutdown thread.
+	//
+	if ( JpfbtpGlobalState->BufferCollectorThread != NULL )
+	{
+		InterlockedIncrement( &JpfbtpGlobalState->StopBufferCollector );
+		KeSetEvent( 
+			&JpfbtpGlobalState->BufferCollectorEvent,
+			IO_NO_INCREMENT,
+			FALSE );
+		KeWaitForSingleObject( 
+			JpfbtpGlobalState->BufferCollectorThread, 
+			Executive,
+			KernelMode,
+			FALSE,
+			NULL );
+
+		ObDereferenceObject( JpfbtpGlobalState->BufferCollectorThread );
+		JpfbtpGlobalState->BufferCollectorThread = NULL;
+	}
 }

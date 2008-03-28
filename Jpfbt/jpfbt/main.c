@@ -43,6 +43,8 @@ NTSTATUS JpfbtInitializeEx(
 {
 	NTSTATUS Status;
 
+	ASSERT_IRQL_LTE( PASSIVE_LEVEL );
+
 	if ( BufferCount == 0 ||
 		 BufferSize == 0 ||
 		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
@@ -63,8 +65,7 @@ NTSTATUS JpfbtInitializeEx(
 		BufferCount, 
 		BufferSize,
 		ThreadDataPreallocations,
-		( BOOLEAN ) Flags == JPFBT_FLAG_AUTOCOLLECT,
-		&JpfbtpGlobalState );
+		( BOOLEAN ) Flags == JPFBT_FLAG_AUTOCOLLECT );
 
 	if ( NT_SUCCESS( Status ) )
 	{
@@ -74,7 +75,7 @@ NTSTATUS JpfbtInitializeEx(
 		Status = JpfbtpInitializePatchTable();
 		if ( ! NT_SUCCESS( Status ) )
 		{
-			JpfbtpFreeGlobalState( JpfbtpGlobalState );
+			JpfbtpFreeGlobalState();
 			JpfbtpGlobalState = NULL;
 			return STATUS_NO_MEMORY;
 		}
@@ -96,6 +97,8 @@ NTSTATUS JpfbtUninitialize()
 	BOOLEAN EvthUnpatched = FALSE;
 	PLIST_ENTRY ListEntry;
 	PJPFBT_THREAD_DATA ThreadData;
+
+	ASSERT_IRQL_LTE( PASSIVE_LEVEL );
 
 	if ( JpfbtpGlobalState == NULL )
 	{
@@ -193,9 +196,7 @@ NTSTATUS JpfbtUninitialize()
 	//
 	// Free global state.
 	//
-	JpfbtpFreeGlobalState( JpfbtpGlobalState );
-
-	JpfbtpGlobalState = NULL;
+	JpfbtpFreeGlobalState();
 
 	return STATUS_SUCCESS;
 }

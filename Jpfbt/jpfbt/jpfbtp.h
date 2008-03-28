@@ -283,13 +283,12 @@ typedef struct _JPFBT_GLOBAL_DATA
 	// Event handle - can be signalled to trigger the buffer collector.
 	//
 	HANDLE BufferCollectorEvent;
-
-	//
-	// Set to TRUE, followed by signalling BufferCollectorEvent to
-	// stop the collector thread.
-	//
-	volatile LONG StopBufferCollector;
 #elif defined(JPFBT_TARGET_KERNELMODE)
+	//
+	// Thread handle to thread handling asynchronous buffer collection.
+	//
+	PKTHREAD BufferCollectorThread;
+
 	//
 	// Event - can be signalled to trigger the buffer collector.
 	//
@@ -306,7 +305,17 @@ typedef struct _JPFBT_GLOBAL_DATA
 	// yet could not be freed because of IRQL > DISPATCH_LEVEL.
 	//
 	SLIST_HEADER ThreadDataFreeList;
+
+	//
+	// Preallocated memory. Do not use.
+	//
+	PVOID ThreadDataPreallocationBlob;
 #endif
+	//
+	// Set to TRUE, followed by signalling BufferCollectorEvent to
+	// stop the collector thread.
+	//
+	volatile LONG StopBufferCollector;
 
 	struct
 	{
@@ -514,14 +523,12 @@ VOID JpfbtpInitializeBuffersGlobalState(
 		ThreadDataPreallocations	- # of ThreadData sructures to be 
 									  preallocated (for high-IRQL
 									  allocations)
-		GlobalState					- Result.
 --*/
 NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
-	__in BOOLEAN StartCollectorThread,
-	__out PJPFBT_GLOBAL_DATA *GlobalState
+	__in BOOLEAN StartCollectorThread
 	);
 
 /*++
@@ -530,9 +537,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 
 		Callable at IRQL <= DISPATCH_LEVEL.
 --*/
-VOID JpfbtpFreeGlobalState(
-	__in PJPFBT_GLOBAL_DATA BufferList
-	);
+VOID JpfbtpFreeGlobalState();
 
 /*++
 	Routine Description:
