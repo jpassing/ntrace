@@ -443,13 +443,23 @@ NTSTATUS JpfbtProcessBuffer(
 	return STATUS_SUCCESS;
 }
 
-VOID JpfbtpTeardownThreadDataForExitingThread()
+VOID JpfbtpTeardownThreadDataForExitingThread(
+	__in PVOID Thread
+	)
 {
 	PJPFBT_THREAD_DATA ThreadData;
 
 	ASSERT_IRQL_LTE( APC_LEVEL );
 
+#if defined( JPFBT_TARGET_USERMODE )
+	ASSERT( Thread == NULL );
 	ThreadData = JpfbtpGetCurrentThreadDataIfAvailable();
+#else
+	ASSERT( Thread != NULL );
+	ThreadData = ( PJPFBT_THREAD_DATA ) 
+		JpfbtWrkGetFbtDataThread( ( PETHREAD ) Thread );
+#endif
+
 	if ( ThreadData != NULL )
 	{
 		if ( ThreadData->CurrentBuffer )

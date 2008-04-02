@@ -180,8 +180,7 @@ NTSTATUS JpufbtShutdownTracing(
 /*++
 	Routine Description:
 		Instrument one or more procedures. Instrumentation requires 
-		either 5 byte (/functionpadmin:5) or 10 byte (/functionpadmin:10) 
-		padding and a hotpatchable prolog.
+		5 byte padding and a hotpatchable prolog.
 
 		Routine is threadsafe.
 

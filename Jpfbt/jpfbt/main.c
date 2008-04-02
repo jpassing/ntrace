@@ -45,9 +45,7 @@ NTSTATUS JpfbtInitializeEx(
 
 	ASSERT_IRQL_LTE( PASSIVE_LEVEL );
 
-	if ( BufferCount == 0 ||
-		 BufferSize == 0 ||
-		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
+	if ( BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
 		 EntryEventRoutine == NULL ||
 		 ExitEventRoutine == NULL ||
 		 ProcessBufferRoutine == NULL ||
@@ -67,7 +65,7 @@ NTSTATUS JpfbtInitializeEx(
 		ThreadDataPreallocations,
 		( BOOLEAN ) Flags == JPFBT_FLAG_AUTOCOLLECT );
 
-	if ( NT_SUCCESS( Status ) )
+	if ( NT_SUCCESS( Status ) && JpfbtpGlobalState != NULL )
 	{
 		//
 		// Initialize PatchDatabase.
@@ -201,7 +199,9 @@ NTSTATUS JpfbtUninitialize()
 	return STATUS_SUCCESS;
 }
 
-VOID JpfbtCleanupThread()
+VOID JpfbtCleanupThread(
+	__in_opt PVOID Thread
+	)
 {
-	JpfbtpTeardownThreadDataForExitingThread();
+	JpfbtpTeardownThreadDataForExitingThread( Thread );
 }

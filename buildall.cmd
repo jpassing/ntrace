@@ -16,6 +16,7 @@ if NOT x%DDKBUILDENV%x == xx (
 )
 
 copy /Y Jpufbt\jpufbt\jpufbtmsg_u.mc + Jpfbt\jpfbt\jpfbtmsg.mc Jpufbt\jpufbt\jpufbtmsg.mc
+copy /Y Jpkfbt\jpkfbt\jpkfbtmsg_u.mc + Jpfbt\jpfbt\jpfbtmsg.mc Jpkfbt\jpkfbt\jpkfbtmsg.mc
 
 cmd /C ddkbuild -WLHNET checked . -cZ
 cmd /C ddkbuild -WLHNET free . -cZ

@@ -96,6 +96,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\jpfbt\km_tls.c"
+					>
+				</File>
+				<File
 					RelativePath=".\jpfbt\list.h"
 					>
 				</File>

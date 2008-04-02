@@ -21,17 +21,6 @@ static VOID JpfbtsBufferCollectorThreadProc( __in PVOID Unused );
 
 /*----------------------------------------------------------------------
  *
- * WRK stub routines.
- *
- */
-VOID JpfbtWrkSetFbtDataCurrentThread(
-	__in PVOID Data 
-	);
-
-PVOID JpfbtWrkGetFbtDataCurrentThread();
-
-/*----------------------------------------------------------------------
- *
  * Helpers.
  *
  */
@@ -107,9 +96,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 
 	UNREFERENCED_PARAMETER( ThreadDataPreallocations );
 
-	if ( BufferCount == 0 || 
-		 BufferSize == 0 ||
-		 ThreadDataPreallocations > 1024 ||
+	if ( ThreadDataPreallocations > 1024 ||
 		 BufferSize > JPFBT_MAX_BUFFER_SIZE ||
 		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 )
 	{

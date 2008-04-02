@@ -28,12 +28,20 @@ VOID JpfbtWrkSetFbtDataCurrentThread(
 	PsGetCurrentThread()->ReservedForFbt = Data;
 }
 
-PVOID JpfbtWrkGetFbtDataCurrentThread()
+PVOID JpfbtWrkGetFbtDataThread(
+	__in PETHREAD Thread
+	)
 {
 	//
 	// N.B. PspCreateThread zeroes the ETHREAD, so ReservedForFbt
 	// is either NULL or a valid pointer.
 	//
-	return PsGetCurrentThread()->ReservedForFbt;
+	return Thread->ReservedForFbt;
 }
+
+PVOID JpfbtWrkGetFbtDataCurrentThread()
+{
+	return JpfbtWrkGetFbtDataThread( PsGetCurrentThread() );
+}
+
 

@@ -215,8 +215,7 @@ typedef struct _JPFBT_PROCEDURE
 /*++
 	Routine Description:
 		Instrument one or more procedures. Instrumentation requires 
-		either 5 byte (/functionpadmin:5) or 10 byte (/functionpadmin:10) 
-		padding and a hotpatchable prolog.
+		a 5 byte (/functionpadmin:5) padding and a hotpatchable prolog.
 
 		Routine is threadsafe.
 
@@ -266,5 +265,12 @@ PUCHAR JPFBTCALLTYPE JpfbtGetBuffer(
 		or a PS Thread Notify Routine.
 
 		Callable at IRQL <= APC_LEVEL.
+
+	Parameters:
+		Thread		- Kernel Mode: Pointer to the affected ETHREAD.
+					  User Mode: NULL. The calling thread must be the
+					  one that is about to be terminated.
 --*/
-VOID JPFBTCALLTYPE JpfbtCleanupThread();
+VOID JPFBTCALLTYPE JpfbtCleanupThread(
+	__in_opt PVOID Thread
+	);

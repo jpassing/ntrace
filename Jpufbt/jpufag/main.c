@@ -89,7 +89,7 @@ BOOL WINAPI DllMain(
 		//
 		// Be a good citizen and notify FBT library about it.
 		//
-		JpfbtCleanupThread();
+		JpfbtCleanupThread( NULL );
 		return TRUE;
 	}
 	else

@@ -216,8 +216,15 @@ VOID JpfbtpCheckForBufferOverflow();
 		JpfbtUninitailize is called.
 
 		Callable at IRQL <= APC_LEVEL.
+
+	Parameters:
+		Thread		- Kernel Mode: Pointer to the affected ETHREAD.
+					  User Mode: NULL. The calling thread must be the
+					  one that is about to be terminated.
 --*/
-VOID JpfbtpTeardownThreadDataForExitingThread();
+VOID JpfbtpTeardownThreadDataForExitingThread(
+	__in_opt PVOID Thread
+	);
 
 /*----------------------------------------------------------------------
  *
@@ -665,4 +672,25 @@ VOID JpfbtpFreeNonPagedMemory(
 #elif defined( JPFBT_TARGET_KERNELMODE )
 #define JpfbtpGetCurrentProcessId	( ULONG ) ( ULONG_PTR ) PsGetCurrentProcessId
 #define JpfbtpGetCurrentThreadId	( ULONG ) ( ULONG_PTR ) PsGetCurrentThreadId
+#endif
+
+
+
+/*----------------------------------------------------------------------
+ *
+ * WRK stub routines.
+ *
+ */
+#if defined( JPFBT_TARGET_KERNELMODE )
+
+VOID JpfbtWrkSetFbtDataCurrentThread(
+	__in PVOID Data 
+	);
+
+PVOID JpfbtWrkGetFbtDataThread(
+	__in PETHREAD Thread
+	);
+
+PVOID JpfbtWrkGetFbtDataCurrentThread();
+
 #endif

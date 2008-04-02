@@ -87,6 +87,8 @@ static VOID JpfbtsPatchRoutine(
     )
 {
 	PJPFBTP_PATCH_CONTEXT Context = ( PJPFBTP_PATCH_CONTEXT ) DeferredContext;
+	INT CpuInfo[ 4 ];
+	INT CpuInfoType = 0;
 	KIRQL OldIrql;
 
 	UNREFERENCED_PARAMETER( Dpc );
@@ -159,6 +161,12 @@ static VOID JpfbtsPatchRoutine(
 	KeSignalCallDpcSynchronize( SystemArgument2 );
 	KeLowerIrql( OldIrql );
 	KeSignalCallDpcDone( SystemArgument1 );
+
+	//
+	// Flush everything, as required by the Intel specification for
+	// cross-modifying code.
+	//
+	__cpuid( CpuInfo, CpuInfoType );
 }
 
 /*----------------------------------------------------------------------
