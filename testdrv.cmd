@@ -1,7 +1,11 @@
-copy /Y bin\chk\i386\testfbt_km* %SystemDrive%\drv32\
+cmd.exe /C copydrv.cmd
 
 sc stop cfixkr_testfbt_km_wrk
+sc stop jpkfag
 
-pushd %SystemDrive%\drv32\
-cfix32 -b -kern testfbt_km_wrk.sys
+rem TEST FREE BUILDS!
+
+pushd %SystemDrive%\drv\i386
+cfix32 -b -u -kern testfbt_km_wrk.sys
+cfix32 -f -b -u testkfbt.dll
 popd

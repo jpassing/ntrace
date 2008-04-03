@@ -1,4 +1,5 @@
 #include <jpfbt.h>
+#include <jpfbtmsg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <cfix.h>

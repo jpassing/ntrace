@@ -88,11 +88,43 @@
 					>
 				</File>
 				<File
+					RelativePath=".\jpkfbt\nativeapi.h"
+					>
+				</File>
+				<File
+					RelativePath=".\jpkfbt\public.c"
+					>
+				</File>
+				<File
 					RelativePath=".\jpkfbt\resource.h"
 					>
 				</File>
 				<File
 					RelativePath=".\jpkfbt\SOURCES"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="testkfbt"
+				>
+				<File
+					RelativePath=".\testkfbt\attdetach.c"
+					>
+				</File>
+				<File
+					RelativePath=".\testkfbt\SOURCES"
+					>
+				</File>
+				<File
+					RelativePath=".\testkfbt\testkfbt.def"
+					>
+				</File>
+				<File
+					RelativePath=".\testkfbt\util.c"
+					>
+				</File>
+				<File
+					RelativePath=".\testkfbt\util.h"
 					>
 				</File>
 			</Filter>
@@ -164,6 +196,10 @@
 			</File>
 			<File
 				RelativePath="..\include\jpkfbt.h"
+				>
+			</File>
+			<File
+				RelativePath="..\include\jpkfbtmsg.h"
 				>
 			</File>
 		</Filter>

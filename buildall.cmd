@@ -8,6 +8,14 @@ if x%SDKBASE%x == xx (
 	goto exit
 )
 
+if x%WRKBASE%x == xx (
+	echo.
+	echo WRKBASE not set. Set to base directory of WMK/HP.
+	echo Note that the path must not contain any spaces - required by build.exe
+	echo.
+	goto exit
+)
+
 if NOT x%DDKBUILDENV%x == xx (
 	echo.
 	echo Build environment found. Execute this command in a normal shell, not in a WDK shell.

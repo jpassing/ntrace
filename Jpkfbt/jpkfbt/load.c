@@ -120,7 +120,13 @@ static NTSTATUS JpkfbtsOpenDriver(
 	return Status;
 }
 
-static NTSTATUS JpkfbtsFindAgentImage(
+
+/*----------------------------------------------------------------------
+ *
+ * Internals.
+ *
+ */
+NTSTATUS JpkfbtpFindAgentImage(
 	__in JPKFAG_KERNEL_TYPE KernelType,
 	__in SIZE_T PathCch,
 	__out_ecount( PathCch ) PWSTR Path
@@ -225,11 +231,6 @@ static NTSTATUS JpkfbtsFindAgentImage(
 	return STATUS_KFBT_AGENT_NOT_FOUND;
 }
 
-/*----------------------------------------------------------------------
- *
- * Internals.
- *
- */
 NTSTATUS JpkfbtpStartDriver(
 	__in PCWSTR DriverPath,
 	__in PCWSTR DriverName,

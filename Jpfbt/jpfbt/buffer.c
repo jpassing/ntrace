@@ -452,6 +452,7 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 	ASSERT_IRQL_LTE( APC_LEVEL );
 
 #if defined( JPFBT_TARGET_USERMODE )
+	UNREFERENCED_PARAMETER( Thread );
 	ASSERT( Thread == NULL );
 	ThreadData = JpfbtpGetCurrentThreadDataIfAvailable();
 #else

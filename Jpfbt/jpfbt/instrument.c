@@ -228,6 +228,11 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 		FailedProcedure->u.Procedure = NULL;
 	}
 
+	if ( JpfbtpGlobalState == NULL )
+	{
+		return STATUS_FBT_NOT_INITIALIZED;
+	}
+
 	//
 	// Allocate array to hold PJPFBT_CODE_PATCHes.
 	//

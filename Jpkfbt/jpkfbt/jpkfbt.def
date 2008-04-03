@@ -1,1 +1,7 @@
 EXPORTS
+	JpkfbtAttach
+	JpkfbtDetach
+	JpkfbtIsKernelTypeSupported
+	JpkfbtInitializeTracing
+	JpkfbtShutdownTracing
+	JpkfbtInstrumentProcedure

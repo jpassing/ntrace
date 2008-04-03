@@ -9,6 +9,7 @@
  */
 
 #include <jpfbt.h>
+#include <jpfbtmsg.h>
 #include <crtdbg.h>
 #include <hashtable.h>
 

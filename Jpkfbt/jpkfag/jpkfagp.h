@@ -9,6 +9,7 @@
  */
 #include <jpfbt.h>
 #include <jpkfagio.h>
+#include <jpkfbtmsg.h>
 
 #define JPKFAG_POOL_TAG 'tbFJ'
 

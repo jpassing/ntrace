@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=..\include;..\..\include;$(SDK_INC_PATH)\..\mfc42
+INCLUDES=..\include;..\..\include;..\..\..\cfix\include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -14,26 +14,23 @@ C_DEFINES=/D_UNICODE /DUNICODE
 DEBUG_CRTS=1
 !endif
 
-USER_C_FLAGS=/analyze /wd4201
+USER_C_FLAGS=/wd4054 /wd4276 /analyze
 
 USE_LIBCMT=1
 
+UMTYPE=console
+UMENTRY=wmain
+
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(SDK_LIB_PATH)\advapi32.lib \
-		   $(DDK_LIB_PATH)\ntdll.lib \
-		   $(SDK_LIB_PATH)\shlwapi.lib
+		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpkfbt.lib \
+		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfix.lib
 
-TARGETNAME=jpkfbt
+
+TARGETNAME=testkfbt
 TARGETPATH=..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DYNLINK
+SOURCES=attdetach.c \
+		util.c
 
-PASS0_HEADERDIR=..\..\include
-PASS0_SOURCEDIR=obj$(BUILD_ALT_DIR)\$(TARGET_DIRECTORY)
-
-SOURCES=\
-	load.c \
-	public.c \
-	jpkfbt.rc \
-	jpkfbtmsg.mc
-	
 LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH

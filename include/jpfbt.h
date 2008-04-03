@@ -8,8 +8,6 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
-#include <jpfbtmsg.h>
-
 #if defined(JPFBT_TARGET_KERNELMODE)
 	#include <ntddk.h>
 #elif defined(JPFBT_TARGET_USERMODE)

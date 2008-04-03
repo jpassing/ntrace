@@ -14,7 +14,7 @@ VOID JpkfagpWmkProcedureEntry(
 	)
 {
 	UNREFERENCED_PARAMETER( Context );
-	KdPrint( ( "--> %p", Function ) );
+	DbgPrint( ( "--> %p", Function ) );
 }
 
 VOID JpkfagpWmkProcedureExit(
@@ -23,7 +23,7 @@ VOID JpkfagpWmkProcedureExit(
 	)
 {
 	UNREFERENCED_PARAMETER( Context );
-	KdPrint( ( "<-- %p", Function ) );
+	DbgPrint( ( "<-- %p", Function ) );
 }
 
 VOID JpkfagpWmkProcessBuffer(
