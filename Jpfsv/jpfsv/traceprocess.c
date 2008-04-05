@@ -173,7 +173,7 @@ static DWORD JpfsvsPumpEventsThreadProc(
  *
  */
 
-static HRESULT JpfsvsStartTraceSession(
+static HRESULT JpfsvsStartProcessTraceSession(
 	__in PJPFSV_TRACE_SESSION This,
 	__in UINT BufferCount,
 	__in UINT BufferSize,
@@ -283,7 +283,7 @@ Cleanup:
 	return Hr;
 }
 
-static HRESULT JpfsvsStopTraceSession(
+static HRESULT JpfsvsStopProcessTraceSession(
 	__in PJPFSV_TRACE_SESSION This
 	)
 {
@@ -411,7 +411,7 @@ static HRESULT JpfsvsInstrumentProcedureTraceSession(
 	}
 }
 
-static HRESULT JpfsvsDeleteTraceSession(
+static HRESULT JpfsvsDeleteProcessTraceSession(
 	__in PUM_TRACE_SESSION TraceSession
 	)
 {
@@ -439,7 +439,7 @@ static HRESULT JpfsvsDeleteTraceSession(
 	return S_OK;
 }
 
-static VOID JpfsvsReferenceTraceSession(
+static VOID JpfsvsReferenceProcessTraceSession(
 	__in PJPFSV_TRACE_SESSION This
 	)
 {
@@ -448,7 +448,7 @@ static VOID JpfsvsReferenceTraceSession(
 	InterlockedIncrement( &TraceSession->ReferenceCount );
 }
 
-static HRESULT JpfsvsDereferenceTraceSession(
+static HRESULT JpfsvsDereferenceProcessTraceSession(
 	__in PJPFSV_TRACE_SESSION This
 	)
 {
@@ -457,10 +457,10 @@ static HRESULT JpfsvsDereferenceTraceSession(
 
 	if ( 0 == InterlockedDecrement( &TraceSession->ReferenceCount ) )
 	{
-		Hr = JpfsvsDeleteTraceSession( TraceSession );
+		Hr = JpfsvsDeleteProcessTraceSession( TraceSession );
 		if ( FAILED( Hr ) )
 		{
-			JpfsvsReferenceTraceSession( This );
+			JpfsvsReferenceProcessTraceSession( This );
 		}
 	}
 	else
@@ -513,11 +513,11 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	//
 	// Initialize.
 	//
-	TempSession->Base.Start					= JpfsvsStartTraceSession;
-	TempSession->Base.Stop					= JpfsvsStopTraceSession;
+	TempSession->Base.Start					= JpfsvsStartProcessTraceSession;
+	TempSession->Base.Stop					= JpfsvsStopProcessTraceSession;
 	TempSession->Base.InstrumentProcedure	= JpfsvsInstrumentProcedureTraceSession;
-	TempSession->Base.Reference				= JpfsvsReferenceTraceSession;
-	TempSession->Base.Dereference			= JpfsvsDereferenceTraceSession;
+	TempSession->Base.Reference				= JpfsvsReferenceProcessTraceSession;
+	TempSession->Base.Dereference			= JpfsvsDereferenceProcessTraceSession;
 
 	TempSession->ReferenceCount				= 1;
 

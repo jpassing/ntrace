@@ -8,9 +8,10 @@
 #include <stdlib.h>
 #include "jpkfbtp.h"
 #include "nativeapi.h"
+#include <jpkfagio.h>
 
 #define JPKFBTP_AGENT_DRIVER_NAME L"jpkfag"
-#define JPKFBTP_AGENT_DISPLAY_NAME L"Dunction Boundary Tracing Agent"
+#define JPKFBTP_AGENT_DISPLAY_NAME L"Function Boundary Tracing Agent"
 
 typedef struct _JPKBTP_SESSION
 {
@@ -19,7 +20,7 @@ typedef struct _JPKBTP_SESSION
 	//
 	// Identifies which agent driver is loaded.
 	//
-	JPKFAG_KERNEL_TYPE KernelType;
+	JPKFBT_KERNEL_TYPE KernelType;
 
 	HANDLE DeviceHandle;
 } JPKBTP_SESSION, *PJPKBTP_SESSION;
@@ -30,18 +31,18 @@ typedef struct _JPKBTP_SESSION
  *
  */
 NTSTATUS JpkfbtIsKernelTypeSupported(
-	__in JPKFAG_KERNEL_TYPE KernelType,
+	__in JPKFBT_KERNEL_TYPE KernelType,
 	__out PBOOL Supported
 	)
 {
 	UNREFERENCED_PARAMETER( KernelType );
 
-	*Supported = ( KernelType == JpkfagKernelWmk );
+	*Supported = ( KernelType == JpkfbtKernelWmk );
 	return STATUS_SUCCESS;
 }
 
 NTSTATUS JpkfbtAttach(
-	__in JPKFAG_KERNEL_TYPE KernelType,
+	__in JPKFBT_KERNEL_TYPE KernelType,
 	__out JPKFBT_SESSION *SessionHandle
 	)
 {
@@ -52,7 +53,7 @@ NTSTATUS JpkfbtAttach(
 	NTSTATUS Status;
 	PJPKBTP_SESSION TempSession;
 
-	if ( KernelType > JpkfagKernelWmk ||
+	if ( KernelType > JpkfbtKernelWmk ||
 		 SessionHandle == NULL )
 	{
 		return STATUS_INVALID_PARAMETER;
@@ -162,7 +163,7 @@ NTSTATUS JpkfbtDetach(
 
 NTSTATUS JpkfbtInitializeTracing(
 	__in JPKFBT_SESSION SessionHandle,
-	__in JPKFAG_TRACING_TYPE Type,
+	__in JPKFBT_TRACING_TYPE Type,
 	__in ULONG BufferCount,
 	__in ULONG BufferSize
 	)
@@ -172,7 +173,7 @@ NTSTATUS JpkfbtInitializeTracing(
 	IO_STATUS_BLOCK StatusBlock;
 
 	if ( SessionHandle == NULL ||
-		 Type > JpkfagTracingTypeWmk )
+		 Type > JpkfbtTracingTypeWmk )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}

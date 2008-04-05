@@ -16,7 +16,7 @@ void TestAttachDetachRetail()
 
 	TEST( ! IsDriverLoaded( L"jpkfag" ) );
 	TEST_STATUS( STATUS_KFBT_KERNEL_NOT_SUPPORTED,
-		JpkfbtAttach( JpkfagKernelRetail, &Session ) );
+		JpkfbtAttach( JpkfbtKernelRetail, &Session ) );
 }
 
 void TestAttachDetachWmk()
@@ -26,13 +26,13 @@ void TestAttachDetachWmk()
 
 	TEST( ! IsDriverLoaded( L"jpkfag" ) );
 	TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
-		JpkfagKernelWmk, &KernelSupported ) );
+		JpkfbtKernelWmk, &KernelSupported ) );
 	if ( ! KernelSupported )
 	{
 		CFIX_INCONCLUSIVE( L"Kernel not WMK-compatible." );
 	}
 
-	TEST_SUCCESS( JpkfbtAttach( JpkfagKernelWmk, &Session ) );
+	TEST_SUCCESS( JpkfbtAttach( JpkfbtKernelWmk, &Session ) );
 	TEST( Session );
 	TEST_SUCCESS( JpkfbtDetach( Session, FALSE ) );
 
@@ -43,7 +43,7 @@ void TestAttachDetachWmk()
 	//
 	// Again, but this time unload.
 	//
-	TEST_SUCCESS( JpkfbtAttach( JpkfagKernelWmk, &Session ) );
+	TEST_SUCCESS( JpkfbtAttach( JpkfbtKernelWmk, &Session ) );
 	TEST( Session );
 	TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
 
@@ -54,14 +54,14 @@ void TestInitShutdownTracing()
 {
 	BOOL KernelSupported;
 	JPKFBT_SESSION Session;
-	JPKFAG_KERNEL_TYPE Type;
+	JPKFBT_KERNEL_TYPE Type;
 	ULONG TypesTested = 0;
 
-	for ( Type = JpkfagKernelRetail;
-		  Type <= JpkfagKernelMax;
+	for ( Type = JpkfbtKernelRetail;
+		  Type <= JpkfbtKernelMax;
 		  Type++ )
 	{
-		JPKFAG_TRACING_TYPE TracingType;
+		JPKFBT_TRACING_TYPE TracingType;
 
 		TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
 			Type, &KernelSupported ) );
@@ -79,7 +79,7 @@ void TestInitShutdownTracing()
 		TEST_STATUS( STATUS_INVALID_PARAMETER,
 			JpkfbtInitializeTracing(
 				Session,
-				JpkfagTracingTypeWmk + 1,
+				JpkfbtTracingTypeWmk + 1,
 				0,
 				0 ) );
 
@@ -92,8 +92,8 @@ void TestInitShutdownTracing()
 		//
 		// Init & Shutdown using valid type.
 		//
-		for( TracingType = JpkfagTracingTypeWmk;
-			 TracingType <= JpkfagTracingTypeMax;
+		for( TracingType = JpkfbtTracingTypeWmk;
+			 TracingType <= JpkfbtTracingTypeMax;
 			 TracingType++ )
 		{
 			TEST_SUCCESS( JpkfbtInitializeTracing(
@@ -122,11 +122,11 @@ void TestInstrumentFailures()
 	JPFBT_PROCEDURE PatchProcedureKm;
 	JPFBT_PROCEDURE PatchProcedureUm;
 	JPKFBT_SESSION Session;
-	JPKFAG_KERNEL_TYPE Type;
+	JPKFBT_KERNEL_TYPE Type;
 	ULONG TypesTested = 0;
 
-	for ( Type = JpkfagKernelRetail;
-		  Type <= JpkfagKernelMax;
+	for ( Type = JpkfbtKernelRetail;
+		  Type <= JpkfbtKernelMax;
 		  Type++ )
 	{
 		TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
@@ -158,7 +158,7 @@ void TestInstrumentFailures()
 		
 		TEST_SUCCESS( JpkfbtInitializeTracing(
 			Session,
-			JpkfagTracingTypeWmk,
+			JpkfbtTracingTypeWmk,
 			0,
 			0 ) );
 		

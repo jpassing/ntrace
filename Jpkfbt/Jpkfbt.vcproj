@@ -199,6 +199,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\include\jpkfbtaux.h"
+				>
+			</File>
+			<File
 				RelativePath="..\include\jpkfbtmsg.h"
 				>
 			</File>

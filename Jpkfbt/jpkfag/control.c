@@ -118,7 +118,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 	switch ( Request->Type )
 	{
 #ifdef JPFBT_WMK
-	case JpkfagTracingTypeWmk:
+	case JpkfbtTracingTypeWmk:
 		if ( Request->BufferCount != 0 ||
 			 Request->BufferSize != 0 )
 		{

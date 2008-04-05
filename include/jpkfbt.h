@@ -13,17 +13,10 @@
 #endif
 
 #include <jpfbt.h>
+#include <jpkfbtaux.h>
 #include <jpkfbtmsg.h>
-#include <jpkfagio.h>
 
 typedef PVOID JPKFBT_SESSION;
-
-
-typedef enum _JPKFAG_KERNEL_TYPE
-{
-	JpkfagKernelRetail	= 0,
-	JpkfagKernelWmk		= 1
-} JPKFAG_KERNEL_TYPE;
 
 /*++
 	Routine Description:
@@ -41,7 +34,7 @@ typedef enum _JPKFAG_KERNEL_TYPE
 		(any NTSTATUS) on failure.
 --*/
 NTSTATUS JpkfbtAttach(
-	__in JPKFAG_KERNEL_TYPE KernelType,
+	__in JPKFBT_KERNEL_TYPE KernelType,
 	__out JPKFBT_SESSION *SessionHandle
 	);
 
@@ -76,11 +69,11 @@ NTSTATUS JpkfbtDetach(
 		BufferCount - total number of buffers. Should be at least
 					  2 times the total number of threads.
 
-					  Does not apply to JpkfagTracingTypeWmk.
+					  Does not apply to JpkfbtTracingTypeWmk.
 		BufferSize  - size of each buffer. Must be a multiple of 
 					  MEMORY_ALLOCATION_ALIGNMENT.
 
-					  Does not apply to JpkfagTracingTypeWmk.
+					  Does not apply to JpkfbtTracingTypeWmk.
 
 	Return Value:
 		STATUS_SUCCESS on success
@@ -88,7 +81,7 @@ NTSTATUS JpkfbtDetach(
 --*/
 NTSTATUS JpkfbtInitializeTracing(
 	__in JPKFBT_SESSION SessionHandle,
-	__in JPKFAG_TRACING_TYPE Type,
+	__in JPKFBT_TRACING_TYPE Type,
 	__in ULONG BufferCount,
 	__in ULONG BufferSize
 	);
@@ -147,6 +140,6 @@ NTSTATUS JpkfbtInstrumentProcedure(
 		type specified.
 --*/
 NTSTATUS JpkfbtIsKernelTypeSupported(
-	__in JPKFAG_KERNEL_TYPE KernelType,
+	__in JPKFBT_KERNEL_TYPE KernelType,
 	__out PBOOL Supported
 	);

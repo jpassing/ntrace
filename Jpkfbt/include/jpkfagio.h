@@ -7,6 +7,7 @@
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
+#include <jpkfbtaux.h>
 
 #define JPKFAG_TYPE					( ( ULONG )		0x8000 )
 #define JPKFAG_IOCTL_BASE			( ( USHORT )	0x1000 )
@@ -25,19 +26,13 @@
  * JPKFAG_IOCTL_INITIALIZE_TRACING
  *
  */
-typedef enum _JPKFAG_TRACING_TYPE
-{
-	JpkfagTracingTypeWmk = 0,
-	JpkfagTracingTypeMax = 0
-} JPKFAG_TRACING_TYPE;
-
 typedef struct _JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST
 {
-	JPKFAG_TRACING_TYPE Type;
+	JPKFBT_TRACING_TYPE Type;
 
 	//
 	// N.B. BufferCount and BufferSize must be 0 for tracing type
-	// JpkfagTracingTypeWmk.
+	// JpkfbtTracingTypeWmk.
 	//
 	ULONG BufferCount;
 	ULONG BufferSize;

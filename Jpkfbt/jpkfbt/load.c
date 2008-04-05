@@ -127,7 +127,7 @@ static NTSTATUS JpkfbtsOpenDriver(
  *
  */
 NTSTATUS JpkfbtpFindAgentImage(
-	__in JPKFAG_KERNEL_TYPE KernelType,
+	__in JPKFBT_KERNEL_TYPE KernelType,
 	__in SIZE_T PathCch,
 	__out_ecount( PathCch ) PWSTR Path
 	)
@@ -175,7 +175,7 @@ NTSTATUS JpkfbtpFindAgentImage(
 	case PROCESSOR_ARCHITECTURE_INTEL:
 		switch ( KernelType )
 		{
-		case JpkfagKernelWmk:
+		case JpkfbtKernelWmk:
 			//
 			// WMK Kernel.
 			//

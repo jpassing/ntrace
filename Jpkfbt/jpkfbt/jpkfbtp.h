@@ -16,7 +16,7 @@
 		Determine path of driver to load.
 --*/
 NTSTATUS JpkfbtpFindAgentImage(
-	__in JPKFAG_KERNEL_TYPE KernelType,
+	__in JPKFBT_KERNEL_TYPE KernelType,
 	__in SIZE_T PathCch,
 	__out_ecount( PathCch ) PWSTR Path
 	);
