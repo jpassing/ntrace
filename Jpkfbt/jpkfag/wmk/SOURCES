@@ -29,7 +29,8 @@ TARGETNAME=jpkfaw32
 
 TARGETLIBS=$(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_km_wrk.lib \
-		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwrkstb.lib
+		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwrkstb.lib \
+		   $(DDK_LIB_PATH)\aux_klib.lib
 		   
 TARGETPATH=..\..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DRIVER

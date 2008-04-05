@@ -27,7 +27,8 @@
  */
 typedef enum _JPKFAG_TRACING_TYPE
 {
-	JpkfagTracingTypeWmk = 0
+	JpkfagTracingTypeWmk = 0,
+	JpkfagTracingTypeMax = 0
 } JPKFAG_TRACING_TYPE;
 
 typedef struct _JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST
@@ -83,7 +84,7 @@ typedef struct _JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST
 
 /*----------------------------------------------------------------------
  *
- * JPKFAG_IOCTL_INITIALIZE_TRACING
+ * JPKFAG_IOCTL_INSTRUMENT_PROCEDURE
  *
  */
 typedef struct _JPKFAG_IOCTL_INSTRUMENT_PROCEDURE_REQUEST

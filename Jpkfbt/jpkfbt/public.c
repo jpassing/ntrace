@@ -288,7 +288,7 @@ NTSTATUS JpkfbtInstrumentProcedure(
 		NULL,
 		NULL,
 		&StatusBlock,
-		JPKFAG_IOCTL_SHUTDOWN_TRACING,
+		JPKFAG_IOCTL_INSTRUMENT_PROCEDURE,
 		Request,
 		SizeOfRequest,
 		&Response,
@@ -298,6 +298,7 @@ NTSTATUS JpkfbtInstrumentProcedure(
 
 	if ( NT_SUCCESS( Status ) )
 	{
+		ASSERT( StatusBlock.Information == 0 );
 		if ( FailedProcedure != NULL )
 		{
 			FailedProcedure->u.Procedure = NULL;
@@ -308,6 +309,9 @@ NTSTATUS JpkfbtInstrumentProcedure(
 	{
 		if ( Status == STATUS_KFBT_INSTRUMENTATION_FAILED )
 		{
+			ASSERT( StatusBlock.Information == 
+				sizeof( JPKFAG_IOCTL_INSTRUMENT_PROCEDURE_RESPONSE ) );
+
 			//
 			// Extended error information available, i.e. Response
 			// has been popuated.
@@ -320,6 +324,7 @@ NTSTATUS JpkfbtInstrumentProcedure(
 		}
 		else
 		{
+			ASSERT( StatusBlock.Information == 0 );
 			return Status;
 		}
 	}

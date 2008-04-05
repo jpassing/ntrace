@@ -54,43 +54,62 @@ void TestInitShutdownTracing()
 {
 	BOOL KernelSupported;
 	JPKFBT_SESSION Session;
+	JPKFAG_KERNEL_TYPE Type;
+	ULONG TypesTested = 0;
 
-	TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
-		JpkfagKernelWmk, &KernelSupported ) );
-	if ( ! KernelSupported )
+	for ( Type = JpkfagKernelRetail;
+		  Type <= JpkfagKernelMax;
+		  Type++ )
 	{
-		CFIX_INCONCLUSIVE( L"Kernel not WMK-compatible." );
+		JPKFAG_TRACING_TYPE TracingType;
+
+		TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
+			Type, &KernelSupported ) );
+		if ( ! KernelSupported )
+		{
+			continue;
+		}
+
+		TEST_SUCCESS( JpkfbtAttach( Type, &Session ) );
+		TEST( Session );
+		
+		//
+		// Invalid type.
+		//
+		TEST_STATUS( STATUS_INVALID_PARAMETER,
+			JpkfbtInitializeTracing(
+				Session,
+				JpkfagTracingTypeWmk + 1,
+				0,
+				0 ) );
+
+		//
+		// Shutdown without being started.
+		//
+		TEST_STATUS( STATUS_FBT_NOT_INITIALIZED, 
+			JpkfbtShutdownTracing( Session ) );
+
+		//
+		// Init & Shutdown using valid type.
+		//
+		for( TracingType = JpkfagTracingTypeWmk;
+			 TracingType <= JpkfagTracingTypeMax;
+			 TracingType++ )
+		{
+			TEST_SUCCESS( JpkfbtInitializeTracing(
+				Session,
+				TracingType,
+				0,
+				0 ) );
+			TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
+		}
+
+		TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
+
+		TypesTested++;
 	}
 
-	TEST_SUCCESS( JpkfbtAttach( JpkfagKernelWmk, &Session ) );
-	TEST( Session );
-	
-	//
-	// Invalid type.
-	//
-	TEST_STATUS( STATUS_INVALID_PARAMETER,
-		JpkfbtInitializeTracing(
-			Session,
-			JpkfagTracingTypeWmk + 1,
-			0,
-			0 ) );
-
-	//
-	// Shutdown without being started.
-	//
-	TEST_STATUS( STATUS_FBT_NOT_INITIALIZED, 
-		JpkfbtShutdownTracing( Session ) );
-
-	//
-	// Init & Shutdown using valid type.
-	//
-	TEST_SUCCESS( JpkfbtInitializeTracing(
-		Session,
-		JpkfagTracingTypeWmk,
-		0,
-		0 ) );
-	TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
-	TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
+	TEST( TypesTested > 0 );
 }
 
 //
@@ -100,110 +119,98 @@ void TestInstrumentFailures()
 {
 	JPFBT_PROCEDURE FailedProcedure;
 	BOOL KernelSupported;
-	//JPFBT_PROCEDURE PatchProcedureKm;
+	JPFBT_PROCEDURE PatchProcedureKm;
 	JPFBT_PROCEDURE PatchProcedureUm;
 	JPKFBT_SESSION Session;
+	JPKFAG_KERNEL_TYPE Type;
+	ULONG TypesTested = 0;
 
-	TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
-		JpkfagKernelWmk, &KernelSupported ) );
-	if ( ! KernelSupported )
+	for ( Type = JpkfagKernelRetail;
+		  Type <= JpkfagKernelMax;
+		  Type++ )
 	{
-		CFIX_INCONCLUSIVE( L"Kernel not WMK-compatible." );
+		TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
+			Type, &KernelSupported ) );
+		if ( ! KernelSupported )
+		{
+			continue;
+		}
+
+		TEST_SUCCESS( JpkfbtAttach( Type, &Session ) );
+		TEST( Session );
+
+		////
+		//// Tracing not initialized yet.
+		////
+		//TEST_STATUS( STATUS_FBT_NOT_INITIALIZED, 
+		//	JpkfbtInstrumentProcedure(
+		//		Session,
+		//		JpfbtAddInstrumentation,
+		//		?,
+		//		?,
+		//		&FailedProcedure ) );
+
+		//
+		// Init tracing.
+		//
+		PatchProcedureUm.u.ProcedureVa = 0x7F000F00;
+		PatchProcedureKm.u.ProcedureVa = 0x8F000F00;
+		
+		TEST_SUCCESS( JpkfbtInitializeTracing(
+			Session,
+			JpkfagTracingTypeWmk,
+			0,
+			0 ) );
+		
+		//
+		// Mem.
+		//
+		TEST_STATUS( STATUS_NO_MEMORY, 
+			JpkfbtInstrumentProcedure(
+				Session,
+				JpfbtAddInstrumentation,
+				0xF0000000,
+				&PatchProcedureUm,
+				&FailedProcedure ) );
+		TEST( FailedProcedure.u.Procedure == NULL );
+
+		//
+		// Procs.
+		//
+		TEST_STATUS( STATUS_INVALID_PARAMETER,
+			JpkfbtInstrumentProcedure(
+				Session,
+				JpfbtAddInstrumentation,
+				0,
+				NULL,
+				&FailedProcedure ) );
+		TEST( FailedProcedure.u.Procedure == NULL );
+
+		TEST_STATUS( STATUS_KFBT_PROC_OUTSIDE_SYSTEM_RANGE, 
+			JpkfbtInstrumentProcedure(
+				Session,
+				JpfbtAddInstrumentation,
+				1,
+				&PatchProcedureUm,
+				&FailedProcedure ) );
+		TEST( FailedProcedure.u.Procedure == PatchProcedureUm.u.Procedure );
+
+		TEST_STATUS( STATUS_KFBT_PROC_OUTSIDE_MODULE, 
+			JpkfbtInstrumentProcedure(
+				Session,
+				JpfbtAddInstrumentation,
+				1,
+				&PatchProcedureKm,
+				&FailedProcedure ) );
+		TEST( FailedProcedure.u.Procedure == PatchProcedureKm.u.Procedure );
+
+		TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
+		TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
+
+		TypesTested++;
 	}
 
-	TEST_SUCCESS( JpkfbtAttach( JpkfagKernelWmk, &Session ) );
-	TEST( Session );
-
-	//
-	// Tracing not initialized yet.
-	//
-	TEST_STATUS( STATUS_FBT_NOT_INITIALIZED, 
-		JpkfbtInstrumentProcedure(
-			Session,
-			JpfbtAddInstrumentation,
-			0,
-			NULL,
-			&FailedProcedure ) );
-
-	//
-	// Init tracing.
-	//
-	PatchProcedureUm.u.ProcedureVa = 0x7F000F00;
-	PatchProcedureKm.u.ProcedureVa = 0x8F000F00;
-	
-	TEST_SUCCESS( JpkfbtInitializeTracing(
-		Session,
-		JpkfagTracingTypeWmk,
-		0,
-		0 ) );
-	
-	//
-	// Invalid Action.
-	//
-	TEST_STATUS( STATUS_INVALID_PARAMETER, 
-		JpkfbtInstrumentProcedure(
-			Session,
-			JpfbtAddInstrumentation + 1,
-			0,
-			NULL,
-			&FailedProcedure ) );
-	TEST( FailedProcedure.u.Procedure == NULL );
-
-	TEST_STATUS( STATUS_INVALID_PARAMETER, 
-		JpkfbtInstrumentProcedure(
-			Session,
-			JpfbtAddInstrumentation + 1,
-			1,
-			&PatchProcedureUm,
-			&FailedProcedure ) );
-	TEST( FailedProcedure.u.Procedure == NULL );
-
-	//
-	// Mem.
-	//
-	TEST_STATUS( STATUS_NO_MEMORY, 
-		JpkfbtInstrumentProcedure(
-			Session,
-			JpfbtAddInstrumentation,
-			0xF0000000,
-			&PatchProcedureUm,
-			&FailedProcedure ) );
-	TEST( FailedProcedure.u.Procedure == NULL );
-
-	//
-	// Procs.
-	//
-	TEST_STATUS( STATUS_INVALID_PARAMETER, // ?
-		JpkfbtInstrumentProcedure(
-			Session,
-			JpfbtAddInstrumentation,
-			0,
-			NULL,
-			&FailedProcedure ) );
-	TEST( FailedProcedure.u.Procedure == NULL );
-
-	TEST_STATUS( STATUS_KFBT_PROC_OUTSIDE_SYSTEM_RANGE, 
-		JpkfbtInstrumentProcedure(
-			Session,
-			JpfbtAddInstrumentation,
-			1,
-			&PatchProcedureUm,
-			&FailedProcedure ) );
-	TEST( FailedProcedure.u.Procedure == PatchProcedureUm.u.Procedure );
-
-	//
-	//TEST_STATUS( STATUS_FBT_PROC_???, 
-	//	JpkfbtInstrumentProcedure(
-	//		Session,
-	//		JpfbtAddInstrumentation,
-	//		1,
-	//		&PatchProcedureUm,
-	//		&FailedProcedure ) );
-	//TEST( FailedProcedure.u.Procedure == PatchProcedureKm.u.Procedure );
-
-
-	TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
-	TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
+	TEST( TypesTested > 0 );
 }
 
 CFIX_BEGIN_FIXTURE( AttachDetach )

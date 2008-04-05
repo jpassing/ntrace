@@ -7,6 +7,7 @@
  */
 
 #include <ntddk.h>
+#include <aux_klib.h>
 #include "jpkfagp.h"
 
 #define JPKFAG_DEVICE_NT_NAME L"\\Device\\Jpkfag"
@@ -178,6 +179,15 @@ NTSTATUS DriverEntry(
 	NTSTATUS Status;
 
 	UNREFERENCED_PARAMETER( RegistryPath );
+
+	//
+	// We'll need AuxKlib.
+	//
+	Status = AuxKlibInitialize();
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
 
 	Status = PsSetCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
 	if ( ! NT_SUCCESS( Status ) )

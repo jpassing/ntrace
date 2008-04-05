@@ -93,6 +93,15 @@ Language		= English
 Attempt to instrument a user mode procedure.
 .
 
+MessageId		= 0x9309
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_KFBT_PROC_OUTSIDE_MODULE
+Language		= English
+Attempt to instrument a memory location outside all loaded modules.
+.
+
+
 ;//--------------------------------------------------------------------
 ;// Warnings
 ;//--------------------------------------------------------------------
