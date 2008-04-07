@@ -262,13 +262,16 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 		//
 		// Register.
 		//
-		JpfbtpAcquirePatchDatabaseLock();
-
+#if defined(JPFBT_TARGET_KERNELMODE)
+		ExInterlockedInsertTailList( 
+			&JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead,
+			&ThreadData->u.ListEntry,
+			&JpfbtpGlobalState->PatchDatabase.ThreadData.Lock );
+#else
 		InsertTailList( 
-			&JpfbtpGlobalState->PatchDatabase.ThreadDataListHead,
+			&JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead,
 			&ThreadData->u.ListEntry );
-
-		JpfbtpReleasePatchDatabaseLock();
+#endif
 	}
 
 	return ThreadData;
@@ -475,16 +478,9 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 		}
 
 		//
-		// Remove from list s.t. JpfbtUninitialize will not try to
-		// use this structure.
+		// There is no way to safely remove this entry from the 
+		// linked list. Therefore, do not free the structure - 
+		// JpfbtUninitialize will do it later.
 		//
-		JpfbtpAcquirePatchDatabaseLock();
-		RemoveEntryList( &ThreadData->u.ListEntry );
-		JpfbtpReleasePatchDatabaseLock();
-
-		//
-		// Thread data torn down, now free it.
-		//
-		JpfbtpFreeThreadData( ThreadData );
 	}
 }

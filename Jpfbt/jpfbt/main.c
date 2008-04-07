@@ -78,8 +78,12 @@ NTSTATUS JpfbtInitializeEx(
 			return STATUS_NO_MEMORY;
 		}
 		
-		InitializeListHead( &JpfbtpGlobalState->PatchDatabase.ThreadDataListHead );
-		
+		InitializeListHead( &JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead );
+
+#if defined(JPFBT_TARGET_KERNELMODE)
+		KeInitializeSpinLock( &JpfbtpGlobalState->PatchDatabase.ThreadData.Lock ); 
+#endif
+
 		JpfbtpGlobalState->UserPointer			  = UserPointer;
 
 		JpfbtpGlobalState->Routines.EntryEvent	  = EntryEventRoutine;
@@ -126,10 +130,12 @@ NTSTATUS JpfbtUninitialize()
 	//
 
 	//
-	// Free per-thread data.
+	// Free per-thread data. As we do not need to be threadsafe any
+	// more, we can safely walk the list and not use ExInterlocked*
+	// routines.
 	//
-	ListEntry = JpfbtpGlobalState->PatchDatabase.ThreadDataListHead.Flink;
-	while ( ListEntry != &JpfbtpGlobalState->PatchDatabase.ThreadDataListHead )
+	ListEntry = JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead.Flink;
+	while ( ListEntry != &JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead )
 	{
 		PLIST_ENTRY NextEntry = ListEntry->Flink;
 
@@ -154,7 +160,7 @@ NTSTATUS JpfbtUninitialize()
 			// Re-insert to list.
 			//
 			InsertHeadList(
-				&JpfbtpGlobalState->PatchDatabase.ThreadDataListHead,
+				&JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead,
 				ListEntry );
 
 			return STATUS_FBT_PATCHES_ACTIVE;			

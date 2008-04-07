@@ -290,7 +290,18 @@ typedef struct _JPFBT_GLOBAL_DATA
 		//
 		// List of JPFBT_THREAD_DATA structs.
 		//
-		LIST_ENTRY ThreadDataListHead;
+		// In kernel mode, the list MUST be modified with ExInterlocked* 
+		// routines. The patch database lock is not required.
+		//
+		// In user mode, the patch database lock must be held.
+		//
+		struct
+		{
+#if defined(JPFBT_TARGET_KERNELMODE)
+			KSPIN_LOCK Lock;
+#endif
+			LIST_ENTRY ListHead;
+		} ThreadData;
 	} PatchDatabase;
 
 #if defined(JPFBT_TARGET_USERMODE)
