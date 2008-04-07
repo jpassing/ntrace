@@ -75,7 +75,7 @@ static BOOL JpfsvsCheckTracabilityFilter(
 {
 	BOOL Hotpatchable;
 	UINT PaddingCapacity;
-	HRESULT Hr = JpfbtIsProcedureHotpatchable(
+	HRESULT Hr = JpfsvIsProcedureHotpatchable(
 		JpfsvGetProcessHandleContext( Ctx->ContextHandle ),
 		( DWORD_PTR ) SymInfo->Address,
 		&Hotpatchable );
@@ -94,7 +94,7 @@ static BOOL JpfsvsCheckTracabilityFilter(
 		return FALSE;
 	}
 
-	Hr = JpfbtGetProcedurePaddingSize(
+	Hr = JpfsvGetProcedurePaddingSize(
 		JpfsvGetProcessHandleContext( Ctx->ContextHandle ),
 		( DWORD_PTR ) SymInfo->Address,
 		&PaddingCapacity );
@@ -194,7 +194,19 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 	//
 	if ( Action == JpfsvAddTracepoint )
 	{
-		Ctx.Filter = JpfsvsCheckTracabilityFilter;
+		if ( Process == JPFSV_KERNEL_PSEUDO_HANDLE )
+		{
+			//
+			// For kernel mode, we cannot check tracability. The kernel
+			// agent will check it, but it will reject all tracepoints
+			// as soon as one is invalid.
+			//
+			Ctx.Filter = NULL;
+		}
+		else
+		{
+			Ctx.Filter = JpfsvsCheckTracabilityFilter;
+		}
 	}
 	else
 	{

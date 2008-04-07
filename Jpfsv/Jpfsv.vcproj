@@ -235,6 +235,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\include\jpkfbt.h"
+				>
+			</File>
+			<File
 				RelativePath="..\include\jpufbt.h"
 				>
 			</File>

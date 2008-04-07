@@ -180,6 +180,7 @@ typedef struct _JPFSV_TRACE_SESSION
 --*/
 HRESULT JpfsvpCreateProcessTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_TRACING_TYPE TracingType,
 	__out PJPFSV_TRACE_SESSION *Session
 	);
 
@@ -190,6 +191,7 @@ HRESULT JpfsvpCreateProcessTraceSession(
 --*/
 HRESULT JpfsvpCreateKernelTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_TRACING_TYPE TracingType,
 	__out PJPFSV_TRACE_SESSION *Session
 	);
 

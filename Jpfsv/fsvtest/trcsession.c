@@ -36,7 +36,7 @@ static BOOL AddProcedureSymCallback(
 		BOOL Hotpatchable;
 		UINT PaddingSize;
 
-		TEST_OK( JpfbtIsProcedureHotpatchable(
+		TEST_OK( JpfsvIsProcedureHotpatchable(
 			Set->Process,
 			( DWORD_PTR ) SymInfo->Address,
 			&Hotpatchable ) );
@@ -46,7 +46,7 @@ static BOOL AddProcedureSymCallback(
 			return TRUE;
 		}
 
-		TEST_OK( JpfbtGetProcedurePaddingSize(
+		TEST_OK( JpfsvGetProcedurePaddingSize(
 			Set->Process,
 			( DWORD_PTR ) SymInfo->Address,
 			&PaddingSize ) );
@@ -163,7 +163,7 @@ static VOID TeardownTrcSession()
 
 /*----------------------------------------------------------------------
  *
- * Test cases.
+ * Test Notepad.
  *
  */
 
@@ -185,8 +185,11 @@ static VOID TestAttachDetachNotepad()
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
 
 	TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( NpCtx ) );
-	TEST_OK( JpfsvAttachContext( NpCtx ) );
-	TEST( S_FALSE == JpfsvAttachContext( NpCtx ) );
+	TEST( JPFSV_E_UNSUPPORTED_TRACING_TYPE == 
+		JpfsvAttachContext( NpCtx, JpfsvTracingTypeWmk ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
+	TEST( S_FALSE == JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
+	TEST( S_FALSE == JpfsvAttachContext( NpCtx, JpfsvTracingTypeWmk ) );
 
 	//
 	// Check that ufag has been loaded.
@@ -246,9 +249,9 @@ static VOID TestTraceNotepad()
 	// Start a trace.
 	//
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
-	TEST( JPFSV_E_NO_TRACESESSION == JpfsvpGetTracepointContext( NpCtx, 0xF00, &Tracepnt ) );
+	TEST( JPFSV_E_NO_TRACESESSION == JpfsvGetTracepointContext( NpCtx, 0xF00, &Tracepnt ) );
 
-	TEST_OK( JpfsvAttachContext( NpCtx ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
 
 	//
 	// Instrument some procedures.
@@ -299,12 +302,12 @@ static VOID TestTraceNotepad()
 	TEST( Tracepoints > Set.Count / 2 );	// Duplicate-cleaned!
 	TEST( Tracepoints <= Set.Count );
 
-	TEST_OK( JpfsvpGetTracepointContext( NpCtx, Set.Procedures[ 0 ], &Tracepnt ) );
+	TEST_OK( JpfsvGetTracepointContext( NpCtx, Set.Procedures[ 0 ], &Tracepnt ) );
 	TEST( Tracepnt.Procedure == Set.Procedures[ 0 ] );
 	TEST( wcslen( Tracepnt.SymbolName ) );
 	TEST( wcslen( Tracepnt.ModuleName ) );
 
-	TEST( JPFSV_E_TRACEPOINT_NOT_FOUND == JpfsvpGetTracepointContext( NpCtx, 0xBA2, &Tracepnt ) );
+	TEST( JPFSV_E_TRACEPOINT_NOT_FOUND == JpfsvGetTracepointContext( NpCtx, 0xBA2, &Tracepnt ) );
 
 	//
 	// Count enum callbacks.
@@ -407,7 +410,7 @@ static VOID TestTraceNotepadAndDoHarshCleanup()
 	// Start a trace.
 	//
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
-	TEST_OK( JpfsvAttachContext( NpCtx ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
 
 	//
 	// Instrument some procedures.
@@ -474,7 +477,7 @@ static VOID TestDyingPeerWithoutTracing()
 	Sleep( 1000 );
 
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
-	TEST_OK( JpfsvAttachContext( NpCtx ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
 
 	Set.Count = 0;
 	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
@@ -545,7 +548,7 @@ static VOID TestDyingPeerWithTracing()
 	Sleep( 1000 );
 
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
-	TEST_OK( JpfsvAttachContext( NpCtx ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
 
 	Set.Count = 0;
 	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
@@ -598,6 +601,213 @@ static VOID TestDyingPeerWithTracing()
 	Sleep( 1000 );
 }
 
+/*----------------------------------------------------------------------
+ *
+ * Test Kernel.
+ *
+ */
+static VOID TestAttachDetachKernel()
+{
+	HRESULT Hr;
+	JPFSV_HANDLE KernelCtx;
+	JPFSV_TRACING_TYPE TracingType;
+	ULONG TypesTested= 0;
+	
+	for ( TracingType = JpfsvTracingTypeDefault;
+		  TracingType <= JpfsvTracingTypeMax;
+		  TracingType++ )
+	{
+		Hr = JpfsvLoadContext( JPFSV_KERNEL, NULL, &KernelCtx );
+		if ( Hr == JPFSV_E_UNSUP_ON_WOW64 )
+		{
+			CFIX_INCONCLUSIVE( L"Not supported on WOW64" );
+			return;
+		}
+		TEST_OK( Hr );
+
+		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx ) );
+		
+		Hr = JpfsvAttachContext( KernelCtx, TracingType );
+		if ( Hr == JPFSV_E_UNSUPPORTED_TRACING_TYPE )
+		{
+			continue;
+		}
+
+		TEST_OK( Hr );
+
+		TEST_OK( JpfsvAttachContext( KernelCtx, JpfsvTracingTypeWmk ) );
+		TEST( S_FALSE == JpfsvAttachContext( KernelCtx, JpfsvTracingTypeWmk ) );
+
+		TEST_OK( DetachContextSafe( KernelCtx ) );
+		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx ) );
+
+		TEST_OK( JpfsvUnloadContext( KernelCtx ) );
+		TypesTested++;
+	}
+
+	if ( TypesTested == 0 )
+	{
+		CFIX_INCONCLUSIVE( L"No TracingTypes supported" );
+	}
+}
+
+static VOID TestTraceKernel()
+{
+	PROC_SET Set;
+	DWORD_PTR FailedProc;
+	UINT Tracepoints, Count;
+	UINT EnumCount = 0;
+	JPFSV_TRACEPOINT Tracepnt;
+	HRESULT Hr;
+	JPFSV_HANDLE KernelCtx;
+	JPFSV_TRACING_TYPE TracingType;
+	ULONG TypesTested = 0;
+	
+	TEST_OK( CdiagCreateSession( NULL, NULL, &DiagSession ) );
+
+	for ( TracingType = JpfsvTracingTypeDefault;
+		  TracingType <= JpfsvTracingTypeMax;
+		  TracingType++ )
+	{
+		//
+		// Start a trace.
+		//
+		Hr = JpfsvLoadContext( JPFSV_KERNEL, NULL, &KernelCtx );
+		if ( Hr == JPFSV_E_UNSUP_ON_WOW64 )
+		{
+			CFIX_INCONCLUSIVE( L"Not supported on WOW64" );
+			return;
+		}
+		TEST_OK( Hr );
+		
+		TEST( JPFSV_E_NO_TRACESESSION == 
+			JpfsvGetTracepointContext( KernelCtx, 0xF00, &Tracepnt ) );
+
+		Hr = JpfsvAttachContext( KernelCtx, TracingType );
+		if ( Hr == JPFSV_E_UNSUPPORTED_TRACING_TYPE )
+		{
+			continue;
+		}
+
+		TEST_OK( Hr );
+
+		//
+		// Instrument some procedures.
+		//
+		Set.Count = 0;
+		Set.Process = JpfsvGetProcessHandleContext( KernelCtx );
+		TEST( Set.Process );
+
+		TEST( SymEnumSymbols(
+			Set.Process,
+			0,
+			L"tcpip!*",
+			AddProcedureSymCallback,
+			&Set ) );
+
+		TEST_OK( JpfsvStartTraceContext(
+			KernelCtx,
+			5,
+			1024,
+			DiagSession ) );
+		TEST( E_UNEXPECTED == JpfsvStartTraceContext(
+			KernelCtx,
+			5,
+			1024,
+			DiagSession ) );
+
+		TEST( Set.Count > 0 );
+
+		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Count ) );
+		TEST( 0 == Count );
+
+		TEST_OK( JpfsvSetTracePointsContext(
+			KernelCtx,
+			JpfsvAddTracepoint,
+			Set.Count,
+			Set.Procedures,
+			&FailedProc ) );
+		// again - should be a noop.
+		TEST_OK( JpfsvSetTracePointsContext(
+			KernelCtx,
+			JpfsvAddTracepoint,
+			Set.Count,
+			Set.Procedures,
+			&FailedProc ) );
+		TEST( FailedProc == 0 );
+
+		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Tracepoints ) );
+		TEST( Tracepoints > Set.Count / 2 );	// Duplicate-cleaned!
+		TEST( Tracepoints <= Set.Count );
+
+		TEST_OK( JpfsvGetTracepointContext( KernelCtx, Set.Procedures[ 0 ], &Tracepnt ) );
+		TEST( Tracepnt.Procedure == Set.Procedures[ 0 ] );
+		TEST( wcslen( Tracepnt.SymbolName ) );
+		TEST( wcslen( Tracepnt.ModuleName ) );
+
+		TEST( JPFSV_E_TRACEPOINT_NOT_FOUND == JpfsvGetTracepointContext( KernelCtx, 0xBA2, &Tracepnt ) );
+
+		//
+		// Count enum callbacks.
+		//
+		TEST_OK( JpfsvEnumTracePointsContext(
+			KernelCtx,
+			CountTracepointsCallback,
+			&EnumCount ) );
+		TEST( EnumCount == Tracepoints );
+
+		//
+		// Stop while tracing active -> implicitly revoke all tracepoints.
+		//
+		TEST_OK( JpfsvStopTraceContext( KernelCtx ) );
+		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Count ) );
+		TEST( 0 == Count );
+
+		//
+		// Trace again.
+		//
+		TEST_OK( JpfsvStartTraceContext(
+			KernelCtx,
+			5,
+			1024,
+			DiagSession ) );
+		TEST_OK( JpfsvSetTracePointsContext(
+			KernelCtx,
+			JpfsvAddTracepoint,
+			Set.Count,
+			Set.Procedures,
+			&FailedProc ) );
+		TEST( FailedProc == 0 );
+
+		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Count ) );
+		TEST( Tracepoints == Count );
+
+		//
+		// Clean shutdown.
+		//
+		TEST_OK( JpfsvSetTracePointsContext(
+			KernelCtx,
+			JpfsvRemoveTracepoint,
+			Set.Count,
+			Set.Procedures,
+			&FailedProc ) );
+		TEST( FailedProc == 0 );
+
+		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Count ) );
+		TEST( 0 == Count );
+
+		TEST_OK( JpfsvStopTraceContext( KernelCtx ) );
+		TEST_OK( DetachContextSafe( KernelCtx ) );
+		TEST_OK( JpfsvUnloadContext( KernelCtx ) );
+
+		TEST_OK( CdiagDereferenceSession( DiagSession ) );
+	}
+
+	if ( TypesTested == 0 )
+	{
+		CFIX_INCONCLUSIVE( L"No TracingTypes supported" );
+	}
+}
 
 CFIX_BEGIN_FIXTURE( TraceSession )
 	CFIX_FIXTURE_SETUP( SetupTrcSession )
@@ -607,4 +817,6 @@ CFIX_BEGIN_FIXTURE( TraceSession )
 	CFIX_FIXTURE_ENTRY( TestTraceNotepadAndDoHarshCleanup )
 	CFIX_FIXTURE_ENTRY( TestDyingPeerWithoutTracing )
 	CFIX_FIXTURE_ENTRY( TestDyingPeerWithTracing )
+	CFIX_FIXTURE_ENTRY( TestAttachDetachKernel )
+	CFIX_FIXTURE_ENTRY( TestTraceKernel )
 CFIX_END_FIXTURE()

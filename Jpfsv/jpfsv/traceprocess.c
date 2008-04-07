@@ -367,7 +367,7 @@ static HRESULT JpfsvsStopProcessTraceSession(
 	return Hr;
 }
 
-static HRESULT JpfsvsInstrumentProcedureTraceSession(
+static HRESULT JpfsvsInstrumentProcedureProcessTraceSession(
 	__in PJPFSV_TRACE_SESSION This,
 	__in JPFSV_TRACE_ACTION Action,
 	__in UINT ProcedureCount,
@@ -478,6 +478,7 @@ static HRESULT JpfsvsDereferenceProcessTraceSession(
  */
 HRESULT JpfsvpCreateProcessTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_TRACING_TYPE TracingType,
 	__out PJPFSV_TRACE_SESSION *TraceSessionHandle
 	)
 {
@@ -488,6 +489,11 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	if ( ! ContextHandle || ! TraceSessionHandle )
 	{
 		return E_INVALIDARG;
+	}
+
+	if ( TracingType != JpfsvTracingTypeDefault )
+	{
+		return JPFSV_E_UNSUPPORTED_TRACING_TYPE;
 	}
 
 	//
@@ -515,7 +521,7 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	//
 	TempSession->Base.Start					= JpfsvsStartProcessTraceSession;
 	TempSession->Base.Stop					= JpfsvsStopProcessTraceSession;
-	TempSession->Base.InstrumentProcedure	= JpfsvsInstrumentProcedureTraceSession;
+	TempSession->Base.InstrumentProcedure	= JpfsvsInstrumentProcedureProcessTraceSession;
 	TempSession->Base.Reference				= JpfsvsReferenceProcessTraceSession;
 	TempSession->Base.Dereference			= JpfsvsDereferenceProcessTraceSession;
 

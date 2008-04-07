@@ -16,7 +16,7 @@ typedef struct _JPFSVP_DIAG_EVENT_PROCESSOR
 	JPFSV_HANDLE ContextHandle;
 
 	//
-	// Cdiag session (refereced).
+	// Cdiag session (referenced).
 	//
 	CDIAG_SESSION_HANDLE DiagSession;
 } JPFSVP_DIAG_EVENT_PROCESSOR, *PJPFSVP_DIAG_EVENT_PROCESSOR;
@@ -42,7 +42,7 @@ static VOID JpfsvsProcessEventDiagEvProc(
 	PCWSTR ModName = NULL;
 	PCWSTR SymName = NULL;
 	
-	Hr = JpfsvpGetTracepointContext(
+	Hr = JpfsvGetTracepointContext(
 		Processor->ContextHandle,
 		Procedure.u.ProcedureVa,
 		&Tracepoint );

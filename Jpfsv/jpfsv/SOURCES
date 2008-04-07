@@ -21,6 +21,7 @@ USE_LIBCMT=1
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(SDK_LIB_PATH)\shell32.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib \
+		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpkfbt.lib \
 		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(SDK_LIB_PATH)\psapi.lib \
 		   $(MAKEDIR)\..\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib \

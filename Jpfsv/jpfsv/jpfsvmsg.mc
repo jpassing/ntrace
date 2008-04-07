@@ -82,3 +82,12 @@ SymbolicName	= JPFSV_E_ARCH_MISMATCH
 Language		= English
 Mismatch between CPU architectures (32 vs 64 bit).
 .
+
+MessageId		= 0x9008
+Severity		= Warning
+Facility		= Interface
+SymbolicName	= JPFSV_E_UNSUPPORTED_TRACING_TYPE
+Language		= English
+Unsupported tracing type.
+.
+

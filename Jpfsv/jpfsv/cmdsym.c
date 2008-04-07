@@ -65,7 +65,7 @@ static BOOL JpfsvsOutputSymbol(
 		Alignment = 0;
 	}
 
-	Hr = JpfbtIsProcedureHotpatchable(
+	Hr = JpfsvIsProcedureHotpatchable(
 		Ctx->Process,
 		( DWORD_PTR ) SymInfo->Address,
 		&Hotpatchable );
@@ -74,7 +74,7 @@ static BOOL JpfsvsOutputSymbol(
 		if ( Hotpatchable )
 		{
 			UINT PaddingSize;
-			Hr = JpfbtGetProcedurePaddingSize(
+			Hr = JpfsvGetProcedurePaddingSize(
 				Ctx->Process,
 				( DWORD_PTR ) SymInfo->Address,
 				&PaddingSize );

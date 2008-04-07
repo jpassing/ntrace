@@ -17,9 +17,10 @@ BOOL JpfsvpAttachCommand(
 	__in PCWSTR* Argv
 	)
 {
-	DWORD BufferCount = 64;
-	DWORD BufferSize = 1024;
+	DWORD BufferCount;
+	DWORD BufferSize;
 	HRESULT Hr;
+	JPFSV_TRACING_TYPE TracingType;
 
 	UNREFERENCED_PARAMETER( CommandName );
 
@@ -27,29 +28,42 @@ BOOL JpfsvpAttachCommand(
 	{
 		JpfsvpOutput( 
 			ProcessorState, 
-			L"Usage: .attach [BufferCount [BufferSize]]\n" );
+			L"Usage: .attach [wmk | [BufferCount [BufferSize]]]\n" );
 		return TRUE;
 	}
 
-	if ( Argc >= 1 )
+	if ( Argc == 1 && 0 == _wcsicmp( Argv[ 0 ], L"wmk" ) )
 	{
-		PWSTR Remaining;
-		if ( ! JpfsvpParseInteger( Argv[ 0 ], &Remaining, &BufferCount ) )
-		{
-			JpfsvpOutput( 
-				ProcessorState, L"Invalid buffer count.\n" );
-			return FALSE;
-		}
+		TracingType = JpfsvTracingTypeWmk;
+		BufferCount = 0;
+		BufferSize  = 0;
 	}
-
-	if ( Argc >= 2 )
+	else
 	{
-		PWSTR Remaining;
-		if ( ! JpfsvpParseInteger( Argv[ 1 ], &Remaining, &BufferSize ) )
+		TracingType = JpfsvTracingTypeDefault;
+		BufferCount = 64;
+		BufferSize  = 1024;
+		
+		if ( Argc >= 1 )
 		{
-			JpfsvpOutput( 
-				ProcessorState, L"Invalid buffer size.\n" );
-			return FALSE;
+			PWSTR Remaining;
+			if ( ! JpfsvpParseInteger( Argv[ 0 ], &Remaining, &BufferCount ) )
+			{
+				JpfsvpOutput( 
+					ProcessorState, L"Invalid buffer count.\n" );
+				return FALSE;
+			}
+		}
+
+		if ( Argc >= 2 )
+		{
+			PWSTR Remaining;
+			if ( ! JpfsvpParseInteger( Argv[ 1 ], &Remaining, &BufferSize ) )
+			{
+				JpfsvpOutput( 
+					ProcessorState, L"Invalid buffer size.\n" );
+				return FALSE;
+			}
 		}
 	}
 
@@ -59,7 +73,7 @@ BOOL JpfsvpAttachCommand(
 		BufferCount,
 		BufferSize );
 
-	Hr = JpfsvAttachContext( ProcessorState->Context );
+	Hr = JpfsvAttachContext( ProcessorState->Context, TracingType );
 	if ( SUCCEEDED( Hr ) )
 	{
 		Hr = JpfsvStartTraceContext( 

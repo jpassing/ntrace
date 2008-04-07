@@ -79,11 +79,6 @@ static struct
  *
  */
 
-//
-// Used as pseudo process handle for dbghelp.
-//
-#define KERNEL_PSEUDO_HANDLE ( ( HANDLE ) ( DWORD_PTR ) 0xF0F0F0F0 )
-
 /*++
 	Routine Description:
 		Load kernel modules. For the kernel, SymInitialize
@@ -187,7 +182,7 @@ static HRESULT JpfsvsCreateContext(
 		//
 		// Use a pseudo-handle.
 		//
-		ProcessHandle = KERNEL_PSEUDO_HANDLE;
+		ProcessHandle = JPFSV_KERNEL_PSEUDO_HANDLE;
 		AutoLoadModules = FALSE;
 	}
 	else
@@ -306,7 +301,7 @@ Cleanup:
 				SymCleanup( ProcessHandle );
 			}
 
-			if ( ProcessHandle != KERNEL_PSEUDO_HANDLE )
+			if ( ProcessHandle != JPFSV_KERNEL_PSEUDO_HANDLE )
 			{
 				CloseHandle( ProcessHandle );
 			}
@@ -349,7 +344,7 @@ static HRESULT JpfsvsDeleteContext(
 
 	SymCleanup( Context->ProcessHandle );
 
-	if ( KERNEL_PSEUDO_HANDLE != Context->ProcessHandle )
+	if ( JPFSV_KERNEL_PSEUDO_HANDLE != Context->ProcessHandle )
 	{
 		CloseHandle( Context->ProcessHandle );
 	} 
@@ -620,7 +615,7 @@ DWORD JpfsvGetProcessIdContext(
 	ASSERT( Context && Context->Signature == JPFSV_CONTEXT_SIGNATURE );
 	if ( Context && Context->Signature == JPFSV_CONTEXT_SIGNATURE )
 	{
-		if ( Context->ProcessHandle == KERNEL_PSEUDO_HANDLE )
+		if ( Context->ProcessHandle == JPFSV_KERNEL_PSEUDO_HANDLE )
 		{
 			//
 			// Kernel context.
@@ -692,7 +687,8 @@ HRESULT JpfsvLoadModuleContext(
 }
 
 HRESULT JpfsvAttachContext(
-	__in JPFSV_HANDLE ContextHandle
+	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_TRACING_TYPE TracingType
 	)
 {
 	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
@@ -719,13 +715,14 @@ HRESULT JpfsvAttachContext(
 		//
 		// Create a new session.
 		//
-		if ( Context->ProcessHandle == KERNEL_PSEUDO_HANDLE )
+		if ( Context->ProcessHandle == JPFSV_KERNEL_PSEUDO_HANDLE )
 		{
 			//
 			// Kernel context.
 			//
 			Hr = JpfsvpCreateKernelTraceSession(
 				ContextHandle,
+				TracingType,
 				&TraceSession );
 		}
 		else
@@ -735,6 +732,7 @@ HRESULT JpfsvAttachContext(
 			//
 			Hr = JpfsvpCreateProcessTraceSession(
 				ContextHandle,
+				TracingType,
 				&TraceSession );
 		}
 
@@ -1192,7 +1190,7 @@ HRESULT JpfsvEnumTracePointsContext(
 	return S_OK;
 }
 
-HRESULT JpfsvpGetTracepointContext(
+HRESULT JpfsvGetTracepointContext(
 	__in JPFSV_HANDLE ContextHandle,
 	__in DWORD_PTR Procedure,
 	__out PJPFSV_TRACEPOINT Tracepoint

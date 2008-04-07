@@ -31,6 +31,12 @@ typedef struct _JPFSV_TRACEPOINT
 	WCHAR SymbolName[ JPFSVP_MAX_SYMBOL_NAME_CCH ];
 } JPFSV_TRACEPOINT, *PJPFSV_TRACEPOINT;
 
+typedef enum _JPFSV_TRACING_TYPE
+{
+	JpfsvTracingTypeDefault = 0,
+	JpfsvTracingTypeWmk = 1,
+	JpfsvTracingTypeMax = 1
+} JPFSV_TRACING_TYPE;
 
 /*++
 	Routine Description:
@@ -41,9 +47,11 @@ typedef struct _JPFSV_TRACEPOINT
 
 	Parameters:
 		ContextHandle	Context to attach to.
+		TracingType		Type of tracing to use.
 --*/
 HRESULT JpfsvAttachContext(
-	__in JPFSV_HANDLE ContextHandle
+	__in JPFSV_HANDLE ContextHandle,
+	__in JPFSV_TRACING_TYPE TracingType
 	);
 
 /*++
@@ -180,7 +188,7 @@ BOOL JpfsvExistsTracepointContext(
 
 	Return Value: S_OK or JPFSV_E_TRACEPOINT_NOT_FOUND.
 --*/
-HRESULT JpfsvpGetTracepointContext(
+HRESULT JpfsvGetTracepointContext(
 	__in JPFSV_HANDLE ContextHandle,
 	__in DWORD_PTR Procedure,
 	__out PJPFSV_TRACEPOINT Tracepoint
@@ -191,7 +199,7 @@ HRESULT JpfsvpGetTracepointContext(
 		Determine if a procedure is hotpatchable 
 		(i.e. compiled with /hotpatch).
 --*/
-HRESULT JpfbtIsProcedureHotpatchable(
+HRESULT JpfsvIsProcedureHotpatchable(
 	__in HANDLE Process,
 	__in DWORD_PTR ProcAddress,
 	__out PBOOL Hotpatchable
@@ -202,7 +210,7 @@ HRESULT JpfbtIsProcedureHotpatchable(
 		Determine padding of a procedure
 		(i.e. linked with /functionpadmin:?).
 --*/
-HRESULT JpfbtGetProcedurePaddingSize(
+HRESULT JpfsvGetProcedurePaddingSize(
 	__in HANDLE Process,
 	__in DWORD_PTR ProcAddress,
 	__out PUINT PaddingSize
@@ -327,6 +335,14 @@ HRESULT JpfsvCloseEnum(
  * Context management.
  *
  */
+
+/*++
+	Used as pseudo process handle for dbghelp.
+--*/
+#define JPFSV_KERNEL_PSEUDO_HANDLE ( ( HANDLE ) ( DWORD_PTR ) 0xF0F0F0F0 )
+
+
+
 /*++
 	Routine Description:
 		Loads the context for the given process, s.t. dbghelp
@@ -375,7 +391,8 @@ HRESULT JpfsvUnloadContext(
 
 /*++
 	Routine Description:
-		Retrieves the process handle of the given context.
+		Retrieves the process handle of the given context. The handle
+		return might be JPFSV_KERNEL_PSEUDO_HANDLE.
 
 		Routine is threadsafe.
 --*/
