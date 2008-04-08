@@ -261,6 +261,16 @@ static HRESULT JpfsvsCreateContext(
 	}
 	else
 	{
+		DWORD AdditionalOptions = 
+			SYMOPT_DEFERRED_LOADS |
+			SYMOPT_CASE_INSENSITIVE |
+			SYMOPT_UNDNAME;
+#if DBG
+		AdditionalOptions |= SYMOPT_DEBUG;
+#endif
+
+		SymSetOptions( SymGetOptions() | AdditionalOptions );
+
 		SymInitialized = TRUE;
 		Hr = S_OK;
 	}

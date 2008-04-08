@@ -426,3 +426,10 @@ BOOL JpfsvpListTracepointsCommand(
 	__in UINT Argc,
 	__in PCWSTR* Argv
 	);
+
+BOOL JpfsvpSymolSearchPath(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv
+	);

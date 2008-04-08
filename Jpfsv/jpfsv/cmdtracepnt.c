@@ -131,7 +131,8 @@ static BOOL JpfsvsSearchTracepointsCallback(
 
 	UNREFERENCED_PARAMETER( SymbolCapacity );
 
-	if ( ! ( SymInfo->Flags & ( SYMFLAG_EXPORT | SYMFLAG_FUNCTION ) ) )
+	if ( SymInfo->Tag !=  5 /* SymTagFunction */ &&
+		 SymInfo->Tag != 10 /* SymTagPublicSymbol */ )
 	{
 		//
 		// Types etc are irrelevant here.

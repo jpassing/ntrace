@@ -143,3 +143,34 @@ BOOL JpfsvpSearchSymbolCommand(
 
 	return TRUE;
 }
+
+BOOL JpfsvpSymolSearchPath(
+	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
+	__in PCWSTR CommandName,
+	__in UINT Argc,
+	__in PCWSTR* Argv
+	)
+{
+	WCHAR SymPath[ 256 ];
+
+	UNREFERENCED_PARAMETER( CommandName );
+	UNREFERENCED_PARAMETER( Argc );
+	UNREFERENCED_PARAMETER( Argv );
+
+	if ( SymGetSearchPath( 
+		JpfsvGetProcessHandleContext( ProcessorState->Context ),
+		SymPath,
+		_countof( SymPath ) ) )
+	{
+		JpfsvpOutput( 
+			ProcessorState,
+			L"%s\n", 
+			SymPath );
+	}
+	else
+	{
+		JpfsvpOutputError(
+			ProcessorState,
+			GetLastError() );
+	}
+}

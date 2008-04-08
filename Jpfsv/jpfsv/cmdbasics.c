@@ -10,10 +10,26 @@
 #include <stdlib.h>
 #include "internal.h"
 
+#define DBGHELP_TRANSLATE_TCHAR
+#include <dbghelp.h>
+
 #pragma warning( push )
 #pragma warning( disable: 6011; disable: 6387 )
 #include <strsafe.h>
 #pragma warning( pop )
+
+static PWSTR JpfsvsSymTypes[] =
+{
+	L"None",
+	L"Coff",
+	L"Cv",
+	L"Pdb",
+	L"Export",
+	L"Deferred",
+	L"Sym",     
+	L"Dia",
+	L"Virtual",
+};
 
 VOID JpfsvpOutputError( 
 	__in PJPFSV_COMMAND_PROCESSOR_STATE ProcessorState,
@@ -305,6 +321,7 @@ BOOL JpfsvpListModulesCommand(
 	for ( ;; )
 	{
 		WCHAR Buffer[ 100 ];
+		IMAGEHLP_MODULE64 ModuleInfo;
 
 		Hr = JpfsvGetNextItem( Enum, &Mod );
 		if ( S_FALSE == Hr )
@@ -318,13 +335,37 @@ BOOL JpfsvpListModulesCommand(
 			break;
 		}
 
-		if ( SUCCEEDED( StringCchPrintf(
-			Buffer,
-			_countof( Buffer ),
-			L"%08x %08x %s\n",
+		ModuleInfo.SizeOfStruct = sizeof( IMAGEHLP_MODULE64 );
+		if ( SymGetModuleInfo64( 
+			JpfsvGetProcessHandleContext( ProcessorState->Context ),
 			Mod.LoadAddress,
-			Mod.ModuleSize,
-			Mod.ModuleName ) ) )
+			&ModuleInfo ) )
+		{
+			PWSTR SymType = ModuleInfo.SymType < _countof( JpfsvsSymTypes )
+				? JpfsvsSymTypes[ ModuleInfo.SymType ]
+				: L"unknown";
+
+			Hr = StringCchPrintf(
+				Buffer,
+				_countof( Buffer ),
+				L"%08x %08x %-16s (%s)\n",
+				Mod.LoadAddress,
+				Mod.ModuleSize,
+				Mod.ModuleName,
+				SymType );
+		}
+		else
+		{
+			Hr = StringCchPrintf(
+				Buffer,
+				_countof( Buffer ),
+				L"%08x %08x %s\n",
+				Mod.LoadAddress,
+				Mod.ModuleSize,
+				Mod.ModuleName );
+		}
+
+		if ( SUCCEEDED( Hr ) )
 		{
 			( ProcessorState->OutputRoutine ) ( Buffer );
 		}

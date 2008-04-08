@@ -68,16 +68,17 @@ static BOOL JpfsvsHelp(
 
 static JPFSV_COMMAND JpfsvsBuiltInCommands[] =
 {
-	{ { L"?" }		, JpfsvsHelp					, L"Help" },
-	{ { L"echo" }	, JpfsvpEchoCommand				, L"Echo a string" },
-	{ { L"|" }		, JpfsvpListProcessesCommand	, L"List processes" },
-	{ { L"lm" }		, JpfsvpListModulesCommand		, L"List modules" },
-	{ { L".attach" }, JpfsvpAttachCommand			, L"Attach to current process" },
-	{ { L".detach" }, JpfsvpDetachCommand			, L"Detach from current process" },
-	{ { L"tp" }		, JpfsvpSetTracepointCommand	, L"Set tracepoint" },
-	{ { L"tc" }		, JpfsvpClearTracepointCommand	, L"Clear tracepoint" },
-	{ { L"tl" }		, JpfsvpListTracepointsCommand	, L"List tracepoints" },
-	{ { L"x" }		, JpfsvpSearchSymbolCommand		, L"Search symbol" },
+	{ { L"?" }			, JpfsvsHelp					, L"Help" },
+	{ { L"echo" }		, JpfsvpEchoCommand				, L"Echo a string" },
+	{ { L"|" }			, JpfsvpListProcessesCommand	, L"List processes" },
+	{ { L"lm" }			, JpfsvpListModulesCommand		, L"List modules" },
+	{ { L".attach" }	, JpfsvpAttachCommand			, L"Attach to current process" },
+	{ { L".detach" }	, JpfsvpDetachCommand			, L"Detach from current process" },
+	{ { L"tp" }			, JpfsvpSetTracepointCommand	, L"Set tracepoint" },
+	{ { L"tc" }			, JpfsvpClearTracepointCommand	, L"Clear tracepoint" },
+	{ { L"tl" }			, JpfsvpListTracepointsCommand	, L"List tracepoints" },
+	{ { L"x" }			, JpfsvpSearchSymbolCommand		, L"Search symbol" },
+	{ { L".sympath" }	, JpfsvpSymolSearchPath			, L"Manage symbol search path" },
 };
 
 /*----------------------------------------------------------------------
