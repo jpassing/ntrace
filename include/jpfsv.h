@@ -63,9 +63,12 @@ HRESULT JpfsvAttachContext(
 
 	Parameters:
 		ContextHandle	Context to attach to.
+		Wait			Specify whether to wait until all asynchronous
+						operations have finished. 
 --*/
 HRESULT JpfsvDetachContext(
-	__in JPFSV_HANDLE ContextHandle
+	__in JPFSV_HANDLE ContextHandle,
+	__in BOOL Wait
 	);
 
 
@@ -94,12 +97,16 @@ HRESULT JpfsvStartTraceContext(
 
 /*++
 	Routine Description:
-		Stop tracing. 
+		Remove all tracepoints and stop tracing. 
 
-		Auto-deinstrument?
+	Parameters:
+		ContextHandle	Context.
+		Wait			Specify whether to wait until all asynchronous
+						operations have finished. 
 --*/
 HRESULT JpfsvStopTraceContext(
-	__in JPFSV_HANDLE ContextHandle
+	__in JPFSV_HANDLE ContextHandle,
+	__in BOOL Wait
 	);
 
 typedef enum

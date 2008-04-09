@@ -223,6 +223,7 @@ static HRESULT JpfsvsStartProcessTraceSession(
 	}
 	else
 	{
+		Status = STATUS_SUCCESS;
 		TracingInitialized = TRUE;
 	}
 
@@ -284,7 +285,8 @@ Cleanup:
 }
 
 static HRESULT JpfsvsStopProcessTraceSession(
-	__in PJPFSV_TRACE_SESSION This
+	__in PJPFSV_TRACE_SESSION This,
+	__in BOOL WaitForPump
 	)
 {
 	PUM_TRACE_SESSION TraceSession = ( PUM_TRACE_SESSION ) This;
@@ -305,7 +307,7 @@ static HRESULT JpfsvsStopProcessTraceSession(
 	if ( TraceSession->EventPump.Thread == NULL )
 	{
 		//
-		// Either tracing has not been statred yet or the thread
+		// Either tracing has not been started yet or the thread
 		// has ended due to premature peer death.
 		//
 	}
@@ -315,9 +317,18 @@ static HRESULT JpfsvsStopProcessTraceSession(
 		// Stop pump.
 		//
 		VERIFY( SetEvent( TraceSession->EventPump.StopEvent ) );
-		WaitForSingleObject( TraceSession->EventPump.Thread, INFINITE );
-
-		( VOID ) GetExitCodeThread( TraceSession->EventPump.Thread, &ThreadExitCode );
+		if ( WaitForPump )
+		{
+			WaitForSingleObject( TraceSession->EventPump.Thread, INFINITE );
+			( VOID ) GetExitCodeThread( TraceSession->EventPump.Thread, &ThreadExitCode );
+		}
+		else
+		{
+			//
+			// Assume evth ok.
+			//
+			ThreadExitCode = STATUS_SUCCESS;
+		}
 
 		VERIFY( CloseHandle( TraceSession->EventPump.StopEvent ) );
 		VERIFY( CloseHandle( TraceSession->EventPump.Thread ) );

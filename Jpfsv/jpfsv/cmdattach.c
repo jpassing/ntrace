@@ -87,7 +87,7 @@ BOOL JpfsvpAttachCommand(
 		}
 		else
 		{
-			VERIFY( S_OK == JpfsvDetachContext( ProcessorState->Context ) );
+			VERIFY( S_OK == JpfsvDetachContext( ProcessorState->Context, TRUE ) );
 			JpfsvpOutputError( ProcessorState, Hr );
 			return FALSE;
 		}
@@ -112,8 +112,8 @@ BOOL JpfsvpDetachCommand(
 	UNREFERENCED_PARAMETER( Argc );
 	UNREFERENCED_PARAMETER( Argv );
 
-	Hr1 = JpfsvStopTraceContext( ProcessorState->Context );
-	Hr2 = JpfsvDetachContext( ProcessorState->Context );
+	Hr1 = JpfsvStopTraceContext( ProcessorState->Context, TRUE );
+	Hr2 = JpfsvDetachContext( ProcessorState->Context, TRUE );
 	
 	if ( FAILED( Hr1 ) )
 	{

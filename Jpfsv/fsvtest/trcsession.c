@@ -30,29 +30,39 @@ static BOOL AddProcedureSymCallback(
 
 	UNREFERENCED_PARAMETER( SymbolSize );
 
-	if ( Set->Count < _countof( Set->Procedures ) &&
-		 SymInfo->Flags & ( SYMFLAG_FUNCTION | SYMFLAG_EXPORT ) )
+	if ( Set->Count < _countof( Set->Procedures ) && (
+		 SymInfo->Tag ==  5 /* SymTagFunction */ ||
+		 SymInfo->Tag == 10 /* SymTagPublicSymbol */ ) )
 	{
 		BOOL Hotpatchable;
 		UINT PaddingSize;
 
-		TEST_OK( JpfsvIsProcedureHotpatchable(
-			Set->Process,
-			( DWORD_PTR ) SymInfo->Address,
-			&Hotpatchable ) );
-
-		if ( ! Hotpatchable )
+		if ( Set->Process == JPFSV_KERNEL_PSEUDO_HANDLE )
 		{
-			return TRUE;
+			//
+			// Cannot test patchability.
+			//
 		}
-
-		TEST_OK( JpfsvGetProcedurePaddingSize(
-			Set->Process,
-			( DWORD_PTR ) SymInfo->Address,
-			&PaddingSize ) );
-		if ( PaddingSize < 5 )
+		else
 		{
-			return TRUE;
+			TEST_OK( JpfsvIsProcedureHotpatchable(
+				Set->Process,
+				( DWORD_PTR ) SymInfo->Address,
+				&Hotpatchable ) );
+
+			if ( ! Hotpatchable )
+			{
+				return TRUE;
+			}
+
+			TEST_OK( JpfsvGetProcedurePaddingSize(
+				Set->Process,
+				( DWORD_PTR ) SymInfo->Address,
+				&PaddingSize ) );
+			if ( PaddingSize < 5 )
+			{
+				return TRUE;
+			}
 		}
 
 		////
@@ -115,7 +125,7 @@ HRESULT DetachContextSafe(
 	
 	for ( Attempt = 0; Attempt < 10; Attempt++ )
 	{
-		Hr = JpfsvDetachContext( ContextHandle );
+		Hr = JpfsvDetachContext( ContextHandle, TRUE );
 		if ( JPFSV_E_TRACES_ACTIVE == Hr )
 		{
 			CFIX_LOG( L"Traces still active (Attempt %d)\n", Attempt );
@@ -184,7 +194,7 @@ static VOID TestAttachDetachNotepad()
 
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
 
-	TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( NpCtx ) );
+	TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( NpCtx, TRUE ) );
 	TEST( JPFSV_E_UNSUPPORTED_TRACING_TYPE == 
 		JpfsvAttachContext( NpCtx, JpfsvTracingTypeWmk ) );
 	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
@@ -197,7 +207,7 @@ static VOID TestAttachDetachNotepad()
 	TEST( HasUfagBeenLoaded( pi.dwProcessId ) );
 
 	TEST_OK( DetachContextSafe( NpCtx ) );
-	TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( NpCtx ) );
+	TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( NpCtx, TRUE ) );
 
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
@@ -326,7 +336,7 @@ static VOID TestTraceNotepad()
 	//
 	// Stop while tracing active -> implicitly revoke all tracepoints.
 	//
-	TEST_OK( JpfsvStopTraceContext( NpCtx ) );
+	TEST_OK( JpfsvStopTraceContext( NpCtx, TRUE ) );
 	TEST_OK( JpfsvCountTracePointsContext( NpCtx, &Count ) );
 	TEST( 0 == Count );
 
@@ -368,7 +378,7 @@ static VOID TestTraceNotepad()
 	TEST_OK( JpfsvCountTracePointsContext( NpCtx, &Count ) );
 	TEST( 0 == Count );
 
-	TEST_OK( JpfsvStopTraceContext( NpCtx ) );
+	TEST_OK( JpfsvStopTraceContext( NpCtx, TRUE ) );
 	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
 
@@ -515,7 +525,7 @@ static VOID TestDyingPeerWithoutTracing()
 		Set.Procedures,
 		&FailedProc ) );
 
-	TEST( E_UNEXPECTED  == JpfsvStopTraceContext( NpCtx ) );
+	TEST( E_UNEXPECTED  == JpfsvStopTraceContext( NpCtx, TRUE ) );
 
 	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
@@ -588,7 +598,7 @@ static VOID TestDyingPeerWithTracing()
 	CloseHandle( pi.hProcess );
 	CloseHandle( pi.hThread );
 
-	TEST( JPFSV_E_PEER_DIED == JpfsvStopTraceContext( NpCtx ) );
+	TEST( JPFSV_E_PEER_DIED == JpfsvStopTraceContext( NpCtx, TRUE ) );
 
 	TEST_OK( DetachContextSafe( NpCtx ) );
 	TEST_OK( JpfsvUnloadContext( NpCtx ) );
@@ -625,7 +635,7 @@ static VOID TestAttachDetachKernel()
 		}
 		TEST_OK( Hr );
 
-		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx ) );
+		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx, TRUE ) );
 		
 		Hr = JpfsvAttachContext( KernelCtx, TracingType );
 		if ( Hr == JPFSV_E_UNSUPPORTED_TRACING_TYPE )
@@ -635,11 +645,10 @@ static VOID TestAttachDetachKernel()
 
 		TEST_OK( Hr );
 
-		TEST_OK( JpfsvAttachContext( KernelCtx, JpfsvTracingTypeWmk ) );
-		TEST( S_FALSE == JpfsvAttachContext( KernelCtx, JpfsvTracingTypeWmk ) );
+		TEST( S_FALSE == JpfsvAttachContext( KernelCtx, TracingType ) );
 
 		TEST_OK( DetachContextSafe( KernelCtx ) );
-		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx ) );
+		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx, TRUE ) );
 
 		TEST_OK( JpfsvUnloadContext( KernelCtx ) );
 		TypesTested++;
@@ -653,6 +662,8 @@ static VOID TestAttachDetachKernel()
 
 static VOID TestTraceKernel()
 {
+	ULONG BufferCount;
+	ULONG BufferSize;
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 	UINT Tracepoints, Count;
@@ -689,6 +700,17 @@ static VOID TestTraceKernel()
 			continue;
 		}
 
+		if ( TracingType == JpfsvTracingTypeWmk )
+		{
+			BufferCount = 0;
+			BufferSize = 0;
+		}
+		else
+		{
+			BufferCount = 5;
+			BufferSize = 1024;
+		}
+
 		TEST_OK( Hr );
 
 		//
@@ -707,13 +729,13 @@ static VOID TestTraceKernel()
 
 		TEST_OK( JpfsvStartTraceContext(
 			KernelCtx,
-			5,
-			1024,
+			BufferCount,
+			BufferSize,
 			DiagSession ) );
 		TEST( E_UNEXPECTED == JpfsvStartTraceContext(
 			KernelCtx,
-			5,
-			1024,
+			BufferCount,
+			BufferSize,
 			DiagSession ) );
 
 		TEST( Set.Count > 0 );
@@ -759,7 +781,7 @@ static VOID TestTraceKernel()
 		//
 		// Stop while tracing active -> implicitly revoke all tracepoints.
 		//
-		TEST_OK( JpfsvStopTraceContext( KernelCtx ) );
+		TEST_OK( JpfsvStopTraceContext( KernelCtx, TRUE ) );
 		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Count ) );
 		TEST( 0 == Count );
 
@@ -768,8 +790,8 @@ static VOID TestTraceKernel()
 		//
 		TEST_OK( JpfsvStartTraceContext(
 			KernelCtx,
-			5,
-			1024,
+			BufferCount,
+			BufferSize,
 			DiagSession ) );
 		TEST_OK( JpfsvSetTracePointsContext(
 			KernelCtx,
@@ -796,7 +818,7 @@ static VOID TestTraceKernel()
 		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Count ) );
 		TEST( 0 == Count );
 
-		TEST_OK( JpfsvStopTraceContext( KernelCtx ) );
+		TEST_OK( JpfsvStopTraceContext( KernelCtx, TRUE ) );
 		TEST_OK( DetachContextSafe( KernelCtx ) );
 		TEST_OK( JpfsvUnloadContext( KernelCtx ) );
 

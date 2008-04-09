@@ -157,8 +157,14 @@ typedef struct _JPFSV_TRACE_SESSION
 		__out_opt PJPFBT_PROCEDURE FailedProcedure
 		);
 
+	/*++
+		Parameters:
+			Wait		Specify whether to wait until all asynchronous
+						operations have finished. 
+	--*/
 	HRESULT ( *Stop )(
-		__in struct _JPFSV_TRACE_SESSION *This
+		__in struct _JPFSV_TRACE_SESSION *This,
+		__in BOOL Wait
 		);
 
 	VOID ( *Reference )(

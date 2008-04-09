@@ -173,4 +173,6 @@ BOOL JpfsvpSymolSearchPath(
 			ProcessorState,
 			GetLastError() );
 	}
+
+	return TRUE;
 }

@@ -280,17 +280,17 @@ static HRESULT JpfsvsCreateContext(
 		//
 		// Manually load kernel modules/symbols.
 		//
-		Hr = JpfsvsLoadKernelModules( TempContext );
-		if ( Hr == E_HANDLE )
+		BOOL Wow64;
+		if ( IsWow64Process( GetCurrentProcess(), &Wow64 ) && Wow64 )
 		{
-			BOOL Wow64;
-			if ( IsWow64Process( GetCurrentProcess(), &Wow64 ) && Wow64 )
-			{
-				//
-				// Failed because of WOW64.
-				//
-				Hr = JPFSV_E_UNSUP_ON_WOW64;
-			}
+			//
+			// Futile on WOW64.
+			//
+			Hr = JPFSV_E_UNSUP_ON_WOW64;
+		}
+		else
+		{
+			Hr = JpfsvsLoadKernelModules( TempContext );
 		}
 	}
 
@@ -335,7 +335,8 @@ Cleanup:
 }
 
 static HRESULT JpfsvsDeleteContext(
-	__in PJPFSV_CONTEXT Context
+	__in PJPFSV_CONTEXT Context,
+	__in BOOL Wait
 	)
 {
 	if ( ! Context ||
@@ -346,7 +347,7 @@ static HRESULT JpfsvsDeleteContext(
 
 	if ( Context->ProtectedMembers.TraceSession )
 	{
-		HRESULT Hr = JpfsvDetachContext( Context );
+		HRESULT Hr = JpfsvDetachContext( Context, Wait );
 		VERIFY( S_OK == Hr || JPFSV_E_PEER_DIED == Hr );
 	}
 
@@ -401,7 +402,7 @@ BOOL JpfsvpInitializeLoadedContextsHashtable()
 		101 );
 }
 
-static JpfsvsUnloadContextFromHashtableCallback(
+static JpfsvsUnloadContextFromHashtableForDllDetach(
 	__in PJPHT_HASHTABLE Hashtable,
 	__in PJPHT_HASHTABLE_ENTRY Entry,
 	__in_opt PVOID Unused
@@ -426,7 +427,11 @@ static JpfsvsUnloadContextFromHashtableCallback(
 
 	ASSERT( Context->Signature == JPFSV_CONTEXT_SIGNATURE );
 
-	VERIFY( S_OK == JpfsvsDeleteContext( Context ) );
+	//
+	// N.B. Specify FALSE for Wait to avoid waiting for threads - 
+	// after all, we are in DllMain!
+	//
+	VERIFY( S_OK == JpfsvsDeleteContext( Context, FALSE ) );
 }
 
 /*++
@@ -443,7 +448,7 @@ BOOL JpfsvpDeleteLoadedContextsHashtable()
 	
 	JphtEnumerateEntries(
 		&JpfsvsLoadedContexts.Table,
-		JpfsvsUnloadContextFromHashtableCallback,
+		JpfsvsUnloadContextFromHashtableForDllDetach,
 		NULL );
 	JphtDeleteHashtable( &JpfsvsLoadedContexts.Table );
 
@@ -518,7 +523,7 @@ HRESULT JpfsvLoadContext(
 			//
 			// Someone did the same in parallel.
 			//
-			VERIFY( S_OK == JpfsvsDeleteContext( Context ) );
+			VERIFY( S_OK == JpfsvsDeleteContext( Context, TRUE ) );
 		}
 	}
 
@@ -560,7 +565,7 @@ HRESULT JpfsvUnloadContext(
 			&OldEntry );
 		ASSERT( OldEntry == &Context->u.HashtableEntry );
 
-		Hr = JpfsvsDeleteContext( Context );
+		Hr = JpfsvsDeleteContext( Context, TRUE );
 
 		LeaveCriticalSection( &JpfsvsLoadedContexts.Lock );
 		LeaveCriticalSection( &JpfsvpDbghelpLock );
@@ -762,7 +767,8 @@ HRESULT JpfsvAttachContext(
 
 
 HRESULT JpfsvDetachContext(
-	__in JPFSV_HANDLE ContextHandle
+	__in JPFSV_HANDLE ContextHandle,
+	__in BOOL Wait
 	)
 {
 	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
@@ -780,7 +786,7 @@ HRESULT JpfsvDetachContext(
 	{
 		if ( Context->ProtectedMembers.TraceStarted )
 		{
-			Hr = JpfsvStopTraceContext( ContextHandle );
+			Hr = JpfsvStopTraceContext( ContextHandle, Wait );
 			if ( JPFSV_E_PEER_DIED == Hr )
 			{
 				//
@@ -878,7 +884,8 @@ HRESULT JpfsvStartTraceContext(
 }
 
 HRESULT JpfsvStopTraceContext(
-	__in JPFSV_HANDLE ContextHandle
+	__in JPFSV_HANDLE ContextHandle,
+	__in BOOL Wait
 	)
 {
 	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
@@ -920,7 +927,7 @@ HRESULT JpfsvStopTraceContext(
 
 		if ( SUCCEEDED( Hr ) )
 		{
-			Hr = TraceSession->Stop( TraceSession );
+			Hr = TraceSession->Stop( TraceSession, Wait );
 			if ( S_OK == Hr || JPFSV_E_PEER_DIED == Hr )
 			{
 				Context->ProtectedMembers.TraceStarted = FALSE;

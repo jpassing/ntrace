@@ -18,6 +18,8 @@ typedef struct _JPFSVP_KM_TRACE_SESSION
 
 	JPKFBT_TRACING_TYPE TracingType;
 	JPKFBT_SESSION KfbtSession;
+
+	BOOL TraceActive;
 } JPFSVP_KM_TRACE_SESSION, *PJPFSVP_KM_TRACE_SESSION;
 
 /*----------------------------------------------------------------------
@@ -38,16 +40,30 @@ static HRESULT JpfsvsStartKernelTraceSession(
 	UNREFERENCED_PARAMETER( EventProcessor );
 	Session = ( PJPFSVP_KM_TRACE_SESSION ) This;
 
+	if ( Session->TraceActive )
+	{
+		return E_UNEXPECTED;
+	}
+
 	Status = JpkfbtInitializeTracing(
 		Session->KfbtSession,
 		Session->TracingType,
 		BufferCount,
 		BufferSize );
-	return HRESULT_FROM_NT( Status );
+	if ( NT_SUCCESS( Status ) )
+	{
+		Session->TraceActive = TRUE;
+		return S_OK;
+	}
+	else
+	{
+		return HRESULT_FROM_NT( Status );
+	}
 }
 
 static HRESULT JpfsvsStopKernelTraceSession(
-	__in PJPFSV_TRACE_SESSION This
+	__in PJPFSV_TRACE_SESSION This,
+	__in BOOL Wait
 	)
 {
 	PJPFSVP_KM_TRACE_SESSION Session;
@@ -55,8 +71,18 @@ static HRESULT JpfsvsStopKernelTraceSession(
 
 	Session = ( PJPFSVP_KM_TRACE_SESSION ) This;
 
+	UNREFERENCED_PARAMETER( Wait );
+
 	Status = JpkfbtShutdownTracing(	Session->KfbtSession );
-	return HRESULT_FROM_NT( Status );
+	if ( NT_SUCCESS( Status ) )
+	{
+		Session->TraceActive = FALSE;
+		return S_OK;
+	}
+	else
+	{
+		return HRESULT_FROM_NT( Status );
+	}
 }
 
 static HRESULT JpfsvsInstrumentProcedureKernelTraceSession(
@@ -80,7 +106,14 @@ static HRESULT JpfsvsInstrumentProcedureKernelTraceSession(
 		ProcedureCount,
 		Procedures,
 		FailedProcedure	);
-	return HRESULT_FROM_NT( Status );
+	if ( NT_SUCCESS( Status ) )
+	{
+		return S_OK;
+	}
+	else
+	{
+		return HRESULT_FROM_NT( Status );
+	}
 }
 
 static HRESULT JpfsvsDeleteKernelTraceSession(
@@ -99,7 +132,14 @@ static HRESULT JpfsvsDeleteKernelTraceSession(
 		);
 	free( Session );
 
-	return HRESULT_FROM_NT( Status );
+	if ( NT_SUCCESS( Status ) )
+	{
+		return S_OK;
+	}
+	else
+	{
+		return HRESULT_FROM_NT( Status );
+	}
 }
 
 static VOID JpfsvsReferenceKernelTraceSession(
@@ -165,7 +205,7 @@ HRESULT JpfsvpCreateKernelTraceSession(
 	switch ( TracingType )
 	{
 	case JpfsvTracingTypeDefault:
-		return E_NOTIMPL;
+		return JPFSV_E_UNSUPPORTED_TRACING_TYPE;
 
 	case JpfsvTracingTypeWmk:
 		//
@@ -202,6 +242,7 @@ HRESULT JpfsvpCreateKernelTraceSession(
 
 	TempSession->ReferenceCount				= 1;
 	TempSession->TracingType				= KfbtTracingType;
+	TempSession->TraceActive				= FALSE;
 
 	Hr = S_OK;
 	*TraceSessionHandle = &TempSession->Base;

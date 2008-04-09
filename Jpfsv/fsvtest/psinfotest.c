@@ -77,9 +77,9 @@ static void EnumModules(
 
 		TEST( Mod.LoadAddress );
 		TEST( wcslen( Mod.ModuleName ) );
-		OutputDebugString( L"  " );
-		OutputDebugString( Mod.ModuleName );
-		OutputDebugString( L"\n" );
+		//OutputDebugString( L"  " );
+		//OutputDebugString( Mod.ModuleName );
+		//OutputDebugString( L"\n" );
 	}
 
 	TEST( Count > 0 );
@@ -136,8 +136,8 @@ static void TestProcessEnum()
 
 		TEST( wcslen( Proc.ExeName ) );
 
-		OutputDebugString( Proc.ExeName );
-		OutputDebugString( L"\n" );
+		//OutputDebugString( Proc.ExeName );
+		//OutputDebugString( L"\n" );
 
 		TestThreadEnum( Proc.ProcessId );
 		TestUserModuleEnum( Proc.ProcessId );
