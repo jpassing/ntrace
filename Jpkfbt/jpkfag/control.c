@@ -21,9 +21,9 @@ extern NTKERNELAPI PVOID MmSystemRangeStart;
  *
  */
 
-#define JpkgagsPtrFromRva( base, rva ) ( ( ( PUCHAR ) base ) + rva )
+#define JpkfagsPtrFromRva( base, rva ) ( ( ( PUCHAR ) base ) + rva )
 
-static BOOLEAN JpkgagsIsValidCodePointer(
+static BOOLEAN JpkfagsIsValidCodePointer(
 	__in PVOID Pointer,
 	__in ULONG ModuleCount,
 	__in_ecount( ModuleCount ) PAUX_MODULE_EXTENDED_INFO Modules
@@ -42,40 +42,13 @@ static BOOLEAN JpkgagsIsValidCodePointer(
 		
 		if ( Pointer >= ImageBegin && Pointer <  ImageEnd )
 		{
-			PVOID CodeBegin;
-			PVOID CodeEnd;
-			PIMAGE_DOS_HEADER DosHeader;
-			PIMAGE_NT_HEADERS NtHeader; 
-			
 			//
-			// Pointer points to this module. Now check if it also 
-			// points into code rather than into some other part of the
-			// image.
+			// Pointer points to this module. This check out to be 
+			// sufficient: The memory pointed is valid and the test
+			// whether it is in fact a patchable function prolog can
+			// be safely conducted.
 			//
-			DosHeader = ( PIMAGE_DOS_HEADER ) 
-				Modules[ Index ].BasicInfo.ImageBase;
-			NtHeader  = ( PIMAGE_NT_HEADERS ) 
-				JpkgagsPtrFromRva( DosHeader, DosHeader->e_lfanew );
-
-			CodeBegin = JpkgagsPtrFromRva( 
-				DosHeader, 
-				NtHeader->OptionalHeader.BaseOfCode );
-			CodeEnd   = ( PUCHAR ) CodeBegin + NtHeader->OptionalHeader.SizeOfCode;
-			
-			if ( Pointer >= CodeBegin && Pointer < CodeEnd )
-			{
-				//
-				// This pointer is valid.
-				//
-				return TRUE;
-			}
-			else
-			{
-				//
-				// No need to search further.
-				//
-				return FALSE;
-			}
+			return TRUE;
 		} 
 		else
 		{
@@ -265,7 +238,7 @@ NTSTATUS JpkfagpInstrumentProcedureIoctl(
 
 		for ( Index = 0; Index < Request->ProcedureCount; Index++ )
 		{
-			if ( ! JpkgagsIsValidCodePointer(
+			if ( ! JpkfagsIsValidCodePointer(
 				Request->Procedures[ Index ].u.Procedure,
 				ModuleCount,
 				Modules ) )

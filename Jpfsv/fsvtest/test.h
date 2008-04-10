@@ -6,6 +6,7 @@
 
 #define TEST CFIX_ASSERT
 #define TEST_OK( expr ) CFIX_ASSERT_EQUALS_DWORD( 0, ( expr ) )
+#define TEST_STATUS( status, expr ) CFIX_ASSERT_EQUALS_DWORD( ( status ), ( expr ) )
 
 void LaunchNotepad(
 	__out PPROCESS_INFORMATION ppi

@@ -26,3 +26,5 @@ jpfsv
  
  
  * jpkfbt als msg-dll
+ 
+ * mask out nt-bit for message resolution?

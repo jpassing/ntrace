@@ -1,4 +1,5 @@
 #include <jpfsv.h>
+#include <jpfbtmsg.h>
 #include <cdiag.h>
 #include "test.h"
 
@@ -720,6 +721,9 @@ static VOID TestTraceKernel()
 		Set.Process = JpfsvGetProcessHandleContext( KernelCtx );
 		TEST( Set.Process );
 
+		//
+		// Not all patchable...
+		//
 		TEST( SymEnumSymbols(
 			Set.Process,
 			0,
@@ -743,12 +747,36 @@ static VOID TestTraceKernel()
 		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Count ) );
 		TEST( 0 == Count );
 
+		TEST_STATUS( ( ULONG ) HRESULT_FROM_NT( STATUS_FBT_PROC_NOT_PATCHABLE ), 
+			JpfsvSetTracePointsContext(
+				KernelCtx,
+				JpfsvAddTracepoint,
+				Set.Count,
+				Set.Procedures,
+				&FailedProc ) );
+
+		//
+		// All patchable...
+		//
+		Set.Count = 0;
+		Set.Process = JpfsvGetProcessHandleContext( KernelCtx );
+		TEST( Set.Process );
+
+		TEST( SymEnumSymbols(
+			Set.Process,
+			0,
+			L"tcpip!IPRc*",
+			AddProcedureSymCallback,
+			&Set ) );
+		TEST( Set.Count >= 3 );
+
 		TEST_OK( JpfsvSetTracePointsContext(
 			KernelCtx,
 			JpfsvAddTracepoint,
 			Set.Count,
 			Set.Procedures,
 			&FailedProc ) );
+
 		// again - should be a noop.
 		TEST_OK( JpfsvSetTracePointsContext(
 			KernelCtx,
@@ -757,6 +785,7 @@ static VOID TestTraceKernel()
 			Set.Procedures,
 			&FailedProc ) );
 		TEST( FailedProc == 0 );
+
 
 		TEST_OK( JpfsvCountTracePointsContext( KernelCtx, &Tracepoints ) );
 		TEST( Tracepoints > Set.Count / 2 );	// Duplicate-cleaned!
@@ -823,6 +852,8 @@ static VOID TestTraceKernel()
 		TEST_OK( JpfsvUnloadContext( KernelCtx ) );
 
 		TEST_OK( CdiagDereferenceSession( DiagSession ) );
+
+		TypesTested++;
 	}
 
 	if ( TypesTested == 0 )
@@ -831,7 +862,7 @@ static VOID TestTraceKernel()
 	}
 }
 
-CFIX_BEGIN_FIXTURE( TraceSession )
+CFIX_BEGIN_FIXTURE( TraceSessionUser )
 	CFIX_FIXTURE_SETUP( SetupTrcSession )
 	CFIX_FIXTURE_TEARDOWN( SetupTrcSession )
 	CFIX_FIXTURE_ENTRY( TestAttachDetachNotepad )
@@ -839,6 +870,9 @@ CFIX_BEGIN_FIXTURE( TraceSession )
 	CFIX_FIXTURE_ENTRY( TestTraceNotepadAndDoHarshCleanup )
 	CFIX_FIXTURE_ENTRY( TestDyingPeerWithoutTracing )
 	CFIX_FIXTURE_ENTRY( TestDyingPeerWithTracing )
+CFIX_END_FIXTURE()
+
+CFIX_BEGIN_FIXTURE( TraceSessionKernel )
 	CFIX_FIXTURE_ENTRY( TestAttachDetachKernel )
 	CFIX_FIXTURE_ENTRY( TestTraceKernel )
 CFIX_END_FIXTURE()
