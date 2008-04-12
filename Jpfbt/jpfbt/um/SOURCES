@@ -39,6 +39,7 @@ SOURCES=\
 	..\um_patch.c \
 	..\um_patchdb.c \
 	..\um_threadenum.c \
+	..\um_icheck.c \
 	..\jpfbtmsg.mc
 
 I386_SOURCES=..\i386\thunks.asm

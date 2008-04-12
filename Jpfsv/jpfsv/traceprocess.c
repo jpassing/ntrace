@@ -427,42 +427,58 @@ static HRESULT JpfsvsInstrumentProcedureProcessTraceSession(
 static HRESULT JpfsvsCheckProcedureInstrumentabilityProcessTraceSession(
 	__in PJPFSV_TRACE_SESSION This,
 	__in DWORD_PTR ProcAddress,
-	__out PBOOL Hotpatchable,
+	__out PBOOL Instrumentable,
 	__out PUINT PaddingSize 
 	)
 {
 	HRESULT Hr;
+	BOOL Hotpatchable;
 	PUM_TRACE_SESSION TraceSession = ( PUM_TRACE_SESSION ) This;
 
 	if ( ! TraceSession ||
 		 ProcAddress == 0 ||
-		 ! Hotpatchable ||
+		 ! Instrumentable ||
 		 ! PaddingSize )
 	{
 		return E_INVALIDARG;
 	}
 
-	*Hotpatchable	= FALSE;
+	*Instrumentable	= FALSE;
 	*PaddingSize	= 0;
 
 	Hr = JpfsvpIsProcedureHotpatchable( 
 		TraceSession->Process, 
 		ProcAddress, 
-		Hotpatchable );
+		&Hotpatchable );
 	if ( FAILED( Hr ) )
 	{
 		return Hr;
 	}
 
-	if ( *Hotpatchable )
+	if ( Hotpatchable )
 	{
-		return JpfsvpGetProcedurePaddingSize( 
+		Hr = JpfsvpGetProcedurePaddingSize( 
 			TraceSession->Process, 
 			ProcAddress, 
 			PaddingSize );
+
+		if ( SUCCEEDED( Hr ) )
+		{
+			*Instrumentable = 
+				Hotpatchable && *PaddingSize >= JPFBT_MIN_PROCEDURE_PADDING_REQUIRED;
+		}
+		else
+		{
+			*Instrumentable = FALSE;
+			*PaddingSize    = 0;
+		}
+
+		return Hr;
 	}
 	else
 	{
+		*Instrumentable = FALSE;
+		*PaddingSize    = 0;
 		return S_OK;
 	}
 }

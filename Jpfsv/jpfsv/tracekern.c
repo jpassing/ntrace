@@ -119,7 +119,7 @@ static HRESULT JpfsvsInstrumentProcedureKernelTraceSession(
 static HRESULT JpfsvsCheckProcedureInstrumentabilityKernelTraceSession(
 	__in PJPFSV_TRACE_SESSION This,
 	__in DWORD_PTR ProcAddress,
-	__out PBOOL Hotpatchable,
+	__out PBOOL Instrumentable,
 	__out PUINT PaddingSize 
 	)
 {
@@ -131,7 +131,7 @@ static HRESULT JpfsvsCheckProcedureInstrumentabilityKernelTraceSession(
 
 	if ( ! Session ||
 		 ProcAddress == 0 ||
-		 ! Hotpatchable ||
+		 ! Instrumentable ||
 		 ! PaddingSize )
 	{
 		return E_INVALIDARG;
@@ -141,7 +141,7 @@ static HRESULT JpfsvsCheckProcedureInstrumentabilityKernelTraceSession(
 	Status = JpkfbtCheckProcedureInstrumentability(
 		Session->KfbtSession,
 		Procedure,
-		Hotpatchable,
+		Instrumentable,
 		PaddingSize );
 	if ( NT_SUCCESS( Status ) )
 	{

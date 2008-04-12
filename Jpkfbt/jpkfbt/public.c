@@ -334,7 +334,7 @@ NTSTATUS JpkfbtInstrumentProcedure(
 NTSTATUS JpkfbtCheckProcedureInstrumentability(
 	__in JPKFBT_SESSION SessionHandle,
 	__in JPFBT_PROCEDURE Procedure,
-	__out PBOOL Hotpatchable,
+	__out PBOOL Instrumentable,
 	__out PUINT PaddingSize )
 {
 	JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST Request;
@@ -344,7 +344,7 @@ NTSTATUS JpkfbtCheckProcedureInstrumentability(
 	IO_STATUS_BLOCK StatusBlock;
 
 	if ( Procedure.u.Procedure == NULL ||
-		 Hotpatchable == NULL ||
+		 Instrumentable == NULL ||
 		 PaddingSize == NULL )
 	{
 		return STATUS_INVALID_PARAMETER;
@@ -380,7 +380,7 @@ NTSTATUS JpkfbtCheckProcedureInstrumentability(
 		ASSERT( StatusBlock.Information == 
 				sizeof( JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE ) );
 		
-		*Hotpatchable	= Response.Hotpatchable;
+		*Instrumentable	= Response.Instrumentable;
 		*PaddingSize	= Response.ProcedurePadding;
 		return STATUS_SUCCESS;
 	}

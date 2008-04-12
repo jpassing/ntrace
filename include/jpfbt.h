@@ -277,25 +277,13 @@ VOID JPFBTCALLTYPE JpfbtCleanupThread(
 
 /*++
 	Routine Description:
-		Check if procedure is preceeded with the specified padding.
+		Check if procedure is suitable for being instrumented.
 
 	Parameters:
 		Procedure			Procedure ro check.
-		AnticipatedLength	Size of bytes, maximum 10.
+		Instrumentable		Result of check.
 --*/
-BOOLEAN JpfbtIsPaddingAvailable(
-	__in CONST JPFBT_PROCEDURE Procedure,
-	__in SIZE_T AnticipatedLength
-	);
-
-/*++
-	Routine Description:
-		Check if procedure begins with mov edi, edi, which
-		makes it hotpatchable.
-
-	Parameters:
-		Procedure			Procedure ro check.
---*/
-BOOLEAN JpfbtIsHotpatchable(
-	__in CONST JPFBT_PROCEDURE Procedure 
+NTSTATUS JpfbtCheckProcedureInstrumentability(
+	__in JPFBT_PROCEDURE Procedure,
+	__out PBOOLEAN Instrumentable
 	);

@@ -682,6 +682,10 @@ static VOID TestTraceKernel()
 		  TracingType <= JpfsvTracingTypeMax;
 		  TracingType++ )
 	{
+		UINT Index;
+		BOOL Instrumentable;
+		UINT PaddingSize;
+
 		//
 		// Start a trace.
 		//
@@ -756,6 +760,53 @@ static VOID TestTraceKernel()
 				Set.Count,
 				Set.Procedures,
 				&FailedProc ) );
+
+		//
+		// Instrumentable...
+		//
+		Set.Count = 0;
+		Set.ContextHandle = KernelCtx;
+		Set.Process = JpfsvGetProcessHandleContext( KernelCtx );
+		TEST( SymEnumSymbols(
+			Set.Process,
+			0,
+			L"tcpip!IPRc*",
+			AddProcedureSymCallback,
+			&Set ) );
+		TEST( Set.Count > 0 );
+		for ( Index = 0; Index < Set.Count; Index++ )
+		{
+			TEST_OK( JpfsvCheckProcedureInstrumentability(
+				KernelCtx,
+				Set.Procedures[ Index ],
+				&Instrumentable,
+				&PaddingSize ) );
+			TEST( Instrumentable );
+			TEST( PaddingSize == 5 );
+		}
+
+		//
+		// Not instrumentable...
+		//
+		Set.Count = 0;
+		Set.ContextHandle = KernelCtx;
+		Set.Process = JpfsvGetProcessHandleContext( KernelCtx );
+		TEST( SymEnumSymbols(
+			Set.Process,
+			0,
+			L"tcpip!_wcsicmp",
+			AddProcedureSymCallback,
+			&Set ) );
+		TEST( Set.Count > 0 );
+		TEST_OK( JpfsvCheckProcedureInstrumentability(
+			KernelCtx,
+			Set.Procedures[ 0 ],
+			&Instrumentable,
+			&PaddingSize ) );
+		TEST( ! Instrumentable );
+		TEST( PaddingSize == 0 );
+		
+		TEST_OK( JpfsvUnloadContext( KernelCtx ) );
 
 		//
 		// All patchable...

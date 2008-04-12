@@ -362,19 +362,13 @@ NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
 	//
 	Procedure = Request->Procedure;
 	
-	Response->Hotpatchable = JpfbtIsHotpatchable( Procedure );
-	if ( Response->Hotpatchable )
+	Status = JpfbtCheckProcedureInstrumentability( 
+		Procedure, 
+		&Response->Instrumentable );
+	
+	if ( Response->Instrumentable )
 	{
-		if ( JpfbtIsPaddingAvailable( 
-			Procedure, 
-			JPFBT_MIN_PROCEDURE_PADDING_REQUIRED ) )
-		{
-			Response->ProcedurePadding = JPFBT_MIN_PROCEDURE_PADDING_REQUIRED;
-		}
-		else
-		{
-			Response->ProcedurePadding = 0;
-		}
+		Response->ProcedurePadding = JPFBT_MIN_PROCEDURE_PADDING_REQUIRED;
 	}
 	else
 	{

@@ -246,32 +246,33 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 			JPFBT_PROCEDURE Procedure = Procedures[ Index ];
 
 			//
-			// Check prolog.
+			// Check instrumentability.
 			//
 			if ( JpfbtsIsAlreadyPatched( Procedure ) )
 			{
 				TRACE( ( "Procedure %p already patched\n", Procedure.u.Procedure ) );
 				Status = STATUS_FBT_PROC_ALREADY_PATCHED;
 			}
-			else if ( ! JpfbtIsHotpatchable( Procedure ) )
-			{
-				TRACE( ( "Procedure %p not patchable\n", Procedure.u.Procedure ) );
-				Status = STATUS_FBT_PROC_NOT_PATCHABLE;
-			}
 			else
 			{
-				//
-				// Check padding and ínitialize appropriate patch.
-				//
-				if ( JpfbtIsPaddingAvailable( Procedure, 5 ) )
+				BOOLEAN Instrumentable;
+				Status = JpfbtCheckProcedureInstrumentability(
+					Procedure,
+					&Instrumentable );
+				if ( ! NT_SUCCESS( Status ) )
+				{
+					TRACE( ( "Check for procedure %p failed\n", Procedure.u.Procedure ) );
+				}
+				else if ( ! Instrumentable )
+				{
+					TRACE( ( "Procedure %p not instrumentable\n", Procedure.u.Procedure ) );
+					Status = STATUS_FBT_PROC_NOT_PATCHABLE;
+				}
+				else
 				{
 					Status = JpfbtsInitializeCodePatch( 
 						Procedure, 
 						PatchArray[ Index ] );
-				}
-				else
-				{
-					Status = STATUS_FBT_PROC_NOT_PATCHABLE;
 				}
 			}
 
@@ -500,7 +501,7 @@ NTSTATUS JpfbtInstrumentProcedure(
 	}
 }
 
-BOOLEAN JpfbtIsPaddingAvailable(
+BOOLEAN JpfbtpIsPaddingAvailableResidentValidMemory(
 	__in CONST JPFBT_PROCEDURE Procedure,
 	__in SIZE_T AnticipatedLength
 	)
@@ -538,7 +539,7 @@ BOOLEAN JpfbtIsPaddingAvailable(
 	return FALSE;
 }
 
-BOOLEAN JpfbtIsHotpatchable(
+BOOLEAN JpfbtpIsHotpatchableResidentValidMemory(
 	__in CONST JPFBT_PROCEDURE Procedure 
 	)
 {

@@ -189,7 +189,7 @@ static void TestTracepoints()
 	TEST( TerminateProcess( pi.hProcess, 0 ) );
 	CloseHandle( pi.hProcess );
 	CloseHandle( pi.hThread );
-	Sleep( 200 );
+	Sleep( 800 );
 
 	TEST_OK( JpfsvCloseCommandProcessor( Processor ) );
 }

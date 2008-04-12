@@ -151,5 +151,5 @@ NTSTATUS JpkfbtIsKernelTypeSupported(
 NTSTATUS JpkfbtCheckProcedureInstrumentability(
 	__in JPKFBT_SESSION SessionHandle,
 	__in JPFBT_PROCEDURE Procedure,
-	__out PBOOL Hotpatchable,
+	__out PBOOL Instrumentable,
 	__out PUINT PaddingSize );

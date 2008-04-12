@@ -143,6 +143,10 @@
 						>
 					</File>
 					<File
+						RelativePath=".\jpfbt\um_icheck.c"
+						>
+					</File>
+					<File
 						RelativePath=".\jpfbt\um_internal.h"
 						>
 					</File>
@@ -176,6 +180,10 @@
 					>
 					<File
 						RelativePath=".\jpfbt\km_buffer.c"
+						>
+					</File>
+					<File
+						RelativePath=".\jpfbt\km_icheck.c"
 						>
 					</File>
 					<File

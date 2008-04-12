@@ -1151,7 +1151,7 @@ HRESULT JpfsvCountTracePointsContext(
 HRESULT JpfsvCheckProcedureInstrumentability(
 	__in JPFSV_HANDLE ContextHandle,
 	__in DWORD_PTR ProcAddress,
-	__out PBOOL Hotpatchable,
+	__out PBOOL Instrumentable,
 	__out PUINT PaddingSize )
 {
 	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
@@ -1161,13 +1161,13 @@ HRESULT JpfsvCheckProcedureInstrumentability(
 	if ( ! Context ||
 		 Context->Signature != JPFSV_CONTEXT_SIGNATURE ||
 		 ! ProcAddress ||
-		 ! Hotpatchable ||
+		 ! Instrumentable ||
 		 ! PaddingSize )
 	{
 		return E_INVALIDARG;
 	}
 
-	*Hotpatchable	= FALSE;
+	*Instrumentable	= FALSE;
 	*PaddingSize	= 0;
 
 	EnterCriticalSection( &Context->ProtectedMembers.Lock );
@@ -1183,7 +1183,7 @@ HRESULT JpfsvCheckProcedureInstrumentability(
 		Hr = TraceSession->CheckProcedureInstrumentability(
 			TraceSession,
 			ProcAddress,
-			Hotpatchable,
+			Instrumentable,
 			PaddingSize );
 	}
 

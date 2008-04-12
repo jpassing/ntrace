@@ -177,7 +177,7 @@ typedef struct _JPFSV_TRACE_SESSION
 	HRESULT ( *CheckProcedureInstrumentability)(
 		__in struct _JPFSV_TRACE_SESSION *This,
 		__in DWORD_PTR ProcAddress,
-		__out PBOOL Hotpatchable,
+		__out PBOOL Instrumentable,
 		__out PUINT PaddingSize 
 		);
 

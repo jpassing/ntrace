@@ -471,12 +471,41 @@ C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
 		  FIELD_OFFSET( JPFBT_CODE_PATCH, u.HashtableEntry.Key ) );
 
 
+/*----------------------------------------------------------------------
+ *
+ * Instrumentability checking.
+ *
+ */
 
+/*++
+	Routine Description:
+		Check whether the memory pointed to is preceeded by pad bytes.
 
+	Parameters:
+		Procedure			Procedure of which memory is to be checked.
+							The pointer must be valid.
+		AnticipatedLength	# of bytes.
+--*/
+BOOLEAN JpfbtpIsPaddingAvailableResidentValidMemory(
+	__in CONST JPFBT_PROCEDURE Procedure,
+	__in SIZE_T AnticipatedLength
+	);
+
+/*++
+	Routine Description:
+		Check whether the procedure has a hotpatchable prolog.
+
+	Parameters:
+		Procedure			Procedure to be checked.
+							The pointer must be valid.
+--*/
+BOOLEAN JpfbtpIsHotpatchableResidentValidMemory(
+	__in CONST JPFBT_PROCEDURE Procedure 
+	);
 
 /*----------------------------------------------------------------------
  *
- * Procedures which differing implementation for user and kernel mode
+ * Procedures which differing implementation for user and kernel mode.
  *
  */
 
