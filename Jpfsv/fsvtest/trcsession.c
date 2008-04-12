@@ -1,4 +1,5 @@
 #include <jpfsv.h>
+#include <jpufbt.h>
 #include <jpfbtmsg.h>
 #include <cdiag.h>
 #include "test.h"
@@ -19,6 +20,7 @@ typedef struct _PROC_SET
 	HANDLE Process;
 	DWORD_PTR Procedures[ 256 ];
 	UINT Count;
+	JPFSV_HANDLE ContextHandle;
 } PROC_SET, *PPROC_SET;
 
 static BOOL AddProcedureSymCallback(
@@ -28,6 +30,9 @@ static BOOL AddProcedureSymCallback(
 	)
 {
 	PPROC_SET Set = ( PPROC_SET ) UserContext;
+
+	TEST( Set->Process );
+	TEST( Set->ContextHandle );
 
 	UNREFERENCED_PARAMETER( SymbolSize );
 
@@ -46,21 +51,13 @@ static BOOL AddProcedureSymCallback(
 		}
 		else
 		{
-			TEST_OK( JpfsvIsProcedureHotpatchable(
-				Set->Process,
+			TEST_OK( JpfsvCheckProcedureInstrumentability(
+				Set->ContextHandle,
 				( DWORD_PTR ) SymInfo->Address,
-				&Hotpatchable ) );
-
-			if ( ! Hotpatchable )
-			{
-				return TRUE;
-			}
-
-			TEST_OK( JpfsvGetProcedurePaddingSize(
-				Set->Process,
-				( DWORD_PTR ) SymInfo->Address,
+				&Hotpatchable,
 				&PaddingSize ) );
-			if ( PaddingSize < 5 )
+			if ( ! Hotpatchable || 
+				 PaddingSize < JPFBT_MIN_PROCEDURE_PADDING_REQUIRED )
 			{
 				return TRUE;
 			}
@@ -268,6 +265,7 @@ static VOID TestTraceNotepad()
 	// Instrument some procedures.
 	//
 	Set.Count = 0;
+	Set.ContextHandle = NpCtx;
 	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
 	TEST( Set.Process );
 
@@ -427,6 +425,7 @@ static VOID TestTraceNotepadAndDoHarshCleanup()
 	// Instrument some procedures.
 	//
 	Set.Count = 0;
+	Set.ContextHandle = NpCtx;
 	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
 	TEST( Set.Process );
 
@@ -491,6 +490,7 @@ static VOID TestDyingPeerWithoutTracing()
 	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
 
 	Set.Count = 0;
+	Set.ContextHandle = NpCtx;
 	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
 	TEST( Set.Process );
 
@@ -562,6 +562,7 @@ static VOID TestDyingPeerWithTracing()
 	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
 
 	Set.Count = 0;
+	Set.ContextHandle = NpCtx;
 	Set.Process = JpfsvGetProcessHandleContext( NpCtx );
 	TEST( Set.Process );
 
@@ -718,6 +719,7 @@ static VOID TestTraceKernel()
 		// Instrument some procedures.
 		//
 		Set.Count = 0;
+		Set.ContextHandle = KernelCtx;
 		Set.Process = JpfsvGetProcessHandleContext( KernelCtx );
 		TEST( Set.Process );
 
@@ -759,6 +761,7 @@ static VOID TestTraceKernel()
 		// All patchable...
 		//
 		Set.Count = 0;
+		Set.ContextHandle = KernelCtx;
 		Set.Process = JpfsvGetProcessHandleContext( KernelCtx );
 		TEST( Set.Process );
 

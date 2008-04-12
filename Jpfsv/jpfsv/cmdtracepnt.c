@@ -74,11 +74,12 @@ static BOOL JpfsvsCheckTracabilityFilter(
 	)
 {
 	BOOL Hotpatchable;
-	UINT PaddingCapacity;
-	HRESULT Hr = JpfsvIsProcedureHotpatchable(
-		JpfsvGetProcessHandleContext( Ctx->ContextHandle ),
+	UINT PaddingSize;
+	HRESULT Hr = JpfsvCheckProcedureInstrumentability(
+		Ctx->ContextHandle,
 		( DWORD_PTR ) SymInfo->Address,
-		&Hotpatchable );
+		&Hotpatchable,
+		&PaddingSize );
 	if ( FAILED( Hr ) )
 	{
 		JpfsvpOutputError( Ctx->ProcessorState, Hr );
@@ -94,11 +95,7 @@ static BOOL JpfsvsCheckTracabilityFilter(
 		return FALSE;
 	}
 
-	Hr = JpfsvGetProcedurePaddingSize(
-		JpfsvGetProcessHandleContext( Ctx->ContextHandle ),
-		( DWORD_PTR ) SymInfo->Address,
-		&PaddingCapacity );
-	if ( PaddingCapacity < 5 )
+	if ( PaddingSize < JPFBT_MIN_PROCEDURE_PADDING_REQUIRED )
 	{
 		JpfsvpOutput(
 			Ctx->ProcessorState,
@@ -195,24 +192,13 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 	//
 	if ( Action == JpfsvAddTracepoint )
 	{
-		if ( Process == JPFSV_KERNEL_PSEUDO_HANDLE )
-		{
-			//
-			// For kernel mode, we cannot check tracability. The kernel
-			// agent will check it, but it will reject all tracepoints
-			// as soon as one is invalid.
-			//
-			Ctx.Filter = NULL;
-		}
-		else
-		{
-			Ctx.Filter = JpfsvsCheckTracabilityFilter;
-		}
+		Ctx.Filter = JpfsvsCheckTracabilityFilter;
 	}
 	else
 	{
 		Ctx.Filter = JpfsvsCheckTracepointExistsFilter;
 	}
+
 	Ctx.ProcessorState = ProcessorState;
 	Ctx.ContextHandle = ProcessorState->Context;
 	Ctx.Procedures.Count = 0;

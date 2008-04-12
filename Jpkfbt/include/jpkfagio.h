@@ -18,7 +18,7 @@
 		((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method) \
 	)
 
-	#define METHOD_BUFFERED                 0
+	#define METHOD_BUFFERED 0
 #endif 
 
 /*----------------------------------------------------------------------
@@ -118,3 +118,40 @@ typedef struct _JPKFAG_IOCTL_INSTRUMENT_PROCEDURE_RESPONSE
 	JPKFAG_IOCTL_BASE + 3,							\
 	METHOD_BUFFERED,								\
 	FILE_WRITE_DATA )
+
+/*----------------------------------------------------------------------
+ *
+ * JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY
+ *
+ */
+typedef struct _JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST
+{
+	JPFBT_PROCEDURE Procedure;
+} JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST,
+*PJPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST;
+
+typedef struct _JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE
+{
+	BOOLEAN Hotpatchable;
+	USHORT ProcedurePadding;
+} JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE,
+*PJPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE;
+
+/*++
+	IOCTL Description:
+		Check whether a procedure is instrumentable, i.e.
+		 - determine whether the procedure has a hotpatchable
+		   prolog
+	     - determine size of procedure padding.
+
+	Input:
+		JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST structure.
+	
+	Output:
+		JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE structure.
+--*/
+#define JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY	CTL_CODE(	\
+	JPKFAG_TYPE,											\
+	JPKFAG_IOCTL_BASE + 4,									\
+	METHOD_BUFFERED,										\
+	FILE_READ_DATA )

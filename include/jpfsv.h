@@ -203,25 +203,14 @@ HRESULT JpfsvGetTracepointContext(
 
 /*++
 	Routine Description:
-		Determine if a procedure is hotpatchable 
-		(i.e. compiled with /hotpatch).
+		Determine if a procedure is instrumentable 
+		(i.e. compiled/linked with /hotpatch and /functionpadmin:?).
 --*/
-HRESULT JpfsvIsProcedureHotpatchable(
-	__in HANDLE Process,
+HRESULT JpfsvCheckProcedureInstrumentability(
+	__in JPFSV_HANDLE ContextHandle,
 	__in DWORD_PTR ProcAddress,
-	__out PBOOL Hotpatchable
-	);
-
-/*++
-	Routine Description:
-		Determine padding of a procedure
-		(i.e. linked with /functionpadmin:?).
---*/
-HRESULT JpfsvGetProcedurePaddingSize(
-	__in HANDLE Process,
-	__in DWORD_PTR ProcAddress,
-	__out PUINT PaddingSize
-	);
+	__out PBOOL Hotpatchable,
+	__out PUINT PaddingSize );
 
 /*----------------------------------------------------------------------
  *

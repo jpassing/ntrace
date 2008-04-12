@@ -1148,6 +1148,50 @@ HRESULT JpfsvCountTracePointsContext(
 	}
 }
 
+HRESULT JpfsvCheckProcedureInstrumentability(
+	__in JPFSV_HANDLE ContextHandle,
+	__in DWORD_PTR ProcAddress,
+	__out PBOOL Hotpatchable,
+	__out PUINT PaddingSize )
+{
+	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
+	HRESULT Hr;
+	PJPFSV_TRACE_SESSION TraceSession;
+
+	if ( ! Context ||
+		 Context->Signature != JPFSV_CONTEXT_SIGNATURE ||
+		 ! ProcAddress ||
+		 ! Hotpatchable ||
+		 ! PaddingSize )
+	{
+		return E_INVALIDARG;
+	}
+
+	*Hotpatchable	= FALSE;
+	*PaddingSize	= 0;
+
+	EnterCriticalSection( &Context->ProtectedMembers.Lock );
+	
+	TraceSession = Context->ProtectedMembers.TraceSession;
+	
+	if ( ! TraceSession )
+	{
+		Hr = JPFSV_E_NO_TRACESESSION;
+	}
+	else
+	{
+		Hr = TraceSession->CheckProcedureInstrumentability(
+			TraceSession,
+			ProcAddress,
+			Hotpatchable,
+			PaddingSize );
+	}
+
+	LeaveCriticalSection( &Context->ProtectedMembers.Lock );
+
+	return Hr;
+}
+
 BOOL JpfsvExistsTracepointContext(
 	__in JPFSV_HANDLE ContextHandle,
 	__in DWORD_PTR Procedure

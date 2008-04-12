@@ -29,6 +29,8 @@
 
 #define JPFBT_MAX_BUFFER_SIZE	( 16 * 1024 * 1024 )
 
+#define JPFBT_MIN_PROCEDURE_PADDING_REQUIRED	5
+
 //
 // Stripped-down context as used by jpfbt.
 //
@@ -271,4 +273,29 @@ PUCHAR JPFBTCALLTYPE JpfbtGetBuffer(
 --*/
 VOID JPFBTCALLTYPE JpfbtCleanupThread(
 	__in_opt PVOID Thread
+	);
+
+/*++
+	Routine Description:
+		Check if procedure is preceeded with the specified padding.
+
+	Parameters:
+		Procedure			Procedure ro check.
+		AnticipatedLength	Size of bytes, maximum 10.
+--*/
+BOOLEAN JpfbtIsPaddingAvailable(
+	__in CONST JPFBT_PROCEDURE Procedure,
+	__in SIZE_T AnticipatedLength
+	);
+
+/*++
+	Routine Description:
+		Check if procedure begins with mov edi, edi, which
+		makes it hotpatchable.
+
+	Parameters:
+		Procedure			Procedure ro check.
+--*/
+BOOLEAN JpfbtIsHotpatchable(
+	__in CONST JPFBT_PROCEDURE Procedure 
 	);

@@ -18,6 +18,8 @@ typedef struct _UM_TRACE_SESSION
 
 	JPUFBT_HANDLE UfbtSession;
 
+	HANDLE Process;
+
 	//
 	// Event sink. Non-NULL iff tracing session started.
 	//
@@ -422,6 +424,49 @@ static HRESULT JpfsvsInstrumentProcedureProcessTraceSession(
 	}
 }
 
+static HRESULT JpfsvsCheckProcedureInstrumentabilityProcessTraceSession(
+	__in PJPFSV_TRACE_SESSION This,
+	__in DWORD_PTR ProcAddress,
+	__out PBOOL Hotpatchable,
+	__out PUINT PaddingSize 
+	)
+{
+	HRESULT Hr;
+	PUM_TRACE_SESSION TraceSession = ( PUM_TRACE_SESSION ) This;
+
+	if ( ! TraceSession ||
+		 ProcAddress == 0 ||
+		 ! Hotpatchable ||
+		 ! PaddingSize )
+	{
+		return E_INVALIDARG;
+	}
+
+	*Hotpatchable	= FALSE;
+	*PaddingSize	= 0;
+
+	Hr = JpfsvpIsProcedureHotpatchable( 
+		TraceSession->Process, 
+		ProcAddress, 
+		Hotpatchable );
+	if ( FAILED( Hr ) )
+	{
+		return Hr;
+	}
+
+	if ( *Hotpatchable )
+	{
+		return JpfsvpGetProcedurePaddingSize( 
+			TraceSession->Process, 
+			ProcAddress, 
+			PaddingSize );
+	}
+	else
+	{
+		return S_OK;
+	}
+}
+
 static HRESULT JpfsvsDeleteProcessTraceSession(
 	__in PUM_TRACE_SESSION TraceSession
 	)
@@ -493,6 +538,7 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	__out PJPFSV_TRACE_SESSION *TraceSessionHandle
 	)
 {
+	HANDLE Process;
 	PUM_TRACE_SESSION TempSession;
 	JPUFBT_HANDLE UfbtSession;
 	NTSTATUS Status;
@@ -507,11 +553,13 @@ HRESULT JpfsvpCreateProcessTraceSession(
 		return JPFSV_E_UNSUPPORTED_TRACING_TYPE;
 	}
 
+	Process = JpfsvGetProcessHandleContext( ContextHandle );
+
 	//
 	// Attach.
 	//
 	Status = JpufbtAttachProcess(
-		JpfsvGetProcessHandleContext( ContextHandle ),
+		Process,
 		&UfbtSession );
 	if ( ! NT_SUCCESS( Status ) )
 	{
@@ -533,6 +581,8 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	TempSession->Base.Start					= JpfsvsStartProcessTraceSession;
 	TempSession->Base.Stop					= JpfsvsStopProcessTraceSession;
 	TempSession->Base.InstrumentProcedure	= JpfsvsInstrumentProcedureProcessTraceSession;
+	TempSession->Base.CheckProcedureInstrumentability = 
+											  JpfsvsCheckProcedureInstrumentabilityProcessTraceSession;
 	TempSession->Base.Reference				= JpfsvsReferenceProcessTraceSession;
 	TempSession->Base.Dereference			= JpfsvsDereferenceProcessTraceSession;
 
@@ -543,6 +593,7 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	TempSession->UfbtSession				= UfbtSession;
 	TempSession->EventPump.Thread			= NULL;
 	TempSession->EventPump.StopEvent		= NULL;
+	TempSession->Process					= Process;
 
 	InitializeCriticalSection( &TempSession->EventPump.Lock );
 

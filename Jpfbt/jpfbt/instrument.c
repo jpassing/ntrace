@@ -35,35 +35,6 @@ extern void JpfbtpFunctionCallThunk();
 
 /*++
 	Routine Description:
-		Check if procedure is preceeded with the specified padding.
---*/
-static BOOLEAN JpfbtsIsPaddingAvailable(
-	__in CONST JPFBT_PROCEDURE Procedure,
-	__in PUCHAR PaddingContent,
-	__in SIZE_T AnticipatedLength
-	)
-{
-	return ( BOOLEAN ) ( 0 == memcmp( 
-		( PUCHAR ) Procedure.u.Procedure - AnticipatedLength,
-		PaddingContent,
-		AnticipatedLength ) );
-}
-
-/*++
-	Routine Description:
-		Check if procedure begins with mov edi, edi, which
-		makes it hotpatchable.
---*/
-static BOOLEAN JpfbtsIsHotpatchable(
-	__in CONST JPFBT_PROCEDURE Procedure 
-	)
-{
-	USHORT MovEdiEdi = 0xFF8B;
-	return ( BOOLEAN ) ( *( PUSHORT ) Procedure.u.Procedure == MovEdiEdi );
-}
-
-/*++
-	Routine Description:
 		Check if procedure begins with a short jmp, which
 		indicatews that it has already been patched.
 --*/
@@ -282,7 +253,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 				TRACE( ( "Procedure %p already patched\n", Procedure.u.Procedure ) );
 				Status = STATUS_FBT_PROC_ALREADY_PATCHED;
 			}
-			else if ( ! JpfbtsIsHotpatchable( Procedure ) )
+			else if ( ! JpfbtIsHotpatchable( Procedure ) )
 			{
 				TRACE( ( "Procedure %p not patchable\n", Procedure.u.Procedure ) );
 				Status = STATUS_FBT_PROC_NOT_PATCHABLE;
@@ -292,9 +263,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 				//
 				// Check padding and ínitialize appropriate patch.
 				//
-				if ( JpfbtsIsPaddingAvailable( Procedure, JpfbtsNopPadding, 5 ) ||
-						  JpfbtsIsPaddingAvailable( Procedure, JpfbtsInt3Padding, 5 ) ||
-						  JpfbtsIsPaddingAvailable( Procedure, JpfbtsZeroPadding, 5 ) )
+				if ( JpfbtIsPaddingAvailable( Procedure, 5 ) )
 				{
 					Status = JpfbtsInitializeCodePatch( 
 						Procedure, 
@@ -529,6 +498,52 @@ NTSTATUS JpfbtInstrumentProcedure(
 	default:
 		return STATUS_INVALID_PARAMETER;
 	}
+}
+
+BOOLEAN JpfbtIsPaddingAvailable(
+	__in CONST JPFBT_PROCEDURE Procedure,
+	__in SIZE_T AnticipatedLength
+	)
+{
+	ASSERT( AnticipatedLength <= _countof( JpfbtsNopPadding ) );
+	if ( AnticipatedLength > _countof( JpfbtsNopPadding ) )
+	{
+		return FALSE;
+	}
+
+	if ( 0 == memcmp( 
+		( PUCHAR ) Procedure.u.Procedure - AnticipatedLength,
+		JpfbtsNopPadding,
+		AnticipatedLength ) )
+	{
+		return TRUE;
+	}
+
+	if ( 0 == memcmp( 
+		( PUCHAR ) Procedure.u.Procedure - AnticipatedLength,
+		JpfbtsInt3Padding,
+		AnticipatedLength ) )
+	{
+		return TRUE;
+	}
+
+	if ( 0 == memcmp( 
+		( PUCHAR ) Procedure.u.Procedure - AnticipatedLength,
+		JpfbtsZeroPadding,
+		AnticipatedLength ) )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN JpfbtIsHotpatchable(
+	__in CONST JPFBT_PROCEDURE Procedure 
+	)
+{
+	USHORT MovEdiEdi = 0xFF8B;
+	return ( BOOLEAN ) ( *( PUSHORT ) Procedure.u.Procedure == MovEdiEdi );
 }
 
 #pragma warning( pop ) 

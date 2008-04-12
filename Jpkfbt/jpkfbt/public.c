@@ -330,3 +330,62 @@ NTSTATUS JpkfbtInstrumentProcedure(
 		}
 	}
 }
+
+NTSTATUS JpkfbtCheckProcedureInstrumentability(
+	__in JPKFBT_SESSION SessionHandle,
+	__in JPFBT_PROCEDURE Procedure,
+	__out PBOOL Hotpatchable,
+	__out PUINT PaddingSize )
+{
+	JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST Request;
+	JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE Response;
+	PJPKBTP_SESSION Session;
+	NTSTATUS Status;
+	IO_STATUS_BLOCK StatusBlock;
+
+	if ( Procedure.u.Procedure == NULL ||
+		 Hotpatchable == NULL ||
+		 PaddingSize == NULL )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	if ( SessionHandle == NULL )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	Session = ( PJPKBTP_SESSION ) SessionHandle;
+
+
+	Request.Procedure = Procedure;
+
+	//
+	// Use NtDeviceIoControlFile rather than DeviceIoControl in 
+	// order to circumvent NTSTATUS -> DOS return value mapping.
+	//
+	Status = NtDeviceIoControlFile(
+		Session->DeviceHandle,
+		NULL,
+		NULL,
+		NULL,
+		&StatusBlock,
+		JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY,
+		&Request,
+		sizeof( JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST ),
+		&Response,
+		sizeof( JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE ) );
+	if ( NT_SUCCESS( Status ) )
+	{
+		ASSERT( StatusBlock.Information == 
+				sizeof( JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE ) );
+		
+		*Hotpatchable	= Response.Hotpatchable;
+		*PaddingSize	= Response.ProcedurePadding;
+		return STATUS_SUCCESS;
+	}
+	else
+	{
+		return Status;
+	}
+}

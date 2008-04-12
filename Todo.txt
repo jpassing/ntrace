@@ -24,7 +24,6 @@ jpfsv
  * tp:check tracability for kernel mode via IOCTL
  
  
- 
- * jpkfbt als msg-dll
- 
  * mask out nt-bit for message resolution?
+ 
+ * allow second instance of ctrc

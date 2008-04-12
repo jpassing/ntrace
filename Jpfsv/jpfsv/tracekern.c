@@ -116,6 +116,43 @@ static HRESULT JpfsvsInstrumentProcedureKernelTraceSession(
 	}
 }
 
+static HRESULT JpfsvsCheckProcedureInstrumentabilityKernelTraceSession(
+	__in PJPFSV_TRACE_SESSION This,
+	__in DWORD_PTR ProcAddress,
+	__out PBOOL Hotpatchable,
+	__out PUINT PaddingSize 
+	)
+{
+	JPFBT_PROCEDURE Procedure;
+	PJPFSVP_KM_TRACE_SESSION Session;
+	NTSTATUS Status;
+
+	Session = ( PJPFSVP_KM_TRACE_SESSION ) This;
+
+	if ( ! Session ||
+		 ProcAddress == 0 ||
+		 ! Hotpatchable ||
+		 ! PaddingSize )
+	{
+		return E_INVALIDARG;
+	}
+
+	Procedure.u.ProcedureVa = ProcAddress;
+	Status = JpkfbtCheckProcedureInstrumentability(
+		Session->KfbtSession,
+		Procedure,
+		Hotpatchable,
+		PaddingSize );
+	if ( NT_SUCCESS( Status ) )
+	{
+		return S_OK;
+	}
+	else
+	{
+		return HRESULT_FROM_NT( Status );
+	}
+}
+
 static HRESULT JpfsvsDeleteKernelTraceSession(
 	__in PJPFSVP_KM_TRACE_SESSION Session
 	)
@@ -237,6 +274,8 @@ HRESULT JpfsvpCreateKernelTraceSession(
 	TempSession->Base.Dereference			= JpfsvsDereferenceKernelTraceSession;
 	TempSession->Base.Reference				= JpfsvsReferenceKernelTraceSession;
 	TempSession->Base.InstrumentProcedure	= JpfsvsInstrumentProcedureKernelTraceSession;
+	TempSession->Base.CheckProcedureInstrumentability = 
+											  JpfsvsCheckProcedureInstrumentabilityKernelTraceSession;
 	TempSession->Base.Start					= JpfsvsStartKernelTraceSession;
 	TempSession->Base.Stop					= JpfsvsStopKernelTraceSession;
 

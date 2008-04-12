@@ -5,3 +5,4 @@ EXPORTS
 	JpkfbtInitializeTracing
 	JpkfbtShutdownTracing
 	JpkfbtInstrumentProcedure
+	JpkfbtCheckProcedureInstrumentability

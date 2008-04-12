@@ -21,7 +21,7 @@
 typedef struct _SEARCH_SYMBOL_CTX
 {
 	JPFSV_OUTPUT_ROUTINE OutputRoutine;
-	HANDLE Process;
+	JPFSV_HANDLE ContextHandle;
 } SEARCH_SYMBOL_CTX, *PSEARCH_SYMBOL_CTX;
 
 static BOOL JpfsvsOutputSymbol(
@@ -35,6 +35,7 @@ static BOOL JpfsvsOutputSymbol(
 	WCHAR Buffer[ 255 ];
 	BOOL Hotpatchable;
 	HRESULT Hr;
+	UINT PaddingSize;
 
 	UNREFERENCED_PARAMETER( SymbolSize );
 
@@ -65,34 +66,23 @@ static BOOL JpfsvsOutputSymbol(
 		Alignment = 0;
 	}
 
-	Hr = JpfsvIsProcedureHotpatchable(
-		Ctx->Process,
+	Hr = JpfsvCheckProcedureInstrumentability(
+		Ctx->ContextHandle,
 		( DWORD_PTR ) SymInfo->Address,
-		&Hotpatchable );
+		&Hotpatchable,
+		&PaddingSize );
 	if ( SUCCEEDED( Hr ) )
 	{
 		if ( Hotpatchable )
 		{
-			UINT PaddingSize;
-			Hr = JpfsvGetProcedurePaddingSize(
-				Ctx->Process,
-				( DWORD_PTR ) SymInfo->Address,
-				&PaddingSize );
-			if ( SUCCEEDED( Hr ) )
-			{
-				WCHAR Msg[ 100 ];
-				( VOID ) StringCchPrintf(
-					Msg,
-					_countof( Msg ),
-					L"(hotpatchable, %d bytes padding, aligned: %d)\n",
-					PaddingSize,
-					Alignment );
-				( Ctx->OutputRoutine ) ( Msg );
-			}
-			else
-			{	
-				( Ctx->OutputRoutine ) ( L"(hotpatchable, unknown padding)\n" );
-			}
+			WCHAR Msg[ 100 ];
+			( VOID ) StringCchPrintf(
+				Msg,
+				_countof( Msg ),
+				L"(hotpatchable, %d bytes padding, aligned: %d)\n",
+				PaddingSize,
+				Alignment );
+			( Ctx->OutputRoutine ) ( Msg );
 		}
 		else
 		{
@@ -126,7 +116,7 @@ BOOL JpfsvpSearchSymbolCommand(
 	}
 
 	Ctx.OutputRoutine = ProcessorState->OutputRoutine;
-	Ctx.Process = Process;
+	Ctx.ContextHandle = ProcessorState->Context;
 
 	if ( ! SymEnumSymbols(
 		Process,

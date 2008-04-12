@@ -7,7 +7,11 @@
  */
 #include "internal.h"
 
-HRESULT JpfsvIsProcedureHotpatchable(
+/*----------------------------------------------------------------------
+ * User Mode Helpers.
+ */
+
+HRESULT JpfsvpIsProcedureHotpatchable(
 	__in HANDLE Process,
 	__in DWORD_PTR ProcAddress,
 	__out PBOOL Hotpatchable
@@ -32,13 +36,16 @@ HRESULT JpfsvIsProcedureHotpatchable(
 	}
 }
 
-HRESULT JpfsvGetProcedurePaddingSize(
+HRESULT JpfsvpGetProcedurePaddingSize(
 	__in HANDLE Process,
 	__in DWORD_PTR ProcAddress,
 	__out PUINT PaddingSize
 	)
 {
 	UCHAR Padding[ 10 ];
+	
+	*PaddingSize = 0;
+
 	if ( ReadProcessMemory(
 		Process,
 		( PVOID ) ( ProcAddress - 10 ),
@@ -46,7 +53,6 @@ HRESULT JpfsvGetProcedurePaddingSize(
 		sizeof( Padding ),
 		NULL ) )
 	{
-		*PaddingSize = 0;
 		if ( Padding[ 9 ] != 0x90 &&
 			 Padding[ 9 ] != 0xCC &&
 			 Padding[ 9 ] != 0x00 )
@@ -67,3 +73,5 @@ HRESULT JpfsvGetProcedurePaddingSize(
 		return HRESULT_FROM_WIN32( Err );
 	}
 }
+
+

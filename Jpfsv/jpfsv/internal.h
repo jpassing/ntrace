@@ -93,6 +93,23 @@ __inline BOOL JpfsvpIsCriticalSectionHeld(
 #endif
 }
 
+/*----------------------------------------------------------------------
+ *
+ * UM Patchability Inspection.
+ *
+ */
+
+HRESULT JpfsvpIsProcedureHotpatchable(
+	__in HANDLE Process,
+	__in DWORD_PTR ProcAddress,
+	__out PBOOL Hotpatchable
+	);
+
+HRESULT JpfsvpGetProcedurePaddingSize(
+	__in HANDLE Process,
+	__in DWORD_PTR ProcAddress,
+	__out PUINT PaddingSize
+	);
 
 /*----------------------------------------------------------------------
  *
@@ -155,6 +172,13 @@ typedef struct _JPFSV_TRACE_SESSION
 		__in UINT ProcedureCount,
 		__in_ecount(InstrCount) CONST PJPFBT_PROCEDURE Procedures,
 		__out_opt PJPFBT_PROCEDURE FailedProcedure
+		);
+
+	HRESULT ( *CheckProcedureInstrumentability)(
+		__in struct _JPFSV_TRACE_SESSION *This,
+		__in DWORD_PTR ProcAddress,
+		__out PBOOL Hotpatchable,
+		__out PUINT PaddingSize 
 		);
 
 	/*++

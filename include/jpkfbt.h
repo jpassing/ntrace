@@ -143,3 +143,13 @@ NTSTATUS JpkfbtIsKernelTypeSupported(
 	__in JPKFBT_KERNEL_TYPE KernelType,
 	__out PBOOL Supported
 	);
+
+/*++
+	Routine Description:
+		Check whether a procedure is suitable for instrumentation.
+--*/
+NTSTATUS JpkfbtCheckProcedureInstrumentability(
+	__in JPKFBT_SESSION SessionHandle,
+	__in JPFBT_PROCEDURE Procedure,
+	__out PBOOL Hotpatchable,
+	__out PUINT PaddingSize );

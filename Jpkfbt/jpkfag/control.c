@@ -61,6 +61,95 @@ static BOOLEAN JpkfagsIsValidCodePointer(
 	return FALSE;
 }
 
+static NTSTATUS JpkfagsCheckProcedurePointers(
+	__in ULONG ProcedureCount,
+	__in_ecount( ProcedureCount ) PJPFBT_PROCEDURE Procedures,
+	__out PJPFBT_PROCEDURE FailedProcedure
+	)
+{
+	ULONG Index;
+	PAUX_MODULE_EXTENDED_INFO Modules;
+	ULONG ModulesBufferSize = 0;
+	NTSTATUS Status;
+
+	//
+	// Check that all procedure addresses fall withing system address
+	// space.
+	//
+	for ( Index = 0; Index < ProcedureCount; Index++ )
+	{
+		if ( Procedures[ Index ].u.Procedure < MmSystemRangeStart )
+		{
+			//
+			// Attempt to patch in user address space.
+			//
+			*FailedProcedure = Procedures[ Index ];
+			return STATUS_KFBT_PROC_OUTSIDE_SYSTEM_RANGE;
+		}
+	}
+
+	//
+	// Get list of loaded modules and verify that all procedure pointers
+	// indeed point to within a module. After all, this IOCTL could be used
+	// to touch (and possibly even overwrite) arbitrary memory - this
+	// check, albeit expensive, is therefore indispensable.
+	//
+	// Query required size.
+	//
+	Status = AuxKlibQueryModuleInformation (
+		&ModulesBufferSize,
+		sizeof( AUX_MODULE_EXTENDED_INFO ),
+		NULL );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
+
+	ASSERT( ( ModulesBufferSize % sizeof( AUX_MODULE_EXTENDED_INFO ) ) == 0 );
+
+	Modules = ( PAUX_MODULE_EXTENDED_INFO )
+		ExAllocatePoolWithTag( PagedPool, ModulesBufferSize, JPKFAG_POOL_TAG );
+	if ( ! Modules )
+	{
+		return STATUS_NO_MEMORY;
+	}
+
+	RtlZeroMemory( Modules, ModulesBufferSize );
+
+	//
+	// Query loaded modules list and check pointers.
+	//
+	Status = AuxKlibQueryModuleInformation(
+		&ModulesBufferSize,
+		sizeof( AUX_MODULE_EXTENDED_INFO ),
+		Modules );
+	if ( NT_SUCCESS( Status ) )
+	{
+		ULONG ModuleCount = ModulesBufferSize / sizeof( AUX_MODULE_EXTENDED_INFO );
+
+		for ( Index = 0; Index < ProcedureCount; Index++ )
+		{
+			if ( ! JpkfagsIsValidCodePointer(
+				Procedures[ Index ].u.Procedure,
+				ModuleCount,
+				Modules ) )
+			{
+				*FailedProcedure = Procedures[ Index ];
+				Status = STATUS_KFBT_PROC_OUTSIDE_MODULE;
+				break;
+			}
+		}
+	}
+
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		ExFreePoolWithTag( Modules, JPKFAG_POOL_TAG );
+		return Status;
+	}
+
+	return Status;
+}
+
 /*----------------------------------------------------------------------
  *
  * Internal Routines.
@@ -137,9 +226,6 @@ NTSTATUS JpkfagpInstrumentProcedureIoctl(
 	__out PULONG BytesWritten
 	)
 {
-	ULONG Index;
-	PAUX_MODULE_EXTENDED_INFO Modules;
-	ULONG ModulesBufferSize = 0;
 	PJPKFAG_IOCTL_INSTRUMENT_PROCEDURE_REQUEST Request;
 	PJPKFAG_IOCTL_INSTRUMENT_PROCEDURE_RESPONSE Response;
 	NTSTATUS Status;
@@ -171,92 +257,28 @@ NTSTATUS JpkfagpInstrumentProcedureIoctl(
 	}
 
 	//
-	// Check that all procedure addresses fall withing system address
-	// space.
+	// Make sure all procedure pointers are valid.
 	//
-	for ( Index = 0; Index < Request->ProcedureCount; Index++ )
-	{
-		if ( Request->Procedures[ Index ].u.Procedure < MmSystemRangeStart )
-		{
-			//
-			// Attempt to patch in user address space.
-			//
-			Response->Status			= STATUS_KFBT_PROC_OUTSIDE_SYSTEM_RANGE;
-			Response->FailedProcedure	= Request->Procedures[ Index ];
-			*BytesWritten				= sizeof( JPKFAG_IOCTL_INSTRUMENT_PROCEDURE_RESPONSE );
-
-			//
-			// N.B. STATUS_KFBT_INSTRUMENTATION_FAILED is a warning
-			// status s.t. the output buffer is transferred.
-			//
-			return STATUS_KFBT_INSTRUMENTATION_FAILED;
-		}
-
-		//
-		// Check if address falls within a module.
-		//
-	}
-
-	//
-	// Get list of loaded modules and verify that all procedure pointers
-	// indeed point to code. After all, this IOCTL could be used
-	// to touch (and possibly even overwrite) arbitrary memory - this
-	// check, albeit expensive, is therefore indispensable.
-	//
-	// Query required size.
-	//
-	Status = AuxKlibQueryModuleInformation (
-		&ModulesBufferSize,
-		sizeof( AUX_MODULE_EXTENDED_INFO ),
-		NULL );
+	Status = JpkfagsCheckProcedurePointers(
+		Request->ProcedureCount,
+		Request->Procedures,
+		&Response->FailedProcedure );
 	if ( ! NT_SUCCESS( Status ) )
 	{
-		return Status;
-	}
+		ASSERT( Response->FailedProcedure.u.Procedure != NULL );
 
-	ASSERT( ( ModulesBufferSize % sizeof( AUX_MODULE_EXTENDED_INFO ) ) == 0 );
+		//
+		// FailedProcedure hsa been set, also preserve detail NTSTATUS.
+		//
+		Response->Status = Status;
+		
+		*BytesWritten = sizeof( JPKFAG_IOCTL_INSTRUMENT_PROCEDURE_RESPONSE );
 
-	Modules = ( PAUX_MODULE_EXTENDED_INFO )
-		ExAllocatePoolWithTag( PagedPool, ModulesBufferSize, JPKFAG_POOL_TAG );
-	if ( ! Modules )
-	{
-		return STATUS_NO_MEMORY;
-	}
-
-	RtlZeroMemory( Modules, ModulesBufferSize );
-
-	//
-	// Query loaded modules list and check pointers.
-	//
-	Status = AuxKlibQueryModuleInformation(
-		&ModulesBufferSize,
-		sizeof( AUX_MODULE_EXTENDED_INFO ),
-		Modules );
-	if ( NT_SUCCESS( Status ) )
-	{
-		ULONG ModuleCount = ModulesBufferSize / sizeof( AUX_MODULE_EXTENDED_INFO );
-
-		for ( Index = 0; Index < Request->ProcedureCount; Index++ )
-		{
-			if ( ! JpkfagsIsValidCodePointer(
-				Request->Procedures[ Index ].u.Procedure,
-				ModuleCount,
-				Modules ) )
-			{
-				*BytesWritten		= sizeof( JPKFAG_IOCTL_INSTRUMENT_PROCEDURE_RESPONSE );
-				
-				Response->FailedProcedure = Request->Procedures[ Index ];
-				Response->Status		  = STATUS_KFBT_PROC_OUTSIDE_MODULE;
-				Status					  = STATUS_KFBT_INSTRUMENTATION_FAILED;
-				break;
-			}
-		}
-	}
-
-	if ( ! NT_SUCCESS( Status ) )
-	{
-		ExFreePoolWithTag( Modules, JPKFAG_POOL_TAG );
-		return Status;
+		//
+		// N.B. STATUS_KFBT_INSTRUMENTATION_FAILED is a warning
+		// status s.t. the output buffer is transferred.
+		//
+		return STATUS_KFBT_INSTRUMENTATION_FAILED;
 	}
 
 	//
@@ -288,6 +310,79 @@ NTSTATUS JpkfagpInstrumentProcedureIoctl(
 			return Status;
 		}
 	}
+}
+
+NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
+	__in PVOID Buffer,
+	__in ULONG InputBufferLength,
+	__in ULONG OutputBufferLength,
+	__out PULONG BytesWritten
+	)
+{
+	JPFBT_PROCEDURE FailedProcedure;
+	JPFBT_PROCEDURE Procedure;
+	PJPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST Request;
+	PJPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE Response;
+	NTSTATUS Status;
+
+	ASSERT( BytesWritten );
+	*BytesWritten = 0;
+	
+	if ( ! Buffer ||
+		   InputBufferLength < sizeof( JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST ) ||
+		   OutputBufferLength < sizeof( JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE ) )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	Request = ( PJPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST ) Buffer;
+	Response = ( PJPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE ) Buffer;
+
+	if ( Request->Procedure.u.Procedure == NULL )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	//
+	// Make sure procedure pointer is valid.
+	//
+	Status = JpkfagsCheckProcedurePointers(
+		1,
+		&Request->Procedure,
+		&FailedProcedure );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		ASSERT( FailedProcedure.u.Procedure == Request->Procedure.u.Procedure );
+
+		return Status;
+	}
+
+	//
+	// Request fully validated - check instrumentability.
+	//
+	Procedure = Request->Procedure;
+	
+	Response->Hotpatchable = JpfbtIsHotpatchable( Procedure );
+	if ( Response->Hotpatchable )
+	{
+		if ( JpfbtIsPaddingAvailable( 
+			Procedure, 
+			JPFBT_MIN_PROCEDURE_PADDING_REQUIRED ) )
+		{
+			Response->ProcedurePadding = JPFBT_MIN_PROCEDURE_PADDING_REQUIRED;
+		}
+		else
+		{
+			Response->ProcedurePadding = 0;
+		}
+	}
+	else
+	{
+		Response->ProcedurePadding = 0;
+	}
+
+	*BytesWritten = sizeof( JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE );
+	return STATUS_SUCCESS;
 }
 
 VOID JpkfagpCleanupThread(

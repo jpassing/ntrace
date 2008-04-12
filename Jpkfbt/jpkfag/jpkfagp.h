@@ -1,3 +1,7 @@
+
+
+
+
 #pragma once
 
 /*----------------------------------------------------------------------
@@ -50,6 +54,13 @@ NTSTATUS JpkfagpShutdownTracingIoctl(
 	);
 
 NTSTATUS JpkfagpInstrumentProcedureIoctl(
+	__in PVOID Buffer,
+	__in ULONG InputBufferLength,
+	__in ULONG OutputBufferLength,
+	__out PULONG BytesWritten
+	);
+
+NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
 	__in PVOID Buffer,
 	__in ULONG InputBufferLength,
 	__in ULONG OutputBufferLength,
