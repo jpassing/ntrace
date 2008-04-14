@@ -107,6 +107,9 @@ static HRESULT JpfsvsLoadKernelModules(
 	
 	for ( ;; )
 	{
+		BOOL IsKernelImage = FALSE;
+		size_t ModuleNameLength;
+
 		Module.Size = sizeof( JPFSV_MODULE_INFO );
 		Hr = JpfsvGetNextItem( Enum, &Module );
 		if ( S_OK != Hr )
@@ -115,11 +118,25 @@ static HRESULT JpfsvsLoadKernelModules(
 		}
 
 		//
+		// Check if this is the kernel image. The name of the kernel
+		// image is unknown, but no other module should have the .exe
+		// file extension
+		//
+		ModuleNameLength = wcslen( Module.ModulePath );
+		if ( ModuleNameLength > 4 )
+		{
+			IsKernelImage = ( 0 == _wcsicmp(
+				Module.ModulePath + ModuleNameLength - 4,
+				L".exe" ) );
+		}
+
+		//
 		// Load module.
 		//
 		Hr = JpfsvLoadModuleContext(
 			KernelContextHandle,
 			Module.ModulePath,
+			IsKernelImage ? L"nt" : NULL,
 			Module.LoadAddress,
 			Module.ModuleSize );
 		if ( SUCCEEDED( Hr ) )
@@ -650,7 +667,8 @@ DWORD JpfsvGetProcessIdContext(
 
 HRESULT JpfsvLoadModuleContext(
 	__in JPFSV_HANDLE ContextHandle,
-	__in PWSTR ModulePath,
+	__in PCWSTR ModulePath,
+	__in_opt PCWSTR Alias,
 	__in DWORD_PTR LoadAddress,
 	__in_opt DWORD SizeOfDll
 	)
@@ -672,7 +690,7 @@ HRESULT JpfsvLoadModuleContext(
 		Context->ProcessHandle,
 		NULL,
 		ModulePath,
-		NULL,
+		Alias,
 		LoadAddress,
 		SizeOfDll,
 		NULL,

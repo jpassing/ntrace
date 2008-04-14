@@ -416,6 +416,7 @@ DWORD JpfsvGetProcessIdContext(
 	Parameters:
 		Resolver	- Resolver obtained from JpfsvGetSymbolResolver.
 		ModulePath  - Path to DLL/EXE.
+		Alias		- Module alias to use.
 		LoadAddress - Load address in target process.
 		SizeOfDll   - Size of DLL. If NULL, it will be auto-determined.
 
@@ -426,7 +427,8 @@ DWORD JpfsvGetProcessIdContext(
 --*/
 HRESULT JpfsvLoadModuleContext(
 	__in JPFSV_HANDLE ContextHandle,
-	__in PWSTR ModulePath,
+	__in PCWSTR ModulePath,
+	__in_opt PCWSTR Alias,
 	__in DWORD_PTR LoadAddress,
 	__in_opt DWORD SizeOfDll
 	);

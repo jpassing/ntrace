@@ -37,6 +37,11 @@ NTSTATUS JpfbtCheckProcedureInstrumentability(
 
 	SizeOfMemToTouch = JPFBT_MIN_PROCEDURE_PADDING_REQUIRED + 2;
 
+	//
+	// N.B. Checking with MmIsAddressValid is actualy more
+	// restructing than necessary as paged code must not necessarily
+	// be problematic.
+	//
 	if ( ! MmIsAddressValid( BasePointer ) ||
 		 ! MmIsAddressValid( ( PUCHAR ) BasePointer + SizeOfMemToTouch ) )
 	{

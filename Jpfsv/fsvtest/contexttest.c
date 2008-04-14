@@ -71,6 +71,7 @@ static void TestLoadKernelModules()
 	Hr = JpfsvLoadModuleContext(
 		Kctx,
 		Mod.ModulePath,
+		NULL,
 		Mod.LoadAddress,
 		Mod.ModuleSize );
 	TEST( S_OK == Hr || S_FALSE == Hr );	// depends on testcase order.
@@ -78,6 +79,7 @@ static void TestLoadKernelModules()
 	TEST( S_FALSE == JpfsvLoadModuleContext(
 		Kctx,
 		Mod.ModulePath,
+		NULL,
 		Mod.LoadAddress,
 		Mod.ModuleSize ) );
 
