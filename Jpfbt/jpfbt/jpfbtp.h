@@ -188,6 +188,12 @@ typedef struct _JPFBT_THREAD_DATA
 
 	JPFBTP_THREAD_DATA_ALLOCATION_TYPE AllocationType;
 
+	//
+	// Backpointer to the thread this struct is associated with.
+	// (PETHREAD).
+	//
+	PVOID Thread;
+
 	JPFBT_THUNK_STACK ThunkStack;
 } JPFBT_THREAD_DATA, *PJPFBT_THREAD_DATA;
 
@@ -234,10 +240,11 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
  */
 
 #ifdef DBG
-#define INITIAL_PATCHTABLE_SIZE 3
+#define JPFBTP_INITIAL_PATCHTABLE_SIZE	3
 #else
-#define INITIAL_PATCHTABLE_SIZE 127
+#define JPFBTP_INITIAL_PATCHTABLE_SIZE	127
 #endif
+//#define JPFBTP_INITIAL_TLS_TABLE_SIZE	1024
 
 /*++
 	Structure Description:
@@ -355,6 +362,7 @@ typedef struct _JPFBT_GLOBAL_DATA
 		// preallocation list.
 		//
 		volatile LONG FailedDirqlThreadDataAllocations;
+		volatile LONG FailedDirqlTlsAllocations;
 		volatile LONG NumberOfBuffersCollected;
 	} Counters;
 
@@ -717,21 +725,52 @@ VOID JpfbtpFreeNonPagedMemory(
 
 
 
-/*----------------------------------------------------------------------
- *
- * WRK stub routines.
- *
- */
 #if defined( JPFBT_TARGET_KERNELMODE )
+#if defined( JPFBT_WRK )
+	#define JpfbtpInitializeKernelTls()
+	#define JpfbtpDeleteKernelTls()
+#else
 
-VOID JpfbtWrkSetFbtDataCurrentThread(
+/*++
+	Routine Description:
+		Initialize thread local storage.
+
+		Only applies to retail kernel build.
+--*/
+VOID JpfbtpInitializeKernelTls();
+
+
+/*++
+	Routine Description:
+		Delete thread local storage.
+
+		Only applies to retail kernel build.
+--*/
+VOID JpfbtpDeleteKernelTls();
+
+#endif
+
+/*++
+	Routine Description:
+		Associate data with the current thread.
+--*/
+VOID JpfbtSetFbtDataThread(
+	__in PETHREAD Thread,
 	__in PVOID Data 
 	);
 
-PVOID JpfbtWrkGetFbtDataThread(
+/*++
+	Routine Description:
+		Retrieve data from the given thread.
+--*/
+PVOID JpfbtGetFbtDataThread(
 	__in PETHREAD Thread
 	);
 
-PVOID JpfbtWrkGetFbtDataCurrentThread();
+/*++
+	Routine Description:
+		Retrieve data from the current thread.
+--*/
+PVOID JpfbtGetFbtDataCurrentThread();
 
 #endif

@@ -72,25 +72,30 @@ NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
  * JPFBT callback routines.
  *
  */
-#ifdef JPFBT_WMK
-VOID JpkfagpWmkProcedureEntry(
+
+VOID JpkfagpEvtImageLoad(
+	__in ULONGLONG ImageLoadAddress,
+	__in ULONG ImageSize,
+	__in PANSI_STRING Path
+	);
+
+VOID JpkfagpEvtProcedureEntry(
 	__in CONST PJPFBT_CONTEXT Context,
 	__in PVOID Function
 	);
 
-VOID JpkfagpWmkProcedureExit(
+VOID JpkfagpEvtProcedureExit(
 	__in CONST PJPFBT_CONTEXT Context,
 	__in PVOID Function
 	);
 
-VOID JpkfagpWmkProcessBuffer(
+VOID JpkfagpEvtProcessBuffer(
 	__in SIZE_T BufferSize,
 	__in_bcount(BufferSize) PUCHAR Buffer,
 	__in ULONG ProcessId,
 	__in ULONG ThreadId,
 	__in_opt PVOID UserPointer
 	);
-#endif
 
 /*++
 	Routine Description:

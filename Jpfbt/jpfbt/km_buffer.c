@@ -103,6 +103,8 @@ NTSTATUS JpfbtpCreateGlobalState(
 		return STATUS_INVALID_PARAMETER;
 	}
 
+	JpfbtpInitializeKernelTls();
+
 	//
 	// Allocate.
 	//
@@ -221,6 +223,8 @@ VOID JpfbtpFreeGlobalState()
 		JpfbtsFreePreallocatedThreadData( JpfbtpGlobalState );
 		JpfbtpFreeNonPagedMemory( JpfbtpGlobalState );
 		JpfbtpGlobalState = NULL;
+
+		JpfbtpDeleteKernelTls();
 	}
 }
 
@@ -233,7 +237,7 @@ VOID JpfbtpFreeGlobalState()
 
 PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable()
 {
-	return ( PJPFBT_THREAD_DATA ) JpfbtWrkGetFbtDataCurrentThread();
+	return ( PJPFBT_THREAD_DATA ) JpfbtGetFbtDataCurrentThread();
 }
 
 PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
@@ -250,6 +254,8 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 		if ( ThreadData != NULL )
 		{
 			ThreadData->AllocationType = JpfbtpPoolAllocated;
+
+			TRACE( ( "JPFBT: ThreadData %p alloc'd from preallocation\n", ThreadData ) );
 		}
 	}
 	else
@@ -275,14 +281,19 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 				u.SListEntry ); 
 
 			ThreadData->AllocationType = JpfbtpPreAllocated;
+
+			TRACE( ( "JPFBT: ThreadData %p alloc'd from NPP\n", ThreadData ) );
 		}
 	}
 
 	//
 	// N.B. ThreadData may be NULL.
 	//
-
-	JpfbtWrkSetFbtDataCurrentThread( ThreadData );
+	if ( ThreadData != NULL )
+	{
+		ThreadData->Thread = PsGetCurrentThread();
+		JpfbtSetFbtDataThread( ThreadData->Thread, ThreadData );
+	}
 
 	return ThreadData;
 }
@@ -291,6 +302,11 @@ VOID JpfbtpFreeThreadData(
 	__in PJPFBT_THREAD_DATA ThreadData 
 	)
 {
+	//
+	// Disassociate it from the thread.
+	//
+	JpfbtSetFbtDataThread( ThreadData->Thread, NULL );
+
 	if ( ThreadData->AllocationType == JpfbtpPoolAllocated )
 	{
 		if ( KeGetCurrentIrql() <= DISPATCH_LEVEL )
@@ -298,9 +314,11 @@ VOID JpfbtpFreeThreadData(
 			PSLIST_ENTRY ListEntry;
 
 			//
-			// Free it.
+			// Free it
 			//
 			JpfbtpFreeNonPagedMemory( ThreadData );
+
+			TRACE( ( "JPFBT: ThreadData %p freed to NPP\n", ThreadData ) );
 
 			//
 			// See if there are delayed free operations.
@@ -325,6 +343,8 @@ VOID JpfbtpFreeThreadData(
 			InterlockedPushEntrySList( 
 				&JpfbtpGlobalState->ThreadDataFreeList,
 				&ThreadData->u.SListEntry );
+
+			TRACE( ( "JPFBT: ThreadData %p delay-freed\n", ThreadData ) );
 		}
 	}
 	else
@@ -335,6 +355,8 @@ VOID JpfbtpFreeThreadData(
 		InterlockedPushEntrySList( 
 				&JpfbtpGlobalState->ThreadDataPreallocationList,
 				&ThreadData->u.SListEntry );
+
+		TRACE( ( "JPFBT: ThreadData %p freed to preallocation\n", ThreadData ) );
 	}
 }
 

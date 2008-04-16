@@ -461,7 +461,7 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 #else
 	ASSERT( Thread != NULL );
 	ThreadData = ( PJPFBT_THREAD_DATA ) 
-		JpfbtWrkGetFbtDataThread( ( PETHREAD ) Thread );
+		JpfbtGetFbtDataThread( ( PETHREAD ) Thread );
 #endif
 
 	if ( ThreadData != NULL )

@@ -8,7 +8,20 @@
 #include <wdm.h>
 #include "jpkfagp.h"
 
-VOID JpkfagpWmkProcedureEntry(
+VOID JpkfagpEvtImageLoad(
+	__in ULONGLONG ImageLoadAddress,
+	__in ULONG ImageSize,
+	__in PANSI_STRING Path
+	)
+{
+	UNREFERENCED_PARAMETER( ImageLoadAddress );
+	UNREFERENCED_PARAMETER( ImageSize );
+	UNREFERENCED_PARAMETER( Path );
+//	DbgPrint( "--> New image at %x: %s\n", ImageLoadAddress, Path->Buffer );
+	DbgPrint( "--> New image at %x\n", ImageLoadAddress );
+}
+
+VOID JpkfagpEvtProcedureEntry(
 	__in CONST PJPFBT_CONTEXT Context,
 	__in PVOID Function
 	)
@@ -17,7 +30,7 @@ VOID JpkfagpWmkProcedureEntry(
 	DbgPrint( "--> %p\n", Function );
 }
 
-VOID JpkfagpWmkProcedureExit(
+VOID JpkfagpEvtProcedureExit(
 	__in CONST PJPFBT_CONTEXT Context,
 	__in PVOID Function
 	)
@@ -26,7 +39,7 @@ VOID JpkfagpWmkProcedureExit(
 	DbgPrint( "<-- %p\n", Function);
 }
 
-VOID JpkfagpWmkProcessBuffer(
+VOID JpkfagpEvtProcessBuffer(
 	__in SIZE_T BufferSize,
 	__in_bcount(BufferSize) PUCHAR Buffer,
 	__in ULONG ProcessId,

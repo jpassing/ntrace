@@ -26,10 +26,13 @@ extern NTKERNELAPI PVOID MmSystemRangeStart;
 static BOOLEAN JpkfagsIsValidCodePointer(
 	__in PVOID Pointer,
 	__in ULONG ModuleCount,
-	__in_ecount( ModuleCount ) PAUX_MODULE_EXTENDED_INFO Modules
+	__in_ecount( ModuleCount ) PAUX_MODULE_EXTENDED_INFO Modules,
+	__out PULONG MatchedModuleIndex
 	)
 {
 	ULONG Index;
+
+	ASSERT( MatchedModuleIndex );
 
 	for ( Index = 0; Index < ModuleCount; Index++ )
 	{
@@ -48,6 +51,7 @@ static BOOLEAN JpkfagsIsValidCodePointer(
 			// whether it is in fact a patchable function prolog can
 			// be safely conducted.
 			//
+			*MatchedModuleIndex = Index;
 			return TRUE;
 		} 
 		else
@@ -64,6 +68,7 @@ static BOOLEAN JpkfagsIsValidCodePointer(
 static NTSTATUS JpkfagsCheckProcedurePointers(
 	__in ULONG ProcedureCount,
 	__in_ecount( ProcedureCount ) PJPFBT_PROCEDURE Procedures,
+	__in BOOLEAN CallEvtImageLoad,
 	__out PJPFBT_PROCEDURE FailedProcedure
 	)
 {
@@ -71,6 +76,8 @@ static NTSTATUS JpkfagsCheckProcedurePointers(
 	PAUX_MODULE_EXTENDED_INFO Modules;
 	ULONG ModulesBufferSize = 0;
 	NTSTATUS Status;
+
+	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
 
 	//
 	// Check that all procedure addresses fall withing system address
@@ -127,26 +134,70 @@ static NTSTATUS JpkfagsCheckProcedurePointers(
 	{
 		ULONG ModuleCount = ModulesBufferSize / sizeof( AUX_MODULE_EXTENDED_INFO );
 
+		//
+		// N.B. When checking the validity of pointers, also register 
+		// which modules are affected by this instrumentation. We
+		// have to call JpkfagpEvtImageLoad at least once per module.
+		//
+		// While it would be nice to call JpkfagpEvtImageLoad 
+		// *exactly* once, this is hardly worth the effort as this 
+		// would require additional bookkeeping. Therefore, report
+		// all modules affected by this instrumentation although they 
+		// may have been reported by previous instrumentations already.
+		//
 		for ( Index = 0; Index < ProcedureCount; Index++ )
 		{
+			ULONG MatchedModuleIndex;
 			if ( ! JpkfagsIsValidCodePointer(
 				Procedures[ Index ].u.Procedure,
 				ModuleCount,
-				Modules ) )
+				Modules,
+				&MatchedModuleIndex ) )
 			{
 				*FailedProcedure = Procedures[ Index ];
 				Status = STATUS_KFBT_PROC_OUTSIDE_MODULE;
 				break;
 			}
+
+			ASSERT( MatchedModuleIndex < ModuleCount );
+			
+			//
+			// Mark the module as having been affected at least once
+			// by setting the high bit of otherwise unused member 
+			// AUX_MODULE_EXTENDED_INFO::FileNameOffset.
+			//
+			Modules[ MatchedModuleIndex ].FileNameOffset |= 0x8000;
+		}
+
+		//
+		// By now, all modules that have been affected are marked.
+		// 
+		if ( CallEvtImageLoad )
+		{
+			for ( Index = 0; Index < ModuleCount; Index++ )
+			{
+				if ( Modules[ Index ].FileNameOffset & 0x8000 )
+				{
+					ANSI_STRING ModulePath;
+
+					//
+					// Affected module - at least one procedure belongs to
+					// this module.
+					//
+					RtlInitAnsiString(
+						&ModulePath,
+						( PCSTR ) Modules[ Index ].FullPathName );
+
+					JpkfagpEvtImageLoad(
+						( ULONG_PTR ) Modules[ Index ].BasicInfo.ImageBase,
+						Modules[ Index ].ImageSize,
+						&ModulePath );
+				}
+			}
 		}
 	}
 
-	if ( ! NT_SUCCESS( Status ) )
-	{
-		ExFreePoolWithTag( Modules, JPKFAG_POOL_TAG );
-		return Status;
-	}
-
+	ExFreePoolWithTag( Modules, JPKFAG_POOL_TAG );
 	return Status;
 }
 
@@ -192,9 +243,9 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 			0,
 			JPKFAGP_THREAD_DATA_PREALLOCATIONS,
 			JPFBT_FLAG_AUTOCOLLECT,
-			JpkfagpWmkProcedureEntry,
-			JpkfagpWmkProcedureExit,
-			JpkfagpWmkProcessBuffer,
+			JpkfagpEvtProcedureEntry,
+			JpkfagpEvtProcedureExit,
+			JpkfagpEvtProcessBuffer,
 			NULL );
 		break;
 #endif
@@ -262,6 +313,7 @@ NTSTATUS JpkfagpInstrumentProcedureIoctl(
 	Status = JpkfagsCheckProcedurePointers(
 		Request->ProcedureCount,
 		Request->Procedures,
+		Request->Action == JpfbtAddInstrumentation ? TRUE : FALSE,
 		&Response->FailedProcedure );
 	if ( ! NT_SUCCESS( Status ) )
 	{
@@ -349,6 +401,7 @@ NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
 	Status = JpkfagsCheckProcedurePointers(
 		1,
 		&Request->Procedure,
+		FALSE,
 		&FailedProcedure );
 	if ( ! NT_SUCCESS( Status ) )
 	{

@@ -184,6 +184,11 @@ static HRESULT JpfsvsCreateDiagSessionAndResolver(
 		0 ) );
 	VERIFY( S_OK == Resolver->RegisterMessageDll(
 		Resolver,
+		L"ntdll",
+		0,
+		0 ) );
+	VERIFY( S_OK == Resolver->RegisterMessageDll(
+		Resolver,
 		L"jpufbt",
 		0,
 		0 ) );

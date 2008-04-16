@@ -96,10 +96,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\jpfbt\km_tls.c"
-					>
-				</File>
-				<File
 					RelativePath=".\jpfbt\list.h"
 					>
 				</File>
@@ -200,6 +196,18 @@
 					</File>
 					<File
 						RelativePath=".\jpfbt\km_undoc.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="km_retail"
+					>
+					<File
+						RelativePath=".\jpfbt\km_tls_retail.c"
+						>
+					</File>
+					<File
+						RelativePath=".\jpfbt\km_retail\SOURCES"
 						>
 					</File>
 				</Filter>

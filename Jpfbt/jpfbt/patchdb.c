@@ -69,7 +69,7 @@ NTSTATUS JpfbtpInitializePatchTable()
 		JpfbtsPatchDbFree,
 		JpfbtsPatchDbHash,
 		JpfbtsPatchDbEquals,
-		INITIAL_PATCHTABLE_SIZE	) )
+		JPFBTP_INITIAL_PATCHTABLE_SIZE	) )
 	{
 		return STATUS_SUCCESS;
 	}

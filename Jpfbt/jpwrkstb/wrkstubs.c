@@ -21,14 +21,15 @@
 
 #include <ntos.h>
 
-VOID JpfbtWrkSetFbtDataCurrentThread(
+VOID JpfbtSetFbtDataThread(
+	__in PETHREAD Thread,
 	__in PVOID Data 
 	)
 {
-	PsGetCurrentThread()->ReservedForFbt = Data;
+	Thread->ReservedForFbt = Data;
 }
 
-PVOID JpfbtWrkGetFbtDataThread(
+PVOID JpfbtGetFbtDataThread(
 	__in PETHREAD Thread
 	)
 {
@@ -39,9 +40,9 @@ PVOID JpfbtWrkGetFbtDataThread(
 	return Thread->ReservedForFbt;
 }
 
-PVOID JpfbtWrkGetFbtDataCurrentThread()
+PVOID JpfbtGetFbtDataCurrentThread()
 {
-	return JpfbtWrkGetFbtDataThread( PsGetCurrentThread() );
+	return JpfbtGetFbtDataThread( PsGetCurrentThread() );
 }
 
 
