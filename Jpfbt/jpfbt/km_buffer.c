@@ -91,6 +91,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	OBJECT_ATTRIBUTES ObjectAttributes;
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
+	BOOLEAN TlsInitialized = FALSE;
 	
 	ASSERT_IRQL_LTE( PASSIVE_LEVEL );
 
@@ -103,8 +104,6 @@ NTSTATUS JpfbtpCreateGlobalState(
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	JpfbtpInitializeKernelTls();
-
 	//
 	// Allocate.
 	//
@@ -116,6 +115,14 @@ NTSTATUS JpfbtpCreateGlobalState(
 	{
 		return Status;
 	}
+
+	Status = JpfbtpInitializeKernelTls();
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		goto Cleanup;
+	}
+
+	TlsInitialized = TRUE;
 
 	//
 	// Initialize buffers.
@@ -203,6 +210,11 @@ Cleanup:
 		JpfbtsFreePreallocatedThreadData( TempState );
 		JpfbtpFreeNonPagedMemory( TempState );
 		JpfbtpGlobalState = NULL;
+
+		if ( TlsInitialized )
+		{
+			JpfbtpDeleteKernelTls();
+		}
 	}
 
 	return Status;
@@ -291,8 +303,21 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 	//
 	if ( ThreadData != NULL )
 	{
+		NTSTATUS Status;
+
 		ThreadData->Thread = PsGetCurrentThread();
-		JpfbtSetFbtDataThread( ThreadData->Thread, ThreadData );
+		Status = JpfbtSetFbtDataThread( ThreadData->Thread, ThreadData );
+
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			//
+			// ThreadData is worthless if it cannot be attached to
+			// the thread.
+			//
+			ThreadData->Thread = NULL;
+			JpfbtpFreeThreadData( ThreadData );
+			ThreadData = NULL;
+		}
 	}
 
 	return ThreadData;
@@ -303,9 +328,12 @@ VOID JpfbtpFreeThreadData(
 	)
 {
 	//
-	// Disassociate it from the thread.
+	// Disassociate it from the thread - cannot fail.
 	//
-	JpfbtSetFbtDataThread( ThreadData->Thread, NULL );
+	if ( ThreadData->Thread != NULL )
+	{
+		( VOID ) JpfbtSetFbtDataThread( ThreadData->Thread, NULL );
+	}
 
 	if ( ThreadData->AllocationType == JpfbtpPoolAllocated )
 	{
@@ -337,7 +365,7 @@ VOID JpfbtpFreeThreadData(
 		else
 		{
 			//
-			// We may not call ExFreePoolWithTag because of the IRQL.
+			// We may not call ExFreePoolWithTag because of high IRQL.
 			// Delay the free operation.
 			//
 			InterlockedPushEntrySList( 
@@ -353,8 +381,8 @@ VOID JpfbtpFreeThreadData(
 		// Part of the preallocation blob - put back to list.
 		//
 		InterlockedPushEntrySList( 
-				&JpfbtpGlobalState->ThreadDataPreallocationList,
-				&ThreadData->u.SListEntry );
+			&JpfbtpGlobalState->ThreadDataPreallocationList,
+			&ThreadData->u.SListEntry );
 
 		TRACE( ( "JPFBT: ThreadData %p freed to preallocation\n", ThreadData ) );
 	}

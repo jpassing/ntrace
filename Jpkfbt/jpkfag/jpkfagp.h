@@ -1,7 +1,3 @@
-
-
-
-
 #pragma once
 
 /*----------------------------------------------------------------------
@@ -15,7 +11,7 @@
 #include <jpkfagio.h>
 #include <jpkfbtmsg.h>
 
-#define JPKFAG_POOL_TAG 'tbFJ'
+#define JPKFAG_POOL_TAG 'gafJ'
 
 /*----------------------------------------------------------------------
  *

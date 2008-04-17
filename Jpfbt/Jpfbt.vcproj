@@ -258,8 +258,28 @@
 						RelativePath=".\testfbt\km_thralloc.c"
 						>
 					</File>
+				</Filter>
+				<Filter
+					Name="km_retail"
+					>
+					<File
+						RelativePath=".\testfbt\km_retail\SOURCES"
+						>
+					</File>
+					<File
+						RelativePath=".\testfbt\km_retail\testfbt_km_retail.def"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="km_wrk"
+					>
 					<File
 						RelativePath=".\testfbt\km_wrk\SOURCES"
+						>
+					</File>
+					<File
+						RelativePath=".\testfbt\km_wrk\testfbt_km_wrk.def"
 						>
 					</File>
 				</Filter>

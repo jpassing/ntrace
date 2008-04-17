@@ -2,11 +2,13 @@ TODO
 
 jpfbt
 ------------------------------------------------------------------------
- * Flush threadbuffer on thread teardown?
- * Naming: Thunk vs. Proxy
+  * Naming: Thunk vs. Proxy
  
  Kernel
    * MmGetSystemAddressForMdlSafe may return NULL
+   
+ finegrained locking for TLS
+ TLS entry preallocations --> high IRQL
  
 jpufbt
 ------------------------------------------------------------------------

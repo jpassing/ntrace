@@ -177,7 +177,14 @@ typedef struct _JPFBT_THREAD_DATA
 {
 	union
 	{
+		//
+		// List of active ThreadData structures rooted in global state.
+		//
 		LIST_ENTRY ListEntry;
+
+		//
+		// List for preallocation.
+		//
 		SLIST_ENTRY SListEntry;
 	} u;
 
@@ -244,7 +251,7 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 #else
 #define JPFBTP_INITIAL_PATCHTABLE_SIZE	127
 #endif
-//#define JPFBTP_INITIAL_TLS_TABLE_SIZE	1024
+#define JPFBTP_INITIAL_TLS_TABLE_SIZE	1024
 
 /*++
 	Structure Description:
@@ -727,7 +734,7 @@ VOID JpfbtpFreeNonPagedMemory(
 
 #if defined( JPFBT_TARGET_KERNELMODE )
 #if defined( JPFBT_WRK )
-	#define JpfbtpInitializeKernelTls()
+	#define JpfbtpInitializeKernelTls() STATUS_SUCCESS
 	#define JpfbtpDeleteKernelTls()
 #else
 
@@ -736,8 +743,10 @@ VOID JpfbtpFreeNonPagedMemory(
 		Initialize thread local storage.
 
 		Only applies to retail kernel build.
+
+		Callable at IRQL < DISPATCH_LEVEL
 --*/
-VOID JpfbtpInitializeKernelTls();
+NTSTATUS JpfbtpInitializeKernelTls();
 
 
 /*++
@@ -745,6 +754,8 @@ VOID JpfbtpInitializeKernelTls();
 		Delete thread local storage.
 
 		Only applies to retail kernel build.
+
+		Callable at IRQL < DISPATCH_LEVEL
 --*/
 VOID JpfbtpDeleteKernelTls();
 
@@ -753,8 +764,11 @@ VOID JpfbtpDeleteKernelTls();
 /*++
 	Routine Description:
 		Associate data with the current thread.
+
+		Callable at IRQL < DISPATCH_LEVEL if Data == NULL, callable
+		at any IRQL if Data != NULL.
 --*/
-VOID JpfbtSetFbtDataThread(
+NTSTATUS JpfbtSetFbtDataThread(
 	__in PETHREAD Thread,
 	__in PVOID Data 
 	);
@@ -762,15 +776,14 @@ VOID JpfbtSetFbtDataThread(
 /*++
 	Routine Description:
 		Retrieve data from the given thread.
+
+		Callable at any IRQL.
 --*/
 PVOID JpfbtGetFbtDataThread(
 	__in PETHREAD Thread
 	);
 
-/*++
-	Routine Description:
-		Retrieve data from the current thread.
---*/
-PVOID JpfbtGetFbtDataCurrentThread();
+#define JpfbtGetFbtDataCurrentThread() \
+	JpfbtGetFbtDataThread( PsGetCurrentThread() )
 
 #endif

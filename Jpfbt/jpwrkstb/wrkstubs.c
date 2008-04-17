@@ -21,12 +21,13 @@
 
 #include <ntos.h>
 
-VOID JpfbtSetFbtDataThread(
+NTSTATUS JpfbtSetFbtDataThread(
 	__in PETHREAD Thread,
 	__in PVOID Data 
 	)
 {
 	Thread->ReservedForFbt = Data;
+	return STATUS_SUCCESS;
 }
 
 PVOID JpfbtGetFbtDataThread(
@@ -39,10 +40,3 @@ PVOID JpfbtGetFbtDataThread(
 	//
 	return Thread->ReservedForFbt;
 }
-
-PVOID JpfbtGetFbtDataCurrentThread()
-{
-	return JpfbtGetFbtDataThread( PsGetCurrentThread() );
-}
-
-

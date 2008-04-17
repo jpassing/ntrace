@@ -3,21 +3,21 @@ MSC_WARNING_LEVEL=/W4 /Wp64
 
 INCLUDES=$(DDK_INC_PATH);..\;..\..\..\include;..\..\..\..\cfix\include;;..\..\..\..\Jpht\include
 
-C_DEFINES=/D_UNICODE /DUNICODE /DCFIX_KERNELMODE /DJPFBT_TARGET_KERNELMODE /DJPFBT_WRK
+C_DEFINES=/D_UNICODE /DUNICODE /DCFIX_KERNELMODE /DJPFBT_TARGET_KERNELMODE
 
 USER_C_FLAGS=/wd4054 /wd4276 /analyze
 
 UMTYPE=console
 UMENTRY=wmain
 
-TARGETLIBS=$(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_km_wrk.lib \
+TARGETLIBS=$(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_km_retail.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwrkstb.lib \
 		   $(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(MAKEDIR)\..\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfixkdrv.lib \
 		   $(DDK_LIB_PATH)\aux_klib.lib
 
 
-TARGETNAME=testfbt_km_wrk
+TARGETNAME=testfbt_km_retail
 TARGETPATH=..\..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DRIVER
 SOURCES=\
