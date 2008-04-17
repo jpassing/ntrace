@@ -305,8 +305,8 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 	{
 		NTSTATUS Status;
 
-		ThreadData->Thread = PsGetCurrentThread();
-		Status = JpfbtSetFbtDataThread( ThreadData->Thread, ThreadData );
+		ThreadData->Association.Thread = PsGetCurrentThread();
+		Status = JpfbtSetFbtDataThread( ThreadData->Association.Thread, ThreadData );
 
 		if ( ! NT_SUCCESS( Status ) )
 		{
@@ -314,7 +314,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 			// ThreadData is worthless if it cannot be attached to
 			// the thread.
 			//
-			ThreadData->Thread = NULL;
+			ThreadData->Association.Thread = NULL;
 			JpfbtpFreeThreadData( ThreadData );
 			ThreadData = NULL;
 		}
@@ -330,9 +330,9 @@ VOID JpfbtpFreeThreadData(
 	//
 	// Disassociate it from the thread - cannot fail.
 	//
-	if ( ThreadData->Thread != NULL )
+	if ( ThreadData->Association.Thread != NULL )
 	{
-		( VOID ) JpfbtSetFbtDataThread( ThreadData->Thread, NULL );
+		( VOID ) JpfbtSetFbtDataThread( ThreadData->Association.Thread, NULL );
 	}
 
 	if ( ThreadData->AllocationType == JpfbtpPoolAllocated )

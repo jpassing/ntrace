@@ -21,16 +21,18 @@
 
 #include <ntos.h>
 
+struct JPFBT_THREAD_DATA;
+
 NTSTATUS JpfbtSetFbtDataThread(
 	__in PETHREAD Thread,
-	__in PVOID Data 
+	__in struct JPFBT_THREAD_DATA* Data 
 	)
 {
 	Thread->ReservedForFbt = Data;
 	return STATUS_SUCCESS;
 }
 
-PVOID JpfbtGetFbtDataThread(
+struct JPFBT_THREAD_DATA* JpfbtGetFbtDataThread(
 	__in PETHREAD Thread
 	)
 {
@@ -38,5 +40,5 @@ PVOID JpfbtGetFbtDataThread(
 	// N.B. PspCreateThread zeroes the ETHREAD, so ReservedForFbt
 	// is either NULL or a valid pointer.
 	//
-	return Thread->ReservedForFbt;
+	return ( struct JPFBT_THREAD_DATA* ) Thread->ReservedForFbt;
 }

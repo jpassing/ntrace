@@ -58,7 +58,6 @@ void AllocateThreadDataAtDirql()
 	//
 	KeRaiseIrql( DISPATCH_LEVEL + 1, &OldIrql );
 	ThreadData = JpfbtpAllocateThreadDataForCurrentThread();
-#if defined( JPFBT_WRK )
 	TEST( ThreadData );
 
 	//
@@ -70,9 +69,6 @@ void AllocateThreadDataAtDirql()
 	JpfbtpFreeThreadData( ThreadData );
 	TEST( ExQueryDepthSList( &JpfbtpGlobalState->ThreadDataPreallocationList ) == 1 );
 	TEST( ExQueryDepthSList( &JpfbtpGlobalState->ThreadDataFreeList ) == 0 );
-#else
-	TEST( ThreadData == NULL );
-#endif
 
 	KeLowerIrql( OldIrql );
 
@@ -101,17 +97,11 @@ void AllocateThreadDataAtApcAndFreeAtDirql()
 	//
 	// free to free list to trigger delay-free.
 	//
-#if defined( JPFBT_WRK )
 	KeRaiseIrql( DISPATCH_LEVEL + 1, &OldIrql );
-#else
-	KeRaiseIrql( DISPATCH_LEVEL, &OldIrql );
-#endif
 	JpfbtpFreeThreadData( ThreadData );
 	KeLowerIrql( OldIrql );
 
-#if defined( JPFBT_WRK )
 	TEST( ExQueryDepthSList( &JpfbtpGlobalState->ThreadDataFreeList ) == 1 );
-#endif
 
 	//
 	// Alloc at low irql - free should free the struct on free list.

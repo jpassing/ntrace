@@ -12,17 +12,6 @@
 
 static JPHT_HASHTABLE JpfbtsTls;
 
-typedef struct _JPFBTP_TLS_ENTRY
-{
-	union
-	{
-		PETHREAD Thread;
-		JPHT_HASHTABLE_ENTRY HashtableEntry;
-	} Key;
-
-	PVOID Data;
-} JPFBTP_TLS_ENTRY, *PJPFBTP_TLS_ENTRY;
-
 /*----------------------------------------------------------------------
  *
  * Hashtable callbacks.
@@ -114,16 +103,13 @@ VOID JpfbtpDeleteKernelTls()
 
 NTSTATUS JpfbtSetFbtDataThread(
 	__in PETHREAD Thread,
-	__in PVOID Data 
+	__in PJPFBT_THREAD_DATA Data 
 	)
 {
-	PJPFBTP_TLS_ENTRY Entry;
 	PJPHT_HASHTABLE_ENTRY OldEntry = NULL;
 
 	if ( Data == NULL )
 	{
-		ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
-
 		//
 		// Delete.
 		//
@@ -132,42 +118,30 @@ NTSTATUS JpfbtSetFbtDataThread(
 	else
 	{
 		//
-		// Add/Modify.
+		// Add/Modify. Key should have already been set.
 		//
-		// Allocate new entry - this will fail at high IRQL.
-		//
-		Entry = ( PJPFBTP_TLS_ENTRY ) JpfbtsAllocateTlsHashtableMemory(
-			sizeof( JPFBTP_TLS_ENTRY ) );
-		if ( Entry == NULL )
-		{
-			return STATUS_NO_MEMORY;
-		}
-
-		Entry->Key.Thread	= Thread;
-		Entry->Data			= Data;
+		ASSERT( Data->Association.Thread == Thread );
 
 		JphtPutEntryHashtable( 
 			&JpfbtsTls, 
-			&Entry->Key.HashtableEntry, 
+			&Data->Association.HashtableEntry, 
 			&OldEntry );
 	}
 
-	if ( OldEntry != NULL )
-	{
-		JpfbtsFreeTlsHashtableMemory( OldEntry );
-	}
+	//
+	// N.B. We are not in charge of deleteing the old entry.
+	//
 
 	return STATUS_SUCCESS;
 }
 
-PVOID JpfbtGetFbtDataThread(
+PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
 	__in PETHREAD Thread
 	)
 {
-	PJPFBTP_TLS_ENTRY Entry;
+	PJPHT_HASHTABLE_ENTRY Entry;
 	
-	Entry = ( PJPFBTP_TLS_ENTRY ) 
-		JphtGetEntryHashtable( &JpfbtsTls, ( ULONG_PTR ) Thread );
+	Entry = JphtGetEntryHashtable( &JpfbtsTls, ( ULONG_PTR ) Thread );
 
 	if ( Entry == NULL )
 	{
@@ -175,7 +149,10 @@ PVOID JpfbtGetFbtDataThread(
 	}
 	else
 	{
-		return Entry->Data;
+		return CONTAINING_RECORD(
+			Entry,
+			JPFBT_THREAD_DATA,
+			Association.HashtableEntry );
 	}
 }
 

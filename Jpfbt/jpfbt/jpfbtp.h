@@ -195,11 +195,19 @@ typedef struct _JPFBT_THREAD_DATA
 
 	JPFBTP_THREAD_DATA_ALLOCATION_TYPE AllocationType;
 
-	//
-	// Backpointer to the thread this struct is associated with.
-	// (PETHREAD).
-	//
-	PVOID Thread;
+	union
+	{
+		//
+		// Backpointer to the thread this struct is associated with.
+		// (PETHREAD).
+		//
+		PVOID Thread;
+
+		//
+		// Used for retail kernel only.
+		//
+		JPHT_HASHTABLE_ENTRY HashtableEntry;
+	} Association;
 
 	JPFBT_THUNK_STACK ThunkStack;
 } JPFBT_THREAD_DATA, *PJPFBT_THREAD_DATA;
@@ -765,12 +773,11 @@ VOID JpfbtpDeleteKernelTls();
 	Routine Description:
 		Associate data with the current thread.
 
-		Callable at IRQL < DISPATCH_LEVEL if Data == NULL, callable
-		at any IRQL if Data != NULL.
+		Callable at any IRQL.
 --*/
 NTSTATUS JpfbtSetFbtDataThread(
 	__in PETHREAD Thread,
-	__in PVOID Data 
+	__in PJPFBT_THREAD_DATA Data 
 	);
 
 /*++
@@ -779,7 +786,7 @@ NTSTATUS JpfbtSetFbtDataThread(
 
 		Callable at any IRQL.
 --*/
-PVOID JpfbtGetFbtDataThread(
+PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
 	__in PETHREAD Thread
 	);
 
