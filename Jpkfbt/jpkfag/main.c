@@ -16,45 +16,11 @@
 #define JPKFAGP_TRACE KdPrint
 //#define JPKFAGP_TRACE( x )
 
-/*++
-	Routine Description:
-		See WDK. Declared in ntifs.h, therefore, re-declared here.
---*/
-NTSTATUS PsLookupThreadByThreadId(
-    IN HANDLE ThreadId,
-    OUT PETHREAD *Thread
-    );
-
 DRIVER_DISPATCH JpkfagpDispatchCreate;
 DRIVER_DISPATCH JpkfagpDispatchCleanup;
 DRIVER_DISPATCH JpkfagpDispatchClose;
 DRIVER_DISPATCH JpkfagpDispatchDeviceControl;
 DRIVER_UNLOAD JpkfagpUnload;
-
-static VOID JpkfagsOnCreateThread(
-    __in HANDLE ProcessId,
-    __in HANDLE ThreadId,
-    __in BOOLEAN Create
-    )
-{
-	PETHREAD ThreadObject;
-
-	UNREFERENCED_PARAMETER( ProcessId );
-
-	if ( ! Create )
-	{
-		//
-		// We are obly interested in thread terminations.
-		//
-		// Obtain ETHREAD from ThreadId.
-		//
-		if ( NT_SUCCESS( PsLookupThreadByThreadId( ThreadId, &ThreadObject ) ) )
-		{
-			JpkfagpCleanupThread( ThreadObject );
-			ObDereferenceObject( ThreadObject );
-		}
-	}
-}
 
 NTSTATUS JpkfagpDispatchCreate(
 	__in PDEVICE_OBJECT DeviceObject,
@@ -163,8 +129,6 @@ VOID JpkfagpUnload(
 
 	IoDeleteSymbolicLink( &NameStringDos );
 
-	( VOID ) PsRemoveCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
-
 	if ( DeviceObject != NULL )
 	{
 		IoDeleteDevice( DeviceObject );
@@ -194,13 +158,6 @@ NTSTATUS DriverEntry(
 	Status = AuxKlibInitialize();
 	if ( ! NT_SUCCESS( Status ) )
 	{
-		return Status;
-	}
-
-	Status = PsSetCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
-	if ( ! NT_SUCCESS( Status ) )
-	{
-		JPKFAGP_TRACE(( "JPKFAG: Failed to register thread notify routine.\n" ) );
 		return Status;
 	}
 

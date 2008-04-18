@@ -2,11 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jpkfbt", "Jpkfbt.vcproj", "{5DCA2DD2-5254-4E65-A4D1-7B1B7498F4F0}"
-	ProjectSection(ProjectDependencies) = postProject
-		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0} = {2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jpfbt", "..\Jpfbt\Jpfbt.vcproj", "{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,10 +13,6 @@ Global
 		{5DCA2DD2-5254-4E65-A4D1-7B1B7498F4F0}.Debug|Win32.Build.0 = Debug|Win32
 		{5DCA2DD2-5254-4E65-A4D1-7B1B7498F4F0}.Release|Win32.ActiveCfg = Release|Win32
 		{5DCA2DD2-5254-4E65-A4D1-7B1B7498F4F0}.Release|Win32.Build.0 = Release|Win32
-		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Win32.ActiveCfg = Debug|Win32
-		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Win32.Build.0 = Debug|Win32
-		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Release|Win32.ActiveCfg = Release|Win32
-		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

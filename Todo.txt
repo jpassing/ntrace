@@ -16,6 +16,12 @@ jpufbt
  * Force ufag unload
  * Check for shared memory overflow (large messages)
  
+ 
+jpkfbt
+------------------------------------------------------------------------
+ * distinguish tracing types.
+ * support default tracing on WRK/WMK?
+  
 jpfsv
 ------------------------------------------------------------------------
  * Grow tracetab

@@ -170,8 +170,16 @@
 						RelativePath=".\jpkfag\wmk\SOURCES"
 						>
 					</File>
+				</Filter>
+				<Filter
+					Name="retail"
+					>
 					<File
-						RelativePath=".\jpkfag\wmk.c"
+						RelativePath=".\jpkfag\ret_evt.c"
+						>
+					</File>
+					<File
+						RelativePath=".\jpkfag\retail\SOURCES"
 						>
 					</File>
 				</Filter>

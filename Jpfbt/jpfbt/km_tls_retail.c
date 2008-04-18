@@ -10,7 +10,38 @@
  */
 #include "jpfbtp.h"
 
-static JPHT_HASHTABLE JpfbtsTls;
+//
+// Not defined in wdm.h, but holds for i386 and amd64.
+//
+#define SYNCH_LEVEL (IPI_LEVEL-2)
+
+static struct
+{
+	KSPIN_LOCK Lock;
+	JPHT_HASHTABLE Table;
+} JpfbtsTls;
+
+/*----------------------------------------------------------------------
+ *
+ * Locking.
+ *
+ */
+static VOID JpfbtsAcquireTlsLock( 
+	__out PKLOCK_QUEUE_HANDLE LockHandle	
+	)
+{
+	KeRaiseIrql( SYNCH_LEVEL, &LockHandle->OldIrql );
+	KeAcquireInStackQueuedSpinLockAtDpcLevel( 
+		&JpfbtsTls.Lock, LockHandle );
+}
+
+static VOID JpfbtsReleaseTlsLock( 
+	__in PKLOCK_QUEUE_HANDLE LockHandle
+	)
+{
+	KeReleaseInStackQueuedSpinLockFromDpcLevel( LockHandle );
+	KeLowerIrql( LockHandle->OldIrql );
+}
 
 /*----------------------------------------------------------------------
  *
@@ -78,7 +109,7 @@ NTSTATUS JpfbtpInitializeKernelTls()
 	ASSERT( KeGetCurrentIrql() < DISPATCH_LEVEL );
 
 	if ( JphtInitializeHashtable(
-		&JpfbtsTls,
+		&JpfbtsTls.Table,
 		JpfbtsAllocateTlsHashtableMemory,
 		JpfbtsFreeTlsHashtableMemory,
 		JpfbtsHashTlsHashtableEntry,
@@ -98,7 +129,7 @@ VOID JpfbtpDeleteKernelTls()
 {
 	ASSERT( KeGetCurrentIrql() < DISPATCH_LEVEL );
 
-	JphtDeleteHashtable( &JpfbtsTls );
+	JphtDeleteHashtable( &JpfbtsTls.Table );
 }
 
 NTSTATUS JpfbtSetFbtDataThread(
@@ -106,14 +137,20 @@ NTSTATUS JpfbtSetFbtDataThread(
 	__in PJPFBT_THREAD_DATA Data 
 	)
 {
+	KLOCK_QUEUE_HANDLE LockHandle;
 	PJPHT_HASHTABLE_ENTRY OldEntry = NULL;
+
+	JpfbtsAcquireTlsLock( &LockHandle );
 
 	if ( Data == NULL )
 	{
 		//
 		// Delete.
 		//
-		JphtRemoveEntryHashtable( &JpfbtsTls, ( ULONG_PTR ) Thread, &OldEntry );
+		JphtRemoveEntryHashtable( 
+			&JpfbtsTls.Table, 
+			( ULONG_PTR ) Thread, 
+			&OldEntry );
 	}
 	else
 	{
@@ -123,10 +160,12 @@ NTSTATUS JpfbtSetFbtDataThread(
 		ASSERT( Data->Association.Thread == Thread );
 
 		JphtPutEntryHashtable( 
-			&JpfbtsTls, 
+			&JpfbtsTls.Table, 
 			&Data->Association.HashtableEntry, 
 			&OldEntry );
 	}
+
+	JpfbtsReleaseTlsLock( &LockHandle );
 
 	//
 	// N.B. We are not in charge of deleteing the old entry.
@@ -140,8 +179,11 @@ PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
 	)
 {
 	PJPHT_HASHTABLE_ENTRY Entry;
-	
-	Entry = JphtGetEntryHashtable( &JpfbtsTls, ( ULONG_PTR ) Thread );
+	KLOCK_QUEUE_HANDLE LockHandle;
+
+	JpfbtsAcquireTlsLock( &LockHandle );
+	Entry = JphtGetEntryHashtable( &JpfbtsTls.Table, ( ULONG_PTR ) Thread );
+	JpfbtsReleaseTlsLock( &LockHandle );
 
 	if ( Entry == NULL )
 	{

@@ -12,11 +12,33 @@
 
 void TestAttachDetachRetail()
 {
+	BOOL KernelSupported;
 	JPKFBT_SESSION Session;
 
-	TEST( ! IsDriverLoaded( L"jpkfag" ) );
-	TEST_STATUS( STATUS_KFBT_KERNEL_NOT_SUPPORTED,
-		JpkfbtAttach( JpkfbtKernelRetail, &Session ) );
+	TEST( ! IsDriverLoaded( L"jpkfar" ) );
+	TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
+		JpkfbtKernelRetail, &KernelSupported ) );
+	if ( ! KernelSupported )
+	{
+		CFIX_INCONCLUSIVE( L"Kernel not Retail-compatible." );
+	}
+
+	TEST_SUCCESS( JpkfbtAttach( JpkfbtKernelRetail, &Session ) );
+	TEST( Session );
+	TEST_SUCCESS( JpkfbtDetach( Session, FALSE ) );
+
+	Session = NULL;
+
+	TEST( IsDriverLoaded( L"jpkfar" ) );
+
+	//
+	// Again, but this time unload.
+	//
+	TEST_SUCCESS( JpkfbtAttach( JpkfbtKernelRetail, &Session ) );
+	TEST( Session );
+	TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
+
+	TEST( ! IsDriverLoaded( L"jpkfar" ) );
 }
 
 void TestAttachDetachWmk()
@@ -24,7 +46,7 @@ void TestAttachDetachWmk()
 	BOOL KernelSupported;
 	JPKFBT_SESSION Session;
 
-	TEST( ! IsDriverLoaded( L"jpkfag" ) );
+	TEST( ! IsDriverLoaded( L"jpkfaw" ) );
 	TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
 		JpkfbtKernelWmk, &KernelSupported ) );
 	if ( ! KernelSupported )
@@ -38,7 +60,7 @@ void TestAttachDetachWmk()
 
 	Session = NULL;
 
-	TEST( IsDriverLoaded( L"jpkfag" ) );
+	TEST( IsDriverLoaded( L"jpkfaw" ) );
 
 	//
 	// Again, but this time unload.
@@ -47,7 +69,7 @@ void TestAttachDetachWmk()
 	TEST( Session );
 	TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
 
-	TEST( ! IsDriverLoaded( L"jpkfag" ) );
+	TEST( ! IsDriverLoaded( L"jpkfaw" ) );
 }
 
 void TestInitShutdownTracing()

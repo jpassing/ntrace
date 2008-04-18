@@ -1,7 +1,9 @@
 cmd.exe /C copydrv.cmd
 
 sc stop cfixkr_testfbt_km_wrk
-sc stop jpkfag
+sc stop cfixkr_testfbt_km_retail
+sc stop jpkfar
+sc stop jpkfaw
 
 rem TEST FREE BUILDS!
 

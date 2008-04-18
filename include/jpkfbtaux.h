@@ -17,6 +17,10 @@ typedef enum _JPKFBT_KERNEL_TYPE
 
 typedef enum _JPKFBT_TRACING_TYPE
 {
+	//
+	// TODO: distinguish tracing types.
+	//
+	JpkfbtTracingTypeDefault = 0,
 	JpkfbtTracingTypeWmk = 0,
 	JpkfbtTracingTypeMax = 0
 } JPKFBT_TRACING_TYPE;

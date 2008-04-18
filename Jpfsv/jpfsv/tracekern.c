@@ -242,7 +242,9 @@ HRESULT JpfsvpCreateKernelTraceSession(
 	switch ( TracingType )
 	{
 	case JpfsvTracingTypeDefault:
-		return JPFSV_E_UNSUPPORTED_TRACING_TYPE;
+		KernelType		= JpkfbtKernelRetail;
+		KfbtTracingType = JpkfbtTracingTypeDefault;
+		break;
 
 	case JpfsvTracingTypeWmk:
 		//

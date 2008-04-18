@@ -7,11 +7,21 @@
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
-#include <wdm.h>
+#include <ntddk.h>
 #include <aux_klib.h>
 #include "jpkfagp.h"
 
 #define JPKFAGP_THREAD_DATA_PREALLOCATIONS 128
+
+
+/*++
+	Routine Description:
+		See WDK. Declared in ntifs.h, therefore, re-declared here.
+--*/
+NTSTATUS PsLookupThreadByThreadId(
+    IN HANDLE ThreadId,
+    OUT PETHREAD *Thread
+    );
 
 extern NTKERNELAPI PVOID MmSystemRangeStart;
 
@@ -22,6 +32,31 @@ extern NTKERNELAPI PVOID MmSystemRangeStart;
  */
 
 #define JpkfagsPtrFromRva( base, rva ) ( ( ( PUCHAR ) base ) + rva )
+
+static VOID JpkfagsOnCreateThread(
+    __in HANDLE ProcessId,
+    __in HANDLE ThreadId,
+    __in BOOLEAN Create
+    )
+{
+	PETHREAD ThreadObject;
+
+	UNREFERENCED_PARAMETER( ProcessId );
+
+	if ( ! Create )
+	{
+		//
+		// We are obly interested in thread terminations.
+		//
+		// Obtain ETHREAD from ThreadId.
+		//
+		if ( NT_SUCCESS( PsLookupThreadByThreadId( ThreadId, &ThreadObject ) ) )
+		{
+			JpkfagpCleanupThread( ThreadObject );
+			ObDereferenceObject( ThreadObject );
+		}
+	}
+}
 
 static BOOLEAN JpkfagsIsValidCodePointer(
 	__in PVOID Pointer,
@@ -215,6 +250,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 	)
 {
 	PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST Request;
+	NTSTATUS Status;
 
 	ASSERT( BytesWritten );
 	UNREFERENCED_PARAMETER( OutputBufferLength );
@@ -230,15 +266,14 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 
 	switch ( Request->Type )
 	{
-#ifdef JPFBT_WMK
-	case JpkfbtTracingTypeWmk:
+	case JpkfbtTracingTypeDefault:
 		if ( Request->BufferCount != 0 ||
 			 Request->BufferSize != 0 )
 		{
 			return STATUS_INVALID_PARAMETER;
 		}
 
-		return JpfbtInitializeEx(
+		Status = JpfbtInitializeEx(
 			0,
 			0,
 			JPKFAGP_THREAD_DATA_PREALLOCATIONS,
@@ -247,11 +282,19 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 			JpkfagpEvtProcedureExit,
 			JpkfagpEvtProcessBuffer,
 			NULL );
+
 		break;
-#endif
+
 	default:
-		return STATUS_INVALID_PARAMETER;
+		Status = STATUS_INVALID_PARAMETER;
 	}
+
+	if ( NT_SUCCESS( Status ) )
+	{
+		Status = PsSetCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
+	}
+
+	return Status;
 }
 
 NTSTATUS JpkfagpShutdownTracingIoctl(
@@ -267,6 +310,13 @@ NTSTATUS JpkfagpShutdownTracingIoctl(
 	UNREFERENCED_PARAMETER( OutputBufferLength );
 
 	*BytesWritten = 0;
+	
+	//
+	// JpkfagsOnCreateThread relies on JPFBT still being initialized,
+	// thus remove the callback before uninitializing JPFBT.
+	//
+	( VOID ) PsRemoveCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
+
 	return JpfbtUninitialize();
 }
 

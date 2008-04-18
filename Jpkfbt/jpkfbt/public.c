@@ -10,8 +10,26 @@
 #include "nativeapi.h"
 #include <jpkfagio.h>
 
-#define JPKFBTP_AGENT_DRIVER_NAME L"jpkfag"
-#define JPKFBTP_AGENT_DISPLAY_NAME L"Function Boundary Tracing Agent"
+#define JPKFBTP_AGENT_DRIVER_NAME_WRK		L"jpkfaw"
+#define JPKFBTP_AGENT_DRIVER_NAME_RETAIL	L"jpkfar"
+#define JPKFBTP_AGENT_DISPLAY_NAME_WRK		L"Function Boundary Tracing Agent (WRK)"
+#define JPKFBTP_AGENT_DISPLAY_NAME_RETAIL	L"Function Boundary Tracing Agent (Retail)"
+#define JPKFBTP_WRK12_BUILD					3800
+
+//
+// Names, indexed by JPKFBT_KERNEL_TYPE.
+//
+static PCWSTR JpkfbtsAgentDriverNames[] =
+{
+	JPKFBTP_AGENT_DRIVER_NAME_RETAIL,
+	JPKFBTP_AGENT_DRIVER_NAME_WRK
+};
+
+static PCWSTR JpkfbtsAgentDisplayNames[] =
+{
+	JPKFBTP_AGENT_DISPLAY_NAME_RETAIL,
+	JPKFBTP_AGENT_DISPLAY_NAME_WRK
+};
 
 typedef struct _JPKBTP_SESSION
 {
@@ -35,10 +53,34 @@ NTSTATUS JpkfbtIsKernelTypeSupported(
 	__out PBOOL Supported
 	)
 {
-	UNREFERENCED_PARAMETER( KernelType );
+	OSVERSIONINFO VersionInfo;
+	VersionInfo.dwOSVersionInfoSize = sizeof( OSVERSIONINFO ); 
 
-	*Supported = ( KernelType == JpkfbtKernelWmk );
-	return STATUS_SUCCESS;
+	if ( ! GetVersionEx( &VersionInfo ) )
+	{
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	switch ( KernelType )
+	{
+	case JpkfbtKernelWmk:
+	//case JpkfbtKernelWrk:
+		//
+		// WRK and WMK are hard to distinguish from user mode.
+		//
+		*Supported = ( VersionInfo.dwBuildNumber == JPKFBTP_WRK12_BUILD );
+		return STATUS_SUCCESS;
+
+	case JpkfbtKernelRetail:
+		//
+		// N.B. WRK and WMK provide a superset of the retail kernel.
+		//
+		*Supported = TRUE;
+		return STATUS_SUCCESS;
+
+	default:
+		return STATUS_INVALID_PARAMETER;
+	}
 }
 
 NTSTATUS JpkfbtAttach(
@@ -53,7 +95,7 @@ NTSTATUS JpkfbtAttach(
 	NTSTATUS Status;
 	PJPKBTP_SESSION TempSession;
 
-	if ( KernelType > JpkfbtKernelWmk ||
+	if ( KernelType > JpkfbtKernelMax ||
 		 SessionHandle == NULL )
 	{
 		return STATUS_INVALID_PARAMETER;
@@ -93,8 +135,8 @@ NTSTATUS JpkfbtAttach(
 	//
 	Status = JpkfbtpStartDriver(
 		DriverPath,
-		JPKFBTP_AGENT_DRIVER_NAME,
-		JPKFBTP_AGENT_DISPLAY_NAME,
+		JpkfbtsAgentDriverNames[ KernelType ],
+		JpkfbtsAgentDisplayNames[ KernelType ],
 		&DriverInstalled,
 		&DriverLoaded,
 		&TempSession->DriverHandle );
@@ -255,6 +297,11 @@ NTSTATUS JpkfbtInstrumentProcedure(
 	if ( SessionHandle == NULL )
 	{
 		return STATUS_INVALID_PARAMETER;
+	}
+
+	if ( FailedProcedure != NULL )
+	{
+		FailedProcedure->u.Procedure = NULL;
 	}
 
 	Session = ( PJPKBTP_SESSION ) SessionHandle;

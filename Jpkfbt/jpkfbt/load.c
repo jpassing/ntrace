@@ -183,6 +183,14 @@ NTSTATUS JpkfbtpFindAgentImage(
 			AgentImageNameWithDirectory = L"..\\i386\\jpkfaw32.sys";
 			break;
 
+		case JpkfbtKernelRetail:
+			//
+			// Normal 'retail' Kernel.
+			//
+			AgentImageName = L"jpkfar32.sys";
+			AgentImageNameWithDirectory = L"..\\i386\\jpkfar32.sys";
+			break;
+
 		default:
 			return STATUS_KFBT_KERNEL_NOT_SUPPORTED;
 		}
