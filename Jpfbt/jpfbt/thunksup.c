@@ -32,7 +32,10 @@ VOID __stdcall JpfbtpProcedureEntry(
 {
 	if ( JpfbtpGlobalState->Routines.EntryEvent )
 	{
-		JpfbtpGlobalState->Routines.EntryEvent( Context, Function );
+		JpfbtpGlobalState->Routines.EntryEvent( 
+			Context, 
+			Function,
+			JpfbtpGlobalState->UserPointer );
 		JpfbtpCheckForBufferOverflow();
 	}
 }
@@ -53,7 +56,10 @@ VOID __stdcall JpfbtpProcedureExit(
 {
 	if ( JpfbtpGlobalState->Routines.ExitEvent )
 	{
-		JpfbtpGlobalState->Routines.ExitEvent( Context, Function );
+		JpfbtpGlobalState->Routines.ExitEvent( 
+			Context, 
+			Function,
+			JpfbtpGlobalState->UserPointer );
 		JpfbtpCheckForBufferOverflow();
 	}
 }

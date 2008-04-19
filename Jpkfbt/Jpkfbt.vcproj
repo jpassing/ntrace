@@ -136,6 +136,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\jpkfag\defevntsink.c"
+					>
+				</File>
+				<File
 					RelativePath=".\jpkfag\DIRS"
 					>
 				</File>
@@ -174,10 +178,6 @@
 				<Filter
 					Name="retail"
 					>
-					<File
-						RelativePath=".\jpkfag\ret_evt.c"
-						>
-					</File>
 					<File
 						RelativePath=".\jpkfag\retail\SOURCES"
 						>

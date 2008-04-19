@@ -67,6 +67,7 @@ NTSTATUS JpkfagpDispatchDeviceControl(
 	__in PIRP Irp 
 	)
 {
+	PJPKFAGP_DEVICE_EXTENSION DevExtension;
 	PIO_STACK_LOCATION StackLocation;
 	ULONG ResultSize;
 	NTSTATUS Status;
@@ -75,11 +76,15 @@ NTSTATUS JpkfagpDispatchDeviceControl(
 	UNREFERENCED_PARAMETER( DeviceObject );
 
 	StackLocation = IoGetCurrentIrpStackLocation( Irp );
+	DevExtension = ( PJPKFAGP_DEVICE_EXTENSION ) DeviceObject->DeviceExtension;
+
+	ASSERT( DevExtension != NULL );
 
 	switch ( StackLocation->Parameters.DeviceIoControl.IoControlCode )
 	{
 	case JPKFAG_IOCTL_INITIALIZE_TRACING:
 		Status		= JpkfagpInitializeTracingIoctl(
+			DevExtension,
 			Irp->AssociatedIrp.SystemBuffer,
 			StackLocation->Parameters.DeviceIoControl.InputBufferLength,
 			StackLocation->Parameters.DeviceIoControl.OutputBufferLength,
@@ -88,6 +93,7 @@ NTSTATUS JpkfagpDispatchDeviceControl(
 
 	case JPKFAG_IOCTL_SHUTDOWN_TRACING:
 		Status		= JpkfagpShutdownTracingIoctl(
+			DevExtension,
 			Irp->AssociatedIrp.SystemBuffer,
 			StackLocation->Parameters.DeviceIoControl.InputBufferLength,
 			StackLocation->Parameters.DeviceIoControl.OutputBufferLength,
@@ -96,6 +102,7 @@ NTSTATUS JpkfagpDispatchDeviceControl(
 
 	case JPKFAG_IOCTL_INSTRUMENT_PROCEDURE:
 		Status		= JpkfagpInstrumentProcedureIoctl(
+			DevExtension,
 			Irp->AssociatedIrp.SystemBuffer,
 			StackLocation->Parameters.DeviceIoControl.InputBufferLength,
 			StackLocation->Parameters.DeviceIoControl.OutputBufferLength,
@@ -104,6 +111,7 @@ NTSTATUS JpkfagpDispatchDeviceControl(
 
 	case JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY:
 		Status		= JpkfagpCheckInstrumentabilityIoctl(
+			DevExtension,
 			Irp->AssociatedIrp.SystemBuffer,
 			StackLocation->Parameters.DeviceIoControl.InputBufferLength,
 			StackLocation->Parameters.DeviceIoControl.OutputBufferLength,
@@ -166,7 +174,7 @@ NTSTATUS DriverEntry(
 	//
 	Status = IoCreateDevice(
 		DriverObject,
-		0,
+		sizeof( JPKFAGP_DEVICE_EXTENSION ),
 		&NameStringNt,
 		FILE_DEVICE_UNKNOWN,
 		FILE_DEVICE_SECURE_OPEN,

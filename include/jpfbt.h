@@ -63,10 +63,13 @@ typedef struct _JPFBT_CONTEXT {
 				    (both volatile) are 0 and do not reflect the
 				    real values.
 		Procedure - Procedure entered.
+		UserPointer - Arbitrary user pointer passed to 
+					  JpfbtInitialize.
 --*/
 typedef VOID ( JPFBTCALLTYPE * JPFBT_EVENT_ROUTINE ) (
 	__in CONST PJPFBT_CONTEXT Context,
-	__in PVOID Function
+	__in PVOID Function,
+	__in_opt PVOID UserPointer
 	);
 
 

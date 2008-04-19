@@ -41,12 +41,15 @@ static VOID JpufagsGenerateEvent(
 
 static VOID JpufagsProcedureEntry( 
 	__in CONST PJPFBT_CONTEXT Context,
-	__in PVOID Function
+	__in PVOID Function,
+	__in_opt PVOID UserPointer
 	)
 {
 #if _M_IX86
 	ASSERT( Context->Eip == ( DWORD ) ( DWORD_PTR ) Function );
 #endif
+
+	UNREFERENCED_PARAMETER( UserPointer );
 
 	JpufagsGenerateEvent( 
 		JpufbtFunctionEntryEventType,
@@ -56,12 +59,15 @@ static VOID JpufagsProcedureEntry(
 
 static VOID JpufagsProcedureExit( 
 	__in CONST PJPFBT_CONTEXT Context,
-	__in PVOID Function
+	__in PVOID Function,
+	__in_opt PVOID UserPointer
 	)
 {
 #if _M_IX86
 	ASSERT( Context->Eip == ( DWORD ) ( DWORD_PTR ) Function );
 #endif
+
+	UNREFERENCED_PARAMETER( UserPointer );
 
 	JpufagsGenerateEvent( 
 		JpufbtFunctionExitEventType,

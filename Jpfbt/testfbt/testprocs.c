@@ -18,7 +18,8 @@ static BOOLEAN ExpectBufferDepletion = FALSE;
 
 static VOID __stdcall ProcedureEntry( 
 	__in CONST PJPFBT_CONTEXT Context,
-	__in PVOID Function
+	__in PVOID Function,
+	__in_opt PVOID UserPointer
 	)
 {
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
@@ -26,6 +27,7 @@ static VOID __stdcall ProcedureEntry(
 	PUCHAR Buffer;
 
 	UNREFERENCED_PARAMETER( Context );
+	UNREFERENCED_PARAMETER( UserPointer );
 
 	TEST( JpfbtGetBuffer( 1024*1024 ) == NULL );
 
@@ -62,7 +64,8 @@ static VOID __stdcall ProcedureEntry(
 
 static VOID __stdcall ProcedureExit( 
 	__in CONST PJPFBT_CONTEXT Context,
-	__in PVOID Function
+	__in PVOID Function,
+	__in_opt PVOID UserPointer
 	)
 {
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
@@ -71,6 +74,7 @@ static VOID __stdcall ProcedureExit(
 	PUCHAR Buffer;
 
 	UNREFERENCED_PARAMETER( Context );
+	UNREFERENCED_PARAMETER( UserPointer );
 
 	TEST( JpfbtGetBuffer( 1024*1024 ) == NULL );
 

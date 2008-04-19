@@ -31,8 +31,6 @@ extern NTKERNELAPI PVOID MmSystemRangeStart;
  *
  */
 
-#define JpkfagsPtrFromRva( base, rva ) ( ( ( PUCHAR ) base ) + rva )
-
 static VOID JpkfagsOnCreateThread(
     __in HANDLE ProcessId,
     __in HANDLE ThreadId,
@@ -103,7 +101,7 @@ static BOOLEAN JpkfagsIsValidCodePointer(
 static NTSTATUS JpkfagsCheckProcedurePointers(
 	__in ULONG ProcedureCount,
 	__in_ecount( ProcedureCount ) PJPFBT_PROCEDURE Procedures,
-	__in BOOLEAN CallEvtImageLoad,
+	__in PJPKFAGP_EVENT_SINK EventSink,
 	__out PJPFBT_PROCEDURE FailedProcedure
 	)
 {
@@ -112,7 +110,7 @@ static NTSTATUS JpkfagsCheckProcedurePointers(
 	ULONG ModulesBufferSize = 0;
 	NTSTATUS Status;
 
-	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
+	ASSERT( KeGetCurrentIrql() < DISPATCH_LEVEL );
 
 	//
 	// Check that all procedure addresses fall withing system address
@@ -207,7 +205,7 @@ static NTSTATUS JpkfagsCheckProcedurePointers(
 		//
 		// By now, all modules that have been affected are marked.
 		// 
-		if ( CallEvtImageLoad )
+		if ( EventSink != NULL )
 		{
 			for ( Index = 0; Index < ModuleCount; Index++ )
 			{
@@ -223,10 +221,11 @@ static NTSTATUS JpkfagsCheckProcedurePointers(
 						&ModulePath,
 						( PCSTR ) Modules[ Index ].FullPathName );
 
-					JpkfagpEvtImageLoad(
+					EventSink->OnImageInvolved(
 						( ULONG_PTR ) Modules[ Index ].BasicInfo.ImageBase,
 						Modules[ Index ].ImageSize,
-						&ModulePath );
+						&ModulePath,
+						EventSink );
 				}
 			}
 		}
@@ -243,12 +242,14 @@ static NTSTATUS JpkfagsCheckProcedurePointers(
  */
 
 NTSTATUS JpkfagpInitializeTracingIoctl(
+	__in PJPKFAGP_DEVICE_EXTENSION DevExtension,
 	__in PVOID Buffer,
 	__in ULONG InputBufferLength,
 	__in ULONG OutputBufferLength,
 	__out PULONG BytesWritten
 	)
 {
+	PJPKFAGP_EVENT_SINK EventSink = NULL;
 	PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST Request;
 	NTSTATUS Status;
 
@@ -273,16 +274,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 			return STATUS_INVALID_PARAMETER;
 		}
 
-		Status = JpfbtInitializeEx(
-			Request->BufferCount,
-			Request->BufferSize,
-			JPKFAGP_THREAD_DATA_PREALLOCATIONS,
-			JPFBT_FLAG_AUTOCOLLECT,
-			JpkfagpEvtProcedureEntry,
-			JpkfagpEvtProcedureExit,
-			JpkfagpEvtProcessBuffer,
-			NULL );
-
+		Status = JpkfagpCreateDefaultEventSink( &EventSink );
 		break;
 
 	case JpkfbtTracingTypeWmk:
@@ -292,54 +284,87 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 			return STATUS_INVALID_PARAMETER;
 		}
 
-		Status = JpfbtInitializeEx(
-			0,
-			0,
-			JPKFAGP_THREAD_DATA_PREALLOCATIONS,
-			JPFBT_FLAG_AUTOCOLLECT,
-			JpkfagpEvtProcedureEntry,
-			JpkfagpEvtProcedureExit,
-			JpkfagpEvtProcessBuffer,
-			NULL );
-
+		//
+		// TODO: choose other sink.
+		//
+		Status = JpkfagpCreateDefaultEventSink( &EventSink );
 		break;
 
 	default:
 		Status = STATUS_INVALID_PARAMETER;
 	}
 
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
+
+	ASSERT( EventSink != NULL );
+
+	Status = JpfbtInitializeEx(
+		Request->BufferCount,
+		Request->BufferSize,
+		JPKFAGP_THREAD_DATA_PREALLOCATIONS,
+		JPFBT_FLAG_AUTOCOLLECT,
+		EventSink->OnProcedureEntry,
+		EventSink->OnProcedureExit,
+		EventSink->OnProcessBuffer,
+		EventSink );
 	if ( NT_SUCCESS( Status ) )
 	{
 		Status = PsSetCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
+		DevExtension-> EventSink = EventSink;
+	}
+	else
+	{
+		EventSink->Delete( EventSink );
 	}
 
 	return Status;
 }
 
 NTSTATUS JpkfagpShutdownTracingIoctl(
+	__in PJPKFAGP_DEVICE_EXTENSION DevExtension,
 	__in PVOID Buffer,
 	__in ULONG InputBufferLength,
 	__in ULONG OutputBufferLength,
 	__out PULONG BytesWritten
 	)
 {
+	NTSTATUS Status;
+
 	ASSERT( BytesWritten );
+	
 	UNREFERENCED_PARAMETER( Buffer );
 	UNREFERENCED_PARAMETER( InputBufferLength );
 	UNREFERENCED_PARAMETER( OutputBufferLength );
 
 	*BytesWritten = 0;
 	
+	if ( DevExtension->EventSink == NULL )
+	{
+		return STATUS_FBT_NOT_INITIALIZED;
+	}
+
 	//
 	// JpkfagsOnCreateThread relies on JPFBT still being initialized,
 	// thus remove the callback before uninitializing JPFBT.
 	//
 	( VOID ) PsRemoveCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
 
-	return JpfbtUninitialize();
+	Status = JpfbtUninitialize();
+	if ( NT_SUCCESS( Status ) )
+	{
+		PJPKFAGP_EVENT_SINK	EventSink	= DevExtension->EventSink;
+		DevExtension->EventSink			= NULL;
+		EventSink->Delete( EventSink );
+	}
+
+	return Status;
 }
 
 NTSTATUS JpkfagpInstrumentProcedureIoctl(
+	__in PJPKFAGP_DEVICE_EXTENSION DevExtension,
 	__in PVOID Buffer,
 	__in ULONG InputBufferLength,
 	__in ULONG OutputBufferLength,
@@ -382,7 +407,9 @@ NTSTATUS JpkfagpInstrumentProcedureIoctl(
 	Status = JpkfagsCheckProcedurePointers(
 		Request->ProcedureCount,
 		Request->Procedures,
-		Request->Action == JpfbtAddInstrumentation ? TRUE : FALSE,
+		Request->Action == JpfbtAddInstrumentation 
+			? DevExtension->EventSink 
+			: NULL,
 		&Response->FailedProcedure );
 	if ( ! NT_SUCCESS( Status ) )
 	{
@@ -434,6 +461,7 @@ NTSTATUS JpkfagpInstrumentProcedureIoctl(
 }
 
 NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
+	__in PJPKFAGP_DEVICE_EXTENSION DevExtension,
 	__in PVOID Buffer,
 	__in ULONG InputBufferLength,
 	__in ULONG OutputBufferLength,
@@ -445,6 +473,8 @@ NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
 	PJPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_REQUEST Request;
 	PJPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE Response;
 	NTSTATUS Status;
+
+	UNREFERENCED_PARAMETER( DevExtension );
 
 	ASSERT( BytesWritten );
 	*BytesWritten = 0;
@@ -470,7 +500,7 @@ NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
 	Status = JpkfagsCheckProcedurePointers(
 		1,
 		&Request->Procedure,
-		FALSE,
+		NULL,
 		&FailedProcedure );
 	if ( ! NT_SUCCESS( Status ) )
 	{
