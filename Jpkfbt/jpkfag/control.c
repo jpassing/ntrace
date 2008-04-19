@@ -267,6 +267,25 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 	switch ( Request->Type )
 	{
 	case JpkfbtTracingTypeDefault:
+		if ( Request->BufferCount == 0 ||
+			 Request->BufferSize == 0 )
+		{
+			return STATUS_INVALID_PARAMETER;
+		}
+
+		Status = JpfbtInitializeEx(
+			Request->BufferCount,
+			Request->BufferSize,
+			JPKFAGP_THREAD_DATA_PREALLOCATIONS,
+			JPFBT_FLAG_AUTOCOLLECT,
+			JpkfagpEvtProcedureEntry,
+			JpkfagpEvtProcedureExit,
+			JpkfagpEvtProcessBuffer,
+			NULL );
+
+		break;
+
+	case JpkfbtTracingTypeWmk:
 		if ( Request->BufferCount != 0 ||
 			 Request->BufferSize != 0 )
 		{

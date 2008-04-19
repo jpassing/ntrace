@@ -434,6 +434,8 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 	{
 		for ( Index = 0; Index < ProcedureCount; Index++ )
 		{
+			PJPHT_HASHTABLE_ENTRY OldEntry;
+
 			ASSERT( ! JpfbtsIsAlreadyPatched( 
 				PatchArray[ Index ]->u.Procedure ) );
 
@@ -443,7 +445,11 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 			JphtRemoveEntryHashtable(
 				&JpfbtpGlobalState->PatchDatabase.PatchTable,
 				PatchArray[ Index ]->u.HashtableEntry.Key,
-				NULL );
+				&OldEntry );
+
+			ASSERT( OldEntry != NULL );
+
+			JpfbtpFreeNonPagedMemory( PatchArray[ Index ] );
 		}
 	}
 

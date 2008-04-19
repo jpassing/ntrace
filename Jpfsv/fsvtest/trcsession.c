@@ -702,10 +702,13 @@ static VOID TestTraceKernel()
 			JpfsvGetTracepointContext( KernelCtx, 0xF00, &Tracepnt ) );
 
 		Hr = JpfsvAttachContext( KernelCtx, TracingType );
-		if ( Hr == JPFSV_E_UNSUPPORTED_TRACING_TYPE )
+		if ( Hr == JPFSV_E_UNSUPPORTED_TRACING_TYPE ||
+			 Hr == HRESULT_FROM_NT( 0xC0049300L ) ) // STATUS_KFBT_KERNEL_NOT_SUPPORTED
 		{
 			continue;
 		}
+
+		TEST_OK( Hr );
 
 		if ( TracingType == JpfsvTracingTypeWmk )
 		{
@@ -717,8 +720,6 @@ static VOID TestTraceKernel()
 			BufferCount = 5;
 			BufferSize = 1024;
 		}
-
-		TEST_OK( Hr );
 
 		//
 		// Instrument some procedures.

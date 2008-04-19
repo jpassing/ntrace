@@ -242,6 +242,8 @@ NTSTATUS JpfbtpPatchCode(
 		if ( Patches[ Index ]->Mdl != NULL )
 		{
 			JpfbtsUnlockMemory( Patches[ Index ]->Mdl );
+			Patches[ Index ]->Mdl = NULL;
+			Patches[ Index ]->MappedAddress = NULL;
 		}
 	}
 

@@ -215,7 +215,7 @@ NTSTATUS JpkfbtInitializeTracing(
 	IO_STATUS_BLOCK StatusBlock;
 
 	if ( SessionHandle == NULL ||
-		 Type > JpkfbtTracingTypeWmk )
+		 Type > JpkfbtTracingTypeMax )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}

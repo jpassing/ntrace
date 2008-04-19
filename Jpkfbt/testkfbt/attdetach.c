@@ -101,7 +101,7 @@ void TestInitShutdownTracing()
 		TEST_STATUS( STATUS_INVALID_PARAMETER,
 			JpkfbtInitializeTracing(
 				Session,
-				JpkfbtTracingTypeWmk + 1,
+				JpkfbtTracingTypeMax + 1,
 				0,
 				0 ) );
 
@@ -114,7 +114,7 @@ void TestInitShutdownTracing()
 		//
 		// Init & Shutdown using valid type.
 		//
-		for( TracingType = JpkfbtTracingTypeWmk;
+		for( TracingType = JpkfbtTracingTypeDefault;
 			 TracingType <= JpkfbtTracingTypeMax;
 			 TracingType++ )
 		{
@@ -180,7 +180,7 @@ void TestInstrumentFailures()
 		
 		TEST_SUCCESS( JpkfbtInitializeTracing(
 			Session,
-			JpkfbtTracingTypeWmk,
+			Type,
 			0,
 			0 ) );
 		
