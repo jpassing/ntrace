@@ -25,4 +25,5 @@ SOURCES=\
 	..\util.c \
 	..\control.c \
 	..\defevntsink.c \
+	..\wmksink.c \
 	..\jpkfag.rc

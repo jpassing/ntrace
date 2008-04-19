@@ -670,7 +670,7 @@ static VOID TestTraceKernel()
 	PROC_SET Set;
 	DWORD_PTR FailedProc;
 	UINT Tracepoints, Count;
-	UINT EnumCount = 0;
+	UINT EnumCount;
 	JPFSV_TRACEPOINT Tracepnt;
 	HRESULT Hr;
 	JPFSV_HANDLE KernelCtx;
@@ -690,6 +690,7 @@ static VOID TestTraceKernel()
 		//
 		// Start a trace.
 		//
+		KernelCtx = NULL;
 		Hr = JpfsvLoadContext( JPFSV_KERNEL, NULL, &KernelCtx );
 		if ( Hr == JPFSV_E_UNSUP_ON_WOW64 )
 		{
@@ -807,8 +808,6 @@ static VOID TestTraceKernel()
 			&PaddingSize ) );
 		TEST( ! Instrumentable );
 		TEST( PaddingSize == 0 );
-		
-		TEST_OK( JpfsvUnloadContext( KernelCtx ) );
 
 		//
 		// All patchable...
@@ -857,6 +856,7 @@ static VOID TestTraceKernel()
 		//
 		// Count enum callbacks.
 		//
+		EnumCount = 0;
 		TEST_OK( JpfsvEnumTracePointsContext(
 			KernelCtx,
 			CountTracepointsCallback,
@@ -907,10 +907,10 @@ static VOID TestTraceKernel()
 		TEST_OK( DetachContextSafe( KernelCtx ) );
 		TEST_OK( JpfsvUnloadContext( KernelCtx ) );
 
-		TEST_OK( CdiagDereferenceSession( DiagSession ) );
-
 		TypesTested++;
 	}
+
+	TEST_OK( CdiagDereferenceSession( DiagSession ) );
 
 	if ( TypesTested == 0 )
 	{

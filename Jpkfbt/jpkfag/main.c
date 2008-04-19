@@ -130,9 +130,29 @@ VOID JpkfagpUnload(
 	__in PDRIVER_OBJECT DriverObject
 	)
 {
+	PJPKFAGP_DEVICE_EXTENSION DevExtension;
 	PDEVICE_OBJECT DeviceObject = DriverObject->DeviceObject;
 	UNICODE_STRING NameStringDos = RTL_CONSTANT_STRING( JPKFAG_DEVICE_DOS_NAME ) ;
 	
+	DevExtension = ( PJPKFAGP_DEVICE_EXTENSION ) DeviceObject->DeviceExtension;
+
+	if ( DevExtension->EventSink != NULL )
+	{
+		//
+		// Shutdown IOCTL has not been sent.
+		//
+		NTSTATUS Status;
+
+		KdPrint(( "JPKFAG: Forcing shutdown...\n" ));
+		
+		Status = JpkfagpShutdownTracing( DevExtension );
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			KdPrint(( "JPKFAG: Forcing shutdown failed, likely "
+				"to bugcheck soon: %x.\n", Status ));
+		}
+	}
+
 	KdPrint(( "JPKFAG: Unload.\n" ));
 
 	IoDeleteSymbolicLink( &NameStringDos );

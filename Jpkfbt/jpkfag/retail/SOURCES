@@ -9,13 +9,12 @@ INCLUDES=..\..\..\include;..\..\include;..\..\..\..\Jpht\Include;$(SDK_INC_PATH)
 MSC_WARNING_LEVEL=/W4 /WX /Wp64
 
 !if "$(TARGET_DIRECTORY)"=="i386"
-USER_C_FLAGS=/wd4276 /analyze /DJPFBT_TARGET_KERNELMODE /DJPFBT_WMK
+USER_C_FLAGS=/wd4276 /analyze /DJPFBT_TARGET_KERNELMODE
 TARGETNAME=jpkfar32
 !endif
 
 TARGETLIBS=$(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_km_retail.lib \
-		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwrkstb.lib \
 		   $(DDK_LIB_PATH)\aux_klib.lib
 		   
 TARGETPATH=..\..\..\bin\$(DDKBUILDENV)

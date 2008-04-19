@@ -126,19 +126,15 @@ NTSTATUS JpkfagpCreateDefaultEventSink(
 	__out PJPKFAGP_EVENT_SINK *Sink
 	);
 
-/*----------------------------------------------------------------------
- *
- * Misc.
- *
- */
-
+#ifdef JPFBT_WMK
 /*++
 	Routine Description:
-		Do cleanup work for a thread that is about to be terminated.
+		Create event sink that relays all events to WMK.
 --*/
-VOID JpkfagpCleanupThread(
-	__in PETHREAD Thread
+NTSTATUS JpkfagpCreateWmkEventSink(
+	__out PJPKFAGP_EVENT_SINK *Sink
 	);
+#endif
 
 
 /*----------------------------------------------------------------------
@@ -149,11 +145,33 @@ VOID JpkfagpCleanupThread(
 typedef struct _JPKFAGP_DEVICE_EXTENSION
 {
 	//
-	// Currentr event sink, if any.
+	// Current event sink. Non-null iff tracing initialized.
 	//
 	PJPKFAGP_EVENT_SINK EventSink;
 } JPKFAGP_DEVICE_EXTENSION, *PJPKFAGP_DEVICE_EXTENSION;
 
+
+/*----------------------------------------------------------------------
+ *
+ * Misc.
+ *
+ */
+
+/*++
+	Routine Description:
+		Shutodown tracing/uninitialze FBT.
+--*/
+NTSTATUS JpkfagpShutdownTracing(
+	__in PJPKFAGP_DEVICE_EXTENSION DevExtension
+	);
+
+/*++
+	Routine Description:
+		Do cleanup work for a thread that is about to be terminated.
+--*/
+VOID JpkfagpCleanupThread(
+	__in PETHREAD Thread
+	);
 
 /*----------------------------------------------------------------------
  *

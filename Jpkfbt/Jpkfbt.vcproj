@@ -174,6 +174,10 @@
 						RelativePath=".\jpkfag\wmk\SOURCES"
 						>
 					</File>
+					<File
+						RelativePath=".\jpkfag\wmksink.c"
+						>
+					</File>
 				</Filter>
 				<Filter
 					Name="retail"

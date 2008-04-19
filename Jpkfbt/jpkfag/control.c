@@ -241,6 +241,34 @@ static NTSTATUS JpkfagsCheckProcedurePointers(
  *
  */
 
+NTSTATUS JpkfagpShutdownTracing(
+	__in PJPKFAGP_DEVICE_EXTENSION DevExtension
+	)
+{
+	NTSTATUS Status;
+	
+	if ( DevExtension->EventSink == NULL )
+	{
+		return STATUS_FBT_NOT_INITIALIZED;
+	}
+
+	//
+	// JpkfagsOnCreateThread relies on JPFBT still being initialized,
+	// thus remove the callback before uninitializing JPFBT.
+	//
+	( VOID ) PsRemoveCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
+
+	Status = JpfbtUninitialize();
+	if ( NT_SUCCESS( Status ) )
+	{
+		PJPKFAGP_EVENT_SINK	EventSink	= DevExtension->EventSink;
+		DevExtension->EventSink			= NULL;
+		EventSink->Delete( EventSink );
+	}
+
+	return Status;
+}
+
 NTSTATUS JpkfagpInitializeTracingIoctl(
 	__in PJPKFAGP_DEVICE_EXTENSION DevExtension,
 	__in PVOID Buffer,
@@ -277,6 +305,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		Status = JpkfagpCreateDefaultEventSink( &EventSink );
 		break;
 
+#ifdef JPFBT_WMK
 	case JpkfbtTracingTypeWmk:
 		if ( Request->BufferCount != 0 ||
 			 Request->BufferSize != 0 )
@@ -287,8 +316,9 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		//
 		// TODO: choose other sink.
 		//
-		Status = JpkfagpCreateDefaultEventSink( &EventSink );
+		Status = JpkfagpCreateWmkEventSink( &EventSink );
 		break;
+#endif
 
 	default:
 		Status = STATUS_INVALID_PARAMETER;
@@ -331,8 +361,6 @@ NTSTATUS JpkfagpShutdownTracingIoctl(
 	__out PULONG BytesWritten
 	)
 {
-	NTSTATUS Status;
-
 	ASSERT( BytesWritten );
 	
 	UNREFERENCED_PARAMETER( Buffer );
@@ -340,27 +368,8 @@ NTSTATUS JpkfagpShutdownTracingIoctl(
 	UNREFERENCED_PARAMETER( OutputBufferLength );
 
 	*BytesWritten = 0;
-	
-	if ( DevExtension->EventSink == NULL )
-	{
-		return STATUS_FBT_NOT_INITIALIZED;
-	}
 
-	//
-	// JpkfagsOnCreateThread relies on JPFBT still being initialized,
-	// thus remove the callback before uninitializing JPFBT.
-	//
-	( VOID ) PsRemoveCreateThreadNotifyRoutine( JpkfagsOnCreateThread );
-
-	Status = JpfbtUninitialize();
-	if ( NT_SUCCESS( Status ) )
-	{
-		PJPKFAGP_EVENT_SINK	EventSink	= DevExtension->EventSink;
-		DevExtension->EventSink			= NULL;
-		EventSink->Delete( EventSink );
-	}
-
-	return Status;
+	return JpkfagpShutdownTracing( DevExtension );
 }
 
 NTSTATUS JpkfagpInstrumentProcedureIoctl(

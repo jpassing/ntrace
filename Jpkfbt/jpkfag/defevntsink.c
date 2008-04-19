@@ -29,6 +29,7 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 	ASSERT( This );
 	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
 
+	UNREFERENCED_PARAMETER( This );
 	UNREFERENCED_PARAMETER( ImageLoadAddress );
 	UNREFERENCED_PARAMETER( ImageSize );
 	UNREFERENCED_PARAMETER( Path );
