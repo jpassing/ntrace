@@ -188,6 +188,18 @@
 					</File>
 				</Filter>
 			</Filter>
+			<Filter
+				Name="jpwmkstb"
+				>
+				<File
+					RelativePath=".\jpwmkstb\SOURCES"
+					>
+				</File>
+				<File
+					RelativePath=".\jpwmkstb\wmkstubs.c"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Shared Header Files"

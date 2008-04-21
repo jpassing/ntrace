@@ -209,3 +209,28 @@ NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
 	__in ULONG OutputBufferLength,
 	__out PULONG BytesWritten
 	);
+
+/*----------------------------------------------------------------------
+ *
+ * WMK routines.
+ *
+ */
+#ifdef JPFBT_WMK
+VOID JpkfbtWmkLogImageInfoEvent(
+	__in ULONGLONG ImageLoadAddress,
+	__in ULONG ImageSize,
+	__in PANSI_STRING Path 
+	);
+
+VOID JpkfbtWmkLogProcedureEntryEvent(
+    __in HANDLE ProcessId,
+    __in HANDLE ThreadId,
+	__in PVOID Procedure
+	);
+
+VOID JpkfbtWmkLogProcedureExitEvent(
+    __in HANDLE ProcessId,
+    __in HANDLE ThreadId,
+	__in PVOID Procedure
+	);
+#endif

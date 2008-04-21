@@ -12,9 +12,11 @@ USER_C_FLAGS=/wd4276 /analyze /DJPFBT_TARGET_KERNELMODE /DJPFBT_WMK
 TARGETNAME=jpkfaw32
 !endif
 
-TARGETLIBS=$(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
+TARGETLIBS=$(WRKBASE)\BASE\NTOS\BUILD\EXE\wrkx86wm.lib \
+		   $(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_km_wrk.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwrkstb.lib \
+		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwmkstb.lib \
 		   $(DDK_LIB_PATH)\aux_klib.lib
 		   
 TARGETPATH=..\..\..\bin\$(DDKBUILDENV)

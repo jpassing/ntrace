@@ -284,6 +284,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 	)
 {
 	PJPKFAGP_EVENT_SINK EventSink = NULL;
+	ULONG InitFlags = 0;
 	PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST Request;
 	NTSTATUS Status;
 
@@ -308,6 +309,8 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 			return STATUS_INVALID_PARAMETER;
 		}
 
+		InitFlags |= JPFBT_FLAG_AUTOCOLLECT;
+
 		Status = JpkfagpCreateDefaultEventSink( &EventSink );
 		break;
 
@@ -319,9 +322,6 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 			return STATUS_INVALID_PARAMETER;
 		}
 
-		//
-		// TODO: choose other sink.
-		//
 		Status = JpkfagpCreateWmkEventSink( &EventSink );
 		break;
 #endif
@@ -341,7 +341,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		Request->BufferCount,
 		Request->BufferSize,
 		JPKFAGP_THREAD_DATA_PREALLOCATIONS,
-		JPFBT_FLAG_AUTOCOLLECT,
+		InitFlags,
 		EventSink->OnProcedureEntry,
 		EventSink->OnProcedureExit,
 		EventSink->OnProcessBuffer,
