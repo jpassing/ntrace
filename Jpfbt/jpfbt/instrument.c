@@ -21,6 +21,15 @@ static UCHAR JpfbtsZeroPadding[] = { 0x00, 0x00, 0x00, 0x00, 0x00,
 
 #define JPFBTP_MAX_PATCH_SET_SIZE 0xFFFF
 
+
+typedef struct _JPFBTP_TABLE_ENUM_CONTEXT
+{
+	ULONG Capacity;
+	ULONG Count;
+	PJPFBT_CODE_PATCH *Entries;
+} JPFBTP_TABLE_ENUM_CONTEXT, *PJPFBTP_TABLE_ENUM_CONTEXT;
+
+
 //
 // Disable warning: Function to PVOID casting
 //
@@ -365,6 +374,51 @@ static PJPFBT_CODE_PATCH JpfbtsFindCodePatch(
 	return CodePatch;
 }
 
+static NTSTATUS JpfbtsUnpatchAndUnregister(
+	__in ULONG ProcedureCount,
+	__in_ecount( ProcedureCount ) PJPFBT_CODE_PATCH *PatchArray
+	)
+{
+	ULONG Index;
+	NTSTATUS Status;
+
+	//
+	// Unpatch.
+	//
+	Status = JpfbtpPatchCode(
+		JpfbtUnpatch,
+		ProcedureCount,
+		PatchArray );
+
+	if ( NT_SUCCESS( Status ) )
+	{
+		for ( Index = 0; Index < ProcedureCount; Index++ )
+		{
+			PJPHT_HASHTABLE_ENTRY OldEntry;
+
+			ASSERT( ! JpfbtsIsAlreadyPatched( 
+				PatchArray[ Index ]->u.Procedure ) );
+
+			//
+			// Unregister and free patches.
+			//
+			JphtRemoveEntryHashtable(
+				&JpfbtpGlobalState->PatchDatabase.PatchTable,
+				PatchArray[ Index ]->u.HashtableEntry.Key,
+				&OldEntry );
+
+			ASSERT( OldEntry != NULL );
+
+			//
+			// Free the patch entry.
+			//
+			JpfbtpFreeNonPagedMemory( PatchArray[ Index ] );
+		}
+	}
+
+	return Status;
+}
+
 static NTSTATUS JpfbtsUninstrumentProcedure(
 	__in ULONG ProcedureCount,
 	__in_ecount(ProcedureCount) CONST PJPFBT_PROCEDURE Procedures,
@@ -422,36 +476,100 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 		}
 	}
 
-	//
-	// Unpatch (also flushes patched region from instruction cache).
-	//
-	Status = JpfbtpPatchCode(
-		JpfbtUnpatch,
+	Status = JpfbtsUnpatchAndUnregister(
 		ProcedureCount,
 		PatchArray );
 
-	if ( NT_SUCCESS( Status ) )
+Cleanup:
+	//
+	// Safe to unlock Patch DB.
+	//
+	JpfbtpReleasePatchDatabaseLock();
+
+	if ( PatchArray )
 	{
-		for ( Index = 0; Index < ProcedureCount; Index++ )
-		{
-			PJPHT_HASHTABLE_ENTRY OldEntry;
-
-			ASSERT( ! JpfbtsIsAlreadyPatched( 
-				PatchArray[ Index ]->u.Procedure ) );
-
-			//
-			// Unregister and free patches.
-			//
-			JphtRemoveEntryHashtable(
-				&JpfbtpGlobalState->PatchDatabase.PatchTable,
-				PatchArray[ Index ]->u.HashtableEntry.Key,
-				&OldEntry );
-
-			ASSERT( OldEntry != NULL );
-
-			JpfbtpFreeNonPagedMemory( PatchArray[ Index ] );
-		}
+		JpfbtpFreePagedMemory( PatchArray );
 	}
+
+	return Status;
+}
+
+static VOID JpfbtsCollectPatchEntries(
+	__in PJPHT_HASHTABLE Hashtable,
+	__in PJPHT_HASHTABLE_ENTRY Entry,
+	__in_opt PVOID PvContext
+	)
+{
+	PJPFBTP_TABLE_ENUM_CONTEXT Context;
+
+	Context = ( PJPFBTP_TABLE_ENUM_CONTEXT ) PvContext;
+	UNREFERENCED_PARAMETER( Hashtable );
+
+	ASSERT( Context != NULL );
+	if ( Context == NULL )
+	{
+		return;
+	}
+
+	ASSERT( Context->Count < Context->Capacity );
+	Context->Entries[ Context->Count++ ] = CONTAINING_RECORD( 
+		Entry, 
+		JPFBT_CODE_PATCH, 
+		u.HashtableEntry );
+}
+
+NTSTATUS JpfbtRemoveInstrumentationAllProcedures()
+{
+	JPFBTP_TABLE_ENUM_CONTEXT Context;
+	PJPFBT_CODE_PATCH *PatchArray = NULL;
+	ULONG ProcedureCount;
+	NTSTATUS Status;
+
+	//
+	// Protect against concurrent modifications or premature unload.
+	//
+	JpfbtpAcquirePatchDatabaseLock();
+
+	ProcedureCount = JphtGetEntryCountHashtable( 
+		&JpfbtpGlobalState->PatchDatabase.PatchTable );
+
+	if ( ProcedureCount == 0 )
+	{
+		//
+		// Nothing to do.
+		//
+		Status = STATUS_SUCCESS;
+		goto Cleanup;
+	}
+
+	//
+	// Allocate array to hold affected PJPFBT_CODE_PATCHes.
+	//
+	PatchArray = ( PJPFBT_CODE_PATCH* ) JpfbtpAllocatePagedMemory( 
+		ProcedureCount * sizeof( PJPFBT_CODE_PATCH ), 
+		TRUE );
+	if ( ! PatchArray )
+	{
+		return STATUS_NO_MEMORY;
+	}
+
+	//
+	// Collect PJPFBT_CODE_PATCHes.
+	//
+	Context.Capacity	= ProcedureCount;
+	Context.Count		= 0;
+	Context.Entries		= PatchArray;
+
+	JphtEnumerateEntries(
+		&JpfbtpGlobalState->PatchDatabase.PatchTable,
+		JpfbtsCollectPatchEntries,
+		&Context );
+	
+	ASSERT( Context.Count == ProcedureCount );
+
+	Status = JpfbtsUnpatchAndUnregister(
+		ProcedureCount,
+		PatchArray );
 
 Cleanup:
 	//

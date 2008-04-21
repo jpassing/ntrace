@@ -276,7 +276,24 @@ static VOID UnpatchAll()
  *
  */
 
-VOID PatchAndTestAllProcsSinglethreaded()
+static VOID PatchAndUnpatchAll()
+{
+	TEST_SUCCESS( JpfbtInitialize( 
+		2,								// deliberately too small
+		8,
+		JPFBT_FLAG_AUTOCOLLECT,
+		ProcedureEntry, 
+		ProcedureExit,
+		ProcessBuffer,
+		NULL) );
+
+	TEST( PatchAll() );
+	TEST( STATUS_FBT_STILL_PATCHED == JpfbtUninitialize() );
+	TEST_SUCCESS( JpfbtRemoveInstrumentationAllProcedures() );
+	TEST_SUCCESS( JpfbtUninitialize() );
+}
+
+static VOID PatchAndTestAllProcsSinglethreaded()
 {
 #ifdef JPFBT_TARGET_KERNELMODE
 	KIRQL OldIrql;
@@ -448,7 +465,7 @@ static ULONG CALLBACK PatchUnpatchThreadProc( __in PVOID Unused )
 }
 
 
-VOID PatchAndTestAllProcsMultithreaded()
+static VOID PatchAndTestAllProcsMultithreaded()
 {
 	#define CALLER_THREAD_COUNT 10
 	#define PATCHUNPATCH_THREAD_COUNT 5
@@ -550,6 +567,7 @@ void Teardown()
 
 CFIX_BEGIN_FIXTURE( ConcurrentPatching )
 	CFIX_FIXTURE_ENTRY( PatchAndTestAllProcsSinglethreaded )
+	CFIX_FIXTURE_ENTRY( PatchAndUnpatchAll )
 #ifdef JPFBT_TARGET_USERMODE
 	CFIX_FIXTURE_SETUP( Setup )
 	CFIX_FIXTURE_TEARDOWN( Teardown )

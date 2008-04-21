@@ -252,6 +252,12 @@ NTSTATUS JpkfagpShutdownTracing(
 		return STATUS_FBT_NOT_INITIALIZED;
 	}
 
+	Status = JpfbtRemoveInstrumentationAllProcedures();
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
+
 	//
 	// JpkfagsOnCreateThread relies on JPFBT still being initialized,
 	// thus remove the callback before uninitializing JPFBT.

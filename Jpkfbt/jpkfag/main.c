@@ -139,7 +139,9 @@ VOID JpkfagpUnload(
 	if ( DevExtension->EventSink != NULL )
 	{
 		//
-		// Shutdown IOCTL has not been sent.
+		// Shutdown IOCTL has not been sent - FBT has not been 
+		// uninitialized and there may be routines that are still
+		// instrumented.
 		//
 		NTSTATUS Status;
 

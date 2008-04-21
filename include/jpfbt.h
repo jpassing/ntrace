@@ -233,7 +233,7 @@ typedef struct _JPFBT_PROCEDURE
 	Return Value:
 		STATUS_SUCCESS on success. FailedProcedure is set to NULL.
 		STATUS_FBT_PROC_NOT_PATCHABLE if at least one procedure does not 
-			fulfil criteria. FailedProcedure is set.
+			fulfill criteria. FailedProcedure is set.
 		STATUS_FBT_PROC_ALREADY_PATCHED if procedure has already been
 			patched. FailedProcedure is set.
 --*/
@@ -243,6 +243,13 @@ NTSTATUS JPFBTCALLTYPE JpfbtInstrumentProcedure(
 	__in_ecount(InstrCount) CONST PJPFBT_PROCEDURE Procedures,
 	__out_opt PJPFBT_PROCEDURE FailedProcedure
 	);
+
+/*++
+	Routine Description:
+		Remove instrumentation from all routines that have been
+		instrumented. Should be called before uninitializing.
+--*/
+NTSTATUS JpfbtRemoveInstrumentationAllProcedures();
 
 /*++
 	Routine Description:
