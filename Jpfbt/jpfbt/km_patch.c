@@ -117,6 +117,10 @@ static VOID JpfbtsPatchRoutine(
 		{
 			if ( Context->Action == JpfbtPatch )
 			{
+				ULONG Index;
+				PUCHAR Source;
+				PUCHAR Target;
+
 				//
 				// Target -> OldCode
 				//
@@ -128,10 +132,20 @@ static VOID JpfbtsPatchRoutine(
 				//
 				// NewCode -> Target
 				//
-				memcpy( 
-					Context->Patches[ PatchIndex ]->MappedAddress, 
-					Context->Patches[ PatchIndex ]->NewCode, 
-					Context->Patches[ PatchIndex ]->CodeSize );
+				///memcpy( 
+				//	Context->Patches[ PatchIndex ]->MappedAddress, 
+				//	Context->Patches[ PatchIndex ]->NewCode, 
+				//	Context->Patches[ PatchIndex ]->CodeSize );
+				Target = ( PUCHAR ) 
+					Context->Patches[ PatchIndex ]->MappedAddress;
+				Source = ( PUCHAR ) 
+					Context->Patches[ PatchIndex ]->NewCode;
+				for ( Index = 0; 
+					  Index < Context->Patches[ PatchIndex ]->CodeSize;
+					  Index++ )
+				{
+					Target[ Index ] = Source[ Index ];
+				}
 			}
 			else if ( Context->Action == JpfbtUnpatch )
 			{
@@ -147,11 +161,6 @@ static VOID JpfbtsPatchRoutine(
 			{
 				ASSERT( !"Invalid Action" );
 			}
-
-			//
-			// N.B. i386 and amd64 do not require an instruction cache
-			// flush.
-			//
 		}
 	}
 

@@ -18,7 +18,7 @@ static void TestCmdProc()
 	JPFSV_HANDLE Processor;
 	WCHAR Buffer[ 50 ];
 
-	TEST_OK( JpfsvCreateCommandProcessor( Output, &Processor ) );
+	TEST_OK( JpfsvCreateCommandProcessor( Output, 0, &Processor ) );
 
 	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"" ) );
 	TEST( JPFSV_E_COMMAND_FAILED == JpfsvProcessCommand( Processor, L"  " ) );
@@ -71,7 +71,7 @@ static void TestAttachDetachCommands()
 	WCHAR Cmd[ 64 ];
 	UINT Index;
 
-	TEST_OK( JpfsvCreateCommandProcessor( Output, &Processor ) );
+	TEST_OK( JpfsvCreateCommandProcessor( Output, 0, &Processor ) );
 
 	for ( Index = 0; Index < _countof( AttachCommands ); Index++ )
 	{
@@ -127,7 +127,7 @@ static void TestTracepoints()
 	WCHAR Cmd[ 64 ];
 	UINT Count;
 		
-	TEST_OK( JpfsvCreateCommandProcessor( Output, &Processor ) );
+	TEST_OK( JpfsvCreateCommandProcessor( Output, 0, &Processor ) );
 
 	//
 	// Launch notepad.

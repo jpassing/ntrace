@@ -27,14 +27,43 @@ INT __cdecl wmain(
 	__in PWSTR *Argv )
 {
 	WCHAR Buffer[ 255 ];
-	size_t read;
 	JPFSV_HANDLE CmdProc;
 	HRESULT Hr;
-
-	UNREFERENCED_PARAMETER( Argc );
-	UNREFERENCED_PARAMETER( Argv );
+	DWORD InitialProcessId;
+	size_t read;
 	
-	Hr = JpfsvCreateCommandProcessor( CtrcsOutput, &CmdProc );
+	if ( Argc >= 2 )
+	{
+		if ( 0 == wcscmp( Argv[ 1 ], L"-?" ) ||
+			 0 == wcscmp( Argv[ 1 ], L"/?" ) )
+		{
+			wprintf( L"Usage: %s [<process id (decimal)>]\n"
+					 L"  Use # as process id to attach to the kernel.\n",
+					 Argv[ 0 ] );
+			return 1;
+		}
+		else if ( 0 == wcscmp( Argv[ 1 ], L"#" ) )
+		{
+			InitialProcessId = JPFSV_KERNEL;
+		}
+		else
+		{
+			WCHAR *StopChar;
+			InitialProcessId = wcstoul( Argv[ 1 ], &StopChar, 10 );
+			if ( InitialProcessId == 0 || 
+				 InitialProcessId == ( DWORD ) -1 )
+			{
+				wprintf( L"Invalid process id specified.\n" );
+				return 1;
+			}
+		}
+	}
+	else
+	{
+		InitialProcessId = 0;
+	}
+
+	Hr = JpfsvCreateCommandProcessor( CtrcsOutput, InitialProcessId, &CmdProc );
 	if ( FAILED( Hr ) )
 	{
 		wprintf( L"Failed to create command processor: 0x%08X\n", Hr );

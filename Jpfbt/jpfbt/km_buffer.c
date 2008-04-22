@@ -267,7 +267,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 		{
 			ThreadData->AllocationType = JpfbtpPoolAllocated;
 
-			TRACE( ( "JPFBT: ThreadData %p alloc'd from preallocation\n", ThreadData ) );
+			TRACE( ( "JPFBT: ThreadData %p alloc'd from NPP\n", ThreadData ) );
 		}
 	}
 	else
@@ -294,7 +294,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 
 			ThreadData->AllocationType = JpfbtpPreAllocated;
 
-			TRACE( ( "JPFBT: ThreadData %p alloc'd from NPP\n", ThreadData ) );
+			TRACE( ( "JPFBT: ThreadData %p alloc'd from preallocation\n", ThreadData ) );
 		}
 	}
 

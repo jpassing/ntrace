@@ -469,10 +469,14 @@ typedef VOID ( CALLBACK *JPFSV_OUTPUT_ROUTINE ) (
 						  The object must remain valid until the command
 						  processor is destroyed by calling
 						  JpfsvCloseCommandProcessor.
+		InitialProcessId- ID of process to use as initial process.
+							If 0, the current process is used.
+							JPFSV_KERNEL may be used.
 		Processor   	- Processor handle.
 --*/
 HRESULT JpfsvCreateCommandProcessor(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in DWORD InitialProcessId, 
 	__out JPFSV_HANDLE *Processor
 	);
 

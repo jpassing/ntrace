@@ -512,6 +512,7 @@ static BOOL JpfsvsParseAndDisparchCommandLine(
 
 HRESULT JpfsvCreateCommandProcessor(
 	__in JPFSV_OUTPUT_ROUTINE OutputRoutine,
+	__in DWORD InitialProcessId, 
 	__out JPFSV_HANDLE *ProcessorHandle
 	)
 {
@@ -525,6 +526,11 @@ HRESULT JpfsvCreateCommandProcessor(
 	if ( ! OutputRoutine || ! ProcessorHandle )
 	{
 		return E_INVALIDARG;
+	}
+
+	if ( InitialProcessId == 0 )
+	{
+		InitialProcessId = GetCurrentProcessId();
 	}
 
 	//
@@ -555,7 +561,7 @@ HRESULT JpfsvCreateCommandProcessor(
 	// Use context of current process by default.
 	//
 	Hr = JpfsvLoadContext(
-		GetCurrentProcessId(),
+		InitialProcessId,
 		NULL,
 		&CurrentContext );
 	if ( FAILED( Hr ) )

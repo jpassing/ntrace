@@ -28,25 +28,28 @@ VOID JpkfbtWmkLogImageInfoEvent(
 	__in PANSI_STRING Path 
 	)
 {
-	WmkAllocateEventEx(
-		WMK_E_FBT_IMAGE_INFO, 
+	PWMK_E_FBT_IMAGE_INFO Event;
+
+	Event = _WmkAllocateEvent(
+		sizeof( WMK_E_FBT_IMAGE_INFO ), 
+		WMK_E_FBT_IMAGE_INFO_ID,
 		Path->Length > 0 
 			? Path->Length - 1
 			: 0 );
 
-	WmkEvent->ImageLoadAddress	= ImageLoadAddress;
-	WmkEvent->ImageSize			= ImageSize;
-	WmkEvent->PathLength		= Path->Length;
+	Event->ImageLoadAddress	= ImageLoadAddress;
+	Event->ImageSize			= ImageSize;
+	Event->PathLength		= Path->Length;
 
 	if ( Path->Length > 0 )
 	{
 		RtlCopyMemory( 
-			 WmkGetDataSection( WmkEvent ), 
+			 WmkGetDataSection( Event ), 
 			 Path->Buffer, 
 			 Path->Length );
 	}
 
-    WmkCommitEvent();
+	_WmkCommitEvent( Event );
 }
 
 VOID JpkfbtWmkLogProcedureEntryEvent(
@@ -55,11 +58,18 @@ VOID JpkfbtWmkLogProcedureEntryEvent(
 	__in PVOID Procedure
 	)
 {
-	WmkAllocateEvent( WMK_E_FBT_PROCEDURE_ENTRY );
-	WmkEvent->ProcessId	= ProcessId;
-	WmkEvent->ThreadId	= ThreadId;
-	WmkEvent->Procedure	= ( ULONG_PTR ) Procedure;
-	WmkCommitEvent();
+	PWMK_E_FBT_PROCEDURE_ENTRY Event;
+
+	Event = _WmkAllocateEvent( 
+		sizeof( WMK_E_FBT_PROCEDURE_ENTRY ), 
+		WMK_E_FBT_PROCEDURE_ENTRY_ID,
+		0 );
+
+	Event->ProcessId	= ProcessId;
+	Event->ThreadId		= ThreadId;
+	Event->Procedure	= ( ULONG_PTR ) Procedure;
+
+	_WmkCommitEvent( Event ); ( ULONG_PTR ) Procedure;
 }
 
 VOID JpkfbtWmkLogProcedureExitEvent(
@@ -68,9 +78,16 @@ VOID JpkfbtWmkLogProcedureExitEvent(
 	__in PVOID Procedure
 	)
 {
-	WmkAllocateEvent( WMK_E_FBT_PROCEDURE_EXIT );
-	WmkEvent->ProcessId	= ProcessId;
-	WmkEvent->ThreadId	= ThreadId;
-	WmkEvent->Procedure	= ( ULONG_PTR ) Procedure;
-	WmkCommitEvent();
+	PWMK_E_FBT_PROCEDURE_EXIT Event;
+
+	Event = _WmkAllocateEvent( 
+		sizeof( WMK_E_FBT_PROCEDURE_EXIT ), 
+		WMK_E_FBT_PROCEDURE_EXIT_ID,
+		0 );
+
+	Event->ProcessId	= ProcessId;
+	Event->ThreadId		= ThreadId;
+	Event->Procedure	= ( ULONG_PTR ) Procedure;
+
+	_WmkCommitEvent( Event );
 }
