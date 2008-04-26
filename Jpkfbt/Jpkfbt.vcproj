@@ -26,7 +26,7 @@
 				BuildCommandLine="ddkbuild -WLHNET checked $(ProjectDir)"
 				ReBuildCommandLine="ddkbuild -WLHNET checked $(ProjectDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\chk\i386\testufbt.dll"
+				Output="..\bin\chk\i386\testkfbt.dll"
 				PreprocessorDefinitions="WIN32;_DEBUG;DBG;JPFBT_WMK"
 				IncludeSearchPath=""
 				ForcedIncludes=""

@@ -10,6 +10,15 @@
 #include "nativeapi.h"
 #include <jpkfagio.h>
 
+#pragma warning( push )
+#pragma warning( disable: 6011; disable: 6387 )
+#include <strsafe.h>
+#pragma warning( pop )
+
+#ifndef MAX_USHORT
+#define MAX_USHORT 0xffff
+#endif
+
 #define JPKFBTP_AGENT_DRIVER_NAME_WRK		L"jpkfaw"
 #define JPKFBTP_AGENT_DRIVER_NAME_RETAIL	L"jpkfar"
 #define JPKFBTP_AGENT_DISPLAY_NAME_WRK		L"Function Boundary Tracing Agent (WRK)"
@@ -207,43 +216,102 @@ NTSTATUS JpkfbtInitializeTracing(
 	__in JPKFBT_SESSION SessionHandle,
 	__in JPKFBT_TRACING_TYPE Type,
 	__in ULONG BufferCount,
-	__in ULONG BufferSize
+	__in ULONG BufferSize,
+	__in_opt PCWSTR LogFilePath
 	)
 {
-	JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST Request;
+	UNICODE_STRING NtLogFilePath;
+	PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST Request;
+	ULONG RequestSize;
 	PJPKBTP_SESSION Session;
+	NTSTATUS Status;
 	IO_STATUS_BLOCK StatusBlock;
 
 	if ( SessionHandle == NULL ||
-		 Type > JpkfbtTracingTypeMax )
+		 Type > JpkfbtTracingTypeMax ||
+		 ( LogFilePath == NULL ) != ( Type == JpkfbtTracingTypeWmk ) )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
 
 	Session = ( PJPKBTP_SESSION ) SessionHandle;
 
+	if ( LogFilePath == NULL )
+	{
+		RequestSize = sizeof( JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST );
+		NtLogFilePath.Length		= 0;
+		NtLogFilePath.MaximumLength	= 0;
+		NtLogFilePath.Buffer		= NULL;
+	}
+	else
+	{
+		//
+		// Convert LogFilePath from DOS to NT format.
+		//
+		Status = RtlDosPathNameToNtPathName_U(
+			LogFilePath,
+			&NtLogFilePath,
+			NULL,
+			NULL );
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			return Status;
+		}
+
+		if ( NtLogFilePath.Length > MAX_USHORT / 2 )
+		{
+			return STATUS_INVALID_PARAMETER;
+		}
+
+		ASSERT( ( NtLogFilePath.Length % sizeof( WCHAR ) ) == 0 );
+
+		RequestSize = FIELD_OFFSET(
+			JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST,
+			Log.FilePath[ NtLogFilePath.Length / 2 ] );
+	}
+
 	//
 	// Issue IOCTL.
 	//
-	Request.Type		= Type;
-	Request.BufferCount	= BufferCount;
-	Request.BufferSize	= BufferSize;
+	Request = ( PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST ) 
+		malloc( RequestSize );
+	if ( Request == NULL )
+	{
+		return STATUS_NO_MEMORY;
+	}
 
+	Request->Type				= Type;
+	Request->BufferCount		= BufferCount;
+	Request->BufferSize			= BufferSize;
+	Request->Log.FilePathLength	= ( USHORT ) ( NtLogFilePath.Length / 2 );
+
+	if ( NtLogFilePath.Length > 0 )
+	{
+		CopyMemory(
+			Request->Log.FilePath,
+			NtLogFilePath.Buffer,
+			NtLogFilePath.Length );
+	}
+	
 	//
 	// Use NtDeviceIoControlFile rather than DeviceIoControl in 
 	// order to circumvent NTSTATUS -> DOS return value mapping.
 	//
-	return NtDeviceIoControlFile(
+	Status = NtDeviceIoControlFile(
 		Session->DeviceHandle,
 		NULL,
 		NULL,
 		NULL,
 		&StatusBlock,
 		JPKFAG_IOCTL_INITIALIZE_TRACING,
-		&Request,
-		sizeof( JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST ),
+		Request,
+		RequestSize,
 		NULL,
 		0 );
+
+	free( Request );
+
+	return Status;
 }
 
 NTSTATUS JpkfbtShutdownTracing(
@@ -372,7 +440,6 @@ NTSTATUS JpkfbtInstrumentProcedure(
 		}
 		else
 		{
-			ASSERT( StatusBlock.Information == 0 );
 			return Status;
 		}
 	}

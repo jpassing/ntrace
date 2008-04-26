@@ -101,6 +101,13 @@ Language		= English
 Attempt to instrument a memory location outside all loaded modules.
 .
 
+MessageId		= 0x930a
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_KFBT_TRCTYPE_NOT_SUPPORTED
+Language		= English
+The specified tracing type is not supported by this library.
+.
 
 ;//--------------------------------------------------------------------
 ;// Warnings

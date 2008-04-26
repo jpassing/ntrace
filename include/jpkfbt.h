@@ -74,6 +74,7 @@ NTSTATUS JpkfbtDetach(
 					  MEMORY_ALLOCATION_ALIGNMENT.
 
 					  Does not apply to JpkfbtTracingTypeWmk.
+		LogFilePath - Target log file.
 
 	Return Value:
 		STATUS_SUCCESS on success
@@ -83,7 +84,8 @@ NTSTATUS JpkfbtInitializeTracing(
 	__in JPKFBT_SESSION SessionHandle,
 	__in JPKFBT_TRACING_TYPE Type,
 	__in ULONG BufferCount,
-	__in ULONG BufferSize
+	__in ULONG BufferSize,
+	__in_opt PCWSTR LogFilePath
 	);
 
 /*++

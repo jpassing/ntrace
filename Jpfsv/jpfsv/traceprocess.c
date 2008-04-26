@@ -550,7 +550,6 @@ static HRESULT JpfsvsDereferenceProcessTraceSession(
  */
 HRESULT JpfsvpCreateProcessTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
-	__in JPFSV_TRACING_TYPE TracingType,
 	__out PJPFSV_TRACE_SESSION *TraceSessionHandle
 	)
 {
@@ -562,11 +561,6 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	if ( ! ContextHandle || ! TraceSessionHandle )
 	{
 		return E_INVALIDARG;
-	}
-
-	if ( TracingType != JpfsvTracingTypeDefault )
-	{
-		return JPFSV_E_UNSUPPORTED_TRACING_TYPE;
 	}
 
 	Process = JpfsvGetProcessHandleContext( ContextHandle );

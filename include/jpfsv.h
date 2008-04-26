@@ -47,11 +47,13 @@ typedef enum _JPFSV_TRACING_TYPE
 
 	Parameters:
 		ContextHandle	Context to attach to.
-		TracingType		Type of tracing to use.
+		TracingType		Type of tracing to use - only applies to kernel.
+		LogFilePath		Log file - only applies to kernel.
 --*/
 HRESULT JpfsvAttachContext(
 	__in JPFSV_HANDLE ContextHandle,
-	__in JPFSV_TRACING_TYPE TracingType
+	__in JPFSV_TRACING_TYPE TracingType,
+	__in_opt PCWSTR LogFilePath
 	);
 
 /*++

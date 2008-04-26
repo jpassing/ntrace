@@ -20,6 +20,7 @@ BOOL JpfsvpAttachCommand(
 	DWORD BufferCount;
 	DWORD BufferSize;
 	HRESULT Hr;
+	PCWSTR Logfile = NULL;
 	JPFSV_TRACING_TYPE TracingType;
 
 	UNREFERENCED_PARAMETER( CommandName );
@@ -28,7 +29,7 @@ BOOL JpfsvpAttachCommand(
 	{
 		JpfsvpOutput( 
 			ProcessorState, 
-			L"Usage: .attach [wmk | [BufferCount [BufferSize]]]\n" );
+			L"Usage: .attach [wmk | [BufferCount [BufferSize [Logfile]]]]\n" );
 		return TRUE;
 	}
 
@@ -65,6 +66,11 @@ BOOL JpfsvpAttachCommand(
 				return FALSE;
 			}
 		}
+
+		if ( Argc >= 3 )
+		{
+			Logfile = Argv[ 2 ];
+		}
 	}
 
 	JpfsvpOutput( 
@@ -73,7 +79,7 @@ BOOL JpfsvpAttachCommand(
 		BufferCount,
 		BufferSize );
 
-	Hr = JpfsvAttachContext( ProcessorState->Context, TracingType );
+	Hr = JpfsvAttachContext( ProcessorState->Context, TracingType, Logfile );
 	if ( SUCCEEDED( Hr ) )
 	{
 		Hr = JpfsvStartTraceContext( 

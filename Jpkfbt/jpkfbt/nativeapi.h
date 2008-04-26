@@ -37,3 +37,13 @@ NTSTATUS NtDeviceIoControlFile(
     PVOID OutputBuffer,
     ULONG OutputBufferLength
 	);
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlDosPathNameToNtPathName_U(
+    __in PCWSTR DosFileName,
+    __out PUNICODE_STRING NtFileName,
+    __out_opt PWSTR *FilePart,
+    __reserved PVOID Reserved
+    );

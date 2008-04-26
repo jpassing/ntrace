@@ -36,6 +36,19 @@ typedef struct _JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST
 	//
 	ULONG BufferCount;
 	ULONG BufferSize;
+
+	//
+	// Log file information - must be an empty string (i.e. 
+	// FilePathLength = 0 for WMK tracing.
+	//
+	struct
+	{
+		//
+		// Length, in chars.
+		//
+		USHORT FilePathLength;
+		WCHAR FilePath[ ANYSIZE_ARRAY ];
+	} Log;
 } JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST, 
 *PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST;
 
@@ -155,3 +168,4 @@ typedef struct _JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE
 	JPKFAG_IOCTL_BASE + 4,									\
 	METHOD_BUFFERED,										\
 	FILE_READ_DATA )
+

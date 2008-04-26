@@ -115,12 +115,12 @@ static VOID JpfbtsPatchRoutine(
 		//
 		for ( PatchIndex = 0; PatchIndex < Context->PatchCount; PatchIndex++ )
 		{
+			ULONG Index;
+			PUCHAR Source;
+			PUCHAR Target;
+
 			if ( Context->Action == JpfbtPatch )
 			{
-				ULONG Index;
-				PUCHAR Source;
-				PUCHAR Target;
-
 				//
 				// Target -> OldCode
 				//
@@ -144,7 +144,10 @@ static VOID JpfbtsPatchRoutine(
 					  Index < Context->Patches[ PatchIndex ]->CodeSize;
 					  Index++ )
 				{
-					Target[ Index ] = Source[ Index ];
+					ULONG RevIndex = 
+						Context->Patches[ PatchIndex ]->CodeSize - Index - 1;
+					TRACE( ( "Patch byte %d\n", Index ) );
+					Target[ RevIndex ] = Source[ RevIndex ];
 				}
 			}
 			else if ( Context->Action == JpfbtUnpatch )
@@ -152,10 +155,23 @@ static VOID JpfbtsPatchRoutine(
 				//
 				// OldCode -> Target
 				//
-				memcpy( 
-					Context->Patches[ PatchIndex ]->MappedAddress, 
-					Context->Patches[ PatchIndex ]->OldCode, 
-					Context->Patches[ PatchIndex ]->CodeSize );
+				//memcpy( 
+				//	Context->Patches[ PatchIndex ]->MappedAddress, 
+				//	Context->Patches[ PatchIndex ]->OldCode, 
+				//	Context->Patches[ PatchIndex ]->CodeSize );
+				Target = ( PUCHAR ) 
+					Context->Patches[ PatchIndex ]->MappedAddress;
+				Source = ( PUCHAR ) 
+					Context->Patches[ PatchIndex ]->OldCode;
+				for ( Index = 0; 
+					  Index < Context->Patches[ PatchIndex ]->CodeSize;
+					  Index++ )
+				{
+					ULONG RevIndex = 
+						Context->Patches[ PatchIndex ]->CodeSize - Index - 1;
+					TRACE( ( "Unpatch byte %d\n", Index ) );
+					Target[ RevIndex ] = Source[ RevIndex ];
+				}
 			}
 			else
 			{

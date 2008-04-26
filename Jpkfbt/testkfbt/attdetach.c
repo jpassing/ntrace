@@ -77,7 +77,8 @@ void TestInitShutdownTracing()
 	BOOL KernelSupported;
 	JPKFBT_SESSION Session;
 	JPKFBT_KERNEL_TYPE Type;
-	ULONG TypesTested = 0;
+	ULONG KernelsTested = 0;
+	ULONG TrcTypesTested;
 
 	for ( Type = JpkfbtKernelRetail;
 		  Type <= JpkfbtKernelMax;
@@ -103,7 +104,8 @@ void TestInitShutdownTracing()
 				Session,
 				JpkfbtTracingTypeMax + 1,
 				0,
-				0 ) );
+				0,
+				NULL ) );
 
 		//
 		// Shutdown without being started.
@@ -114,24 +116,62 @@ void TestInitShutdownTracing()
 		//
 		// Init & Shutdown using valid type.
 		//
+		TrcTypesTested = 0;
 		for( TracingType = JpkfbtTracingTypeDefault;
 			 TracingType <= JpkfbtTracingTypeMax;
 			 TracingType++ )
 		{
-			TEST_SUCCESS( JpkfbtInitializeTracing(
+			NTSTATUS Status;
+
+			ULONG BufCount;
+			ULONG BufSize;
+			PWSTR LogFile;
+			
+			if ( TracingType == JpkfbtTracingTypeDefault )
+			{
+				BufCount = 64;
+				BufSize = 64;
+				LogFile = L"foo";
+			}
+			else
+			{
+				BufCount = 0;
+				BufSize = 0;
+				LogFile = NULL;
+			}
+	
+			TEST_STATUS( STATUS_INVALID_PARAMETER, JpkfbtInitializeTracing(
 				Session,
 				TracingType,
-				0,
-				0 ) );
-			TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
+				BufCount,
+				BufSize,
+				TracingType == JpkfbtTracingTypeDefault
+					? NULL
+					: L"foo" ) );
+			
+			Status = JpkfbtInitializeTracing(
+				Session,
+				TracingType,
+				BufCount,
+				BufSize,
+				LogFile );
+			TEST( NT_SUCCESS( Status ) ||
+				  STATUS_KFBT_TRCTYPE_NOT_SUPPORTED == Status );
+
+			if ( NT_SUCCESS( Status ) )
+			{
+				TrcTypesTested++;
+				TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
+			}
 		}
+		TEST( TrcTypesTested > 0 );
 
 		TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
 
-		TypesTested++;
+		KernelsTested++;
 	}
 
-	TEST( TypesTested > 0 );
+	TEST( KernelsTested  > 0 );
 }
 
 //
@@ -145,12 +185,15 @@ void TestInstrumentFailures()
 	JPFBT_PROCEDURE PatchProcedureUm;
 	JPKFBT_SESSION Session;
 	JPKFBT_KERNEL_TYPE Type;
-	ULONG TypesTested = 0;
+	ULONG KernelsTested = 0;
+	ULONG TrcTypesTested = 0;
 
 	for ( Type = JpkfbtKernelRetail;
 		  Type <= JpkfbtKernelMax;
 		  Type++ )
 	{
+		JPKFBT_TRACING_TYPE TracingType;
+
 		TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
 			Type, &KernelSupported ) );
 		if ( ! KernelSupported )
@@ -178,61 +221,97 @@ void TestInstrumentFailures()
 		PatchProcedureUm.u.ProcedureVa = 0x7F000F00;
 		PatchProcedureKm.u.ProcedureVa = 0x8F000F00;
 		
-		TEST_SUCCESS( JpkfbtInitializeTracing(
-			Session,
-			Type,
-			0,
-			0 ) );
-		
-		//
-		// Mem.
-		//
-		TEST_STATUS( STATUS_NO_MEMORY, 
-			JpkfbtInstrumentProcedure(
-				Session,
-				JpfbtAddInstrumentation,
-				0xF0000000,
-				&PatchProcedureUm,
-				&FailedProcedure ) );
-		TEST( FailedProcedure.u.Procedure == NULL );
+		TrcTypesTested = 0;
+		for( TracingType = JpkfbtTracingTypeDefault;
+			 TracingType <= JpkfbtTracingTypeMax;
+			 TracingType++ )
+		{
+			NTSTATUS Status;
 
-		//
-		// Procs.
-		//
-		TEST_STATUS( STATUS_INVALID_PARAMETER,
-			JpkfbtInstrumentProcedure(
-				Session,
-				JpfbtAddInstrumentation,
-				0,
-				NULL,
-				&FailedProcedure ) );
-		TEST( FailedProcedure.u.Procedure == NULL );
+			ULONG BufCount;
+			ULONG BufSize;
+			PWSTR LogFile;
+			
+			if ( TracingType == JpkfbtTracingTypeDefault )
+			{
+				BufCount = 64;
+				BufSize = 64;
+				LogFile = L"__test.log";
+			}
+			else
+			{
+				BufCount = 0;
+				BufSize = 0;
+				LogFile = NULL;
+			}
 
-		TEST_STATUS( STATUS_KFBT_PROC_OUTSIDE_SYSTEM_RANGE, 
-			JpkfbtInstrumentProcedure(
+			Status = JpkfbtInitializeTracing(
 				Session,
-				JpfbtAddInstrumentation,
-				1,
-				&PatchProcedureUm,
-				&FailedProcedure ) );
-		TEST( FailedProcedure.u.Procedure == PatchProcedureUm.u.Procedure );
+				TracingType,
+				BufCount,
+				BufSize, 
+				LogFile );
+			
+			if ( STATUS_KFBT_TRCTYPE_NOT_SUPPORTED == Status )
+			{
+				continue;
+			}
 
-		TEST_STATUS( STATUS_KFBT_PROC_OUTSIDE_MODULE, 
-			JpkfbtInstrumentProcedure(
-				Session,
-				JpfbtAddInstrumentation,
-				1,
-				&PatchProcedureKm,
-				&FailedProcedure ) );
-		TEST( FailedProcedure.u.Procedure == PatchProcedureKm.u.Procedure );
+			TEST_SUCCESS( Status );
 
-		TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
+			//
+			// Mem.
+			//
+			TEST_STATUS( STATUS_NO_MEMORY, 
+				JpkfbtInstrumentProcedure(
+					Session,
+					JpfbtAddInstrumentation,
+					0xF0000000,
+					&PatchProcedureUm,
+					&FailedProcedure ) );
+			TEST( FailedProcedure.u.Procedure == NULL );
+
+			//
+			// Procs.
+			//
+			TEST_STATUS( STATUS_INVALID_PARAMETER,
+				JpkfbtInstrumentProcedure(
+					Session,
+					JpfbtAddInstrumentation,
+					0,
+					NULL,
+					&FailedProcedure ) );
+			TEST( FailedProcedure.u.Procedure == NULL );
+
+			TEST_STATUS( STATUS_KFBT_PROC_OUTSIDE_SYSTEM_RANGE, 
+				JpkfbtInstrumentProcedure(
+					Session,
+					JpfbtAddInstrumentation,
+					1,
+					&PatchProcedureUm,
+					&FailedProcedure ) );
+			TEST( FailedProcedure.u.Procedure == PatchProcedureUm.u.Procedure );
+
+			TEST_STATUS( STATUS_KFBT_PROC_OUTSIDE_MODULE, 
+				JpkfbtInstrumentProcedure(
+					Session,
+					JpfbtAddInstrumentation,
+					1,
+					&PatchProcedureKm,
+					&FailedProcedure ) );
+			TEST( FailedProcedure.u.Procedure == PatchProcedureKm.u.Procedure );
+
+			TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
+			TrcTypesTested++;
+		}
+
 		TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
+		TEST( TrcTypesTested > 0 );
 
-		TypesTested++;
+		KernelsTested++;
 	}
 
-	TEST( TypesTested > 0 );
+	TEST( KernelsTested > 0 );
 }
 
 CFIX_BEGIN_FIXTURE( AttachDetach )

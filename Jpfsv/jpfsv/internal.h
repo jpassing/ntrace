@@ -210,7 +210,6 @@ typedef struct _JPFSV_TRACE_SESSION
 --*/
 HRESULT JpfsvpCreateProcessTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
-	__in JPFSV_TRACING_TYPE TracingType,
 	__out PJPFSV_TRACE_SESSION *Session
 	);
 
@@ -218,10 +217,14 @@ HRESULT JpfsvpCreateProcessTraceSession(
 	Routine Description:
 		Create a session for kernel mode tracing. To be called by
 		context.
+
+	Parameters:
+		LogFilePath	- only required for default tracing.
 --*/
 HRESULT JpfsvpCreateKernelTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
 	__in JPFSV_TRACING_TYPE TracingType,
+	__in_opt PCWSTR LogFilePath,
 	__out PJPFSV_TRACE_SESSION *Session
 	);
 

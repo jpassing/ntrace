@@ -10,6 +10,11 @@
 #include <jpkfbt.h>
 #include <stdlib.h>
 
+#pragma warning( push )
+#pragma warning( disable: 6011; disable: 6387 )
+#include <strsafe.h>
+#pragma warning( pop )
+
 typedef struct _JPFSVP_KM_TRACE_SESSION
 {
 	JPFSV_TRACE_SESSION Base;
@@ -20,6 +25,9 @@ typedef struct _JPFSVP_KM_TRACE_SESSION
 	JPKFBT_SESSION KfbtSession;
 
 	BOOL TraceActive;
+
+	PCWSTR LogFilePath;
+	WCHAR __LogFilePathBuffer[ MAX_PATH ];
 } JPFSVP_KM_TRACE_SESSION, *PJPFSVP_KM_TRACE_SESSION;
 
 /*----------------------------------------------------------------------
@@ -49,7 +57,8 @@ static HRESULT JpfsvsStartKernelTraceSession(
 		Session->KfbtSession,
 		Session->TracingType,
 		BufferCount,
-		BufferSize );
+		BufferSize,
+		Session->LogFilePath );
 	if ( NT_SUCCESS( Status ) )
 	{
 		Session->TraceActive = TRUE;
@@ -221,6 +230,7 @@ static HRESULT JpfsvsDereferenceKernelTraceSession(
 HRESULT JpfsvpCreateKernelTraceSession(
 	__in JPFSV_HANDLE ContextHandle,
 	__in JPFSV_TRACING_TYPE TracingType,
+	__in_opt PCWSTR LogFilePath,
 	__out PJPFSV_TRACE_SESSION *TraceSessionHandle
 	)
 {
@@ -232,7 +242,8 @@ HRESULT JpfsvpCreateKernelTraceSession(
 	
 	if ( ! ContextHandle ||
 		 TracingType > JpfsvTracingTypeMax ||
-		 ! TraceSessionHandle )
+		 ! TraceSessionHandle ||
+		 ( LogFilePath == NULL ) != ( TracingType == JpfsvTracingTypeWmk ) )
 	{
 		return E_INVALIDARG;
 	}
@@ -284,6 +295,24 @@ HRESULT JpfsvpCreateKernelTraceSession(
 	TempSession->ReferenceCount				= 1;
 	TempSession->TracingType				= KfbtTracingType;
 	TempSession->TraceActive				= FALSE;
+
+	if ( LogFilePath != NULL )
+	{
+		Hr = StringCchCopy( 
+			TempSession->__LogFilePathBuffer,
+			_countof( TempSession->__LogFilePathBuffer ),
+			LogFilePath );
+		if ( FAILED( Hr ) )
+		{
+			goto Cleanup;
+		}
+
+		TempSession->LogFilePath = TempSession->__LogFilePathBuffer;
+	}
+	else
+	{
+		TempSession->LogFilePath = NULL;
+	}
 
 	Hr = S_OK;
 	*TraceSessionHandle = &TempSession->Base;

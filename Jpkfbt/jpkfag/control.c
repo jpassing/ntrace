@@ -304,7 +304,11 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 	{
 	case JpkfbtTracingTypeDefault:
 		if ( Request->BufferCount == 0 ||
-			 Request->BufferSize == 0 )
+			 Request->BufferSize == 0 ||
+			 Request->Log.FilePathLength == 0 ||
+			 ( ULONG ) FIELD_OFFSET( 
+				JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST,
+				Log.FilePath[ Request->Log.FilePathLength - 1 ] ) > InputBufferLength )
 		{
 			return STATUS_INVALID_PARAMETER;
 		}
@@ -317,7 +321,8 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 #ifdef JPFBT_WMK
 	case JpkfbtTracingTypeWmk:
 		if ( Request->BufferCount != 0 ||
-			 Request->BufferSize != 0 )
+			 Request->BufferSize != 0 ||
+			 Request->Log.FilePathLength != 0 )
 		{
 			return STATUS_INVALID_PARAMETER;
 		}
@@ -327,7 +332,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 #endif
 
 	default:
-		Status = STATUS_INVALID_PARAMETER;
+		Status = STATUS_KFBT_TRCTYPE_NOT_SUPPORTED;
 	}
 
 	if ( ! NT_SUCCESS( Status ) )

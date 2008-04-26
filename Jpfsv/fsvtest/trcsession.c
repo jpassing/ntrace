@@ -193,11 +193,8 @@ static VOID TestAttachDetachNotepad()
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
 
 	TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( NpCtx, TRUE ) );
-	TEST( JPFSV_E_UNSUPPORTED_TRACING_TYPE == 
-		JpfsvAttachContext( NpCtx, JpfsvTracingTypeWmk ) );
-	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
-	TEST( S_FALSE == JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
-	TEST( S_FALSE == JpfsvAttachContext( NpCtx, JpfsvTracingTypeWmk ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault, NULL ) );
+	TEST( S_FALSE == JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault, NULL ) );
 
 	//
 	// Check that ufag has been loaded.
@@ -259,7 +256,7 @@ static VOID TestTraceNotepad()
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
 	TEST( JPFSV_E_NO_TRACESESSION == JpfsvGetTracepointContext( NpCtx, 0xF00, &Tracepnt ) );
 
-	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault, NULL ) );
 
 	//
 	// Instrument some procedures.
@@ -419,7 +416,7 @@ static VOID TestTraceNotepadAndDoHarshCleanup()
 	// Start a trace.
 	//
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
-	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault, NULL ) );
 
 	//
 	// Instrument some procedures.
@@ -487,7 +484,7 @@ static VOID TestDyingPeerWithoutTracing()
 	Sleep( 1000 );
 
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
-	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault, NULL ) );
 
 	Set.Count = 0;
 	Set.ContextHandle = NpCtx;
@@ -559,7 +556,7 @@ static VOID TestDyingPeerWithTracing()
 	Sleep( 1000 );
 
 	TEST_OK( JpfsvLoadContext( pi.dwProcessId, NULL, &NpCtx ) );
-	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault ) );
+	TEST_OK( JpfsvAttachContext( NpCtx, JpfsvTracingTypeDefault, NULL ) );
 
 	Set.Count = 0;
 	Set.ContextHandle = NpCtx;
@@ -639,7 +636,17 @@ static VOID TestAttachDetachKernel()
 
 		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx, TRUE ) );
 		
-		Hr = JpfsvAttachContext( KernelCtx, TracingType );
+		if ( TracingType != JpfsvTracingTypeWmk )
+		{
+			TEST( E_INVALIDARG == JpfsvAttachContext( KernelCtx, TracingType, NULL ) );
+			Hr = JpfsvAttachContext( KernelCtx, TracingType, L"__kern.log" );
+		}
+		else
+		{
+			TEST( E_INVALIDARG == JpfsvAttachContext( KernelCtx, TracingType, L"__kern.log" ) );
+			Hr = JpfsvAttachContext( KernelCtx, TracingType, NULL );
+		}
+
 		if ( Hr == JPFSV_E_UNSUPPORTED_TRACING_TYPE ||
 			 Hr == HRESULT_FROM_NT( 0xC0049300L ) ) // STATUS_KFBT_KERNEL_NOT_SUPPORTED
 		{
@@ -648,7 +655,7 @@ static VOID TestAttachDetachKernel()
 
 		TEST_OK( Hr );
 
-		TEST( S_FALSE == JpfsvAttachContext( KernelCtx, TracingType ) );
+		TEST( S_FALSE == JpfsvAttachContext( KernelCtx, TracingType, NULL ) );
 
 		TEST_OK( DetachContextSafe( KernelCtx ) );
 		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx, TRUE ) );
@@ -702,7 +709,16 @@ static VOID TestTraceKernel()
 		TEST( JPFSV_E_NO_TRACESESSION == 
 			JpfsvGetTracepointContext( KernelCtx, 0xF00, &Tracepnt ) );
 
-		Hr = JpfsvAttachContext( KernelCtx, TracingType );
+		if ( TracingType != JpfsvTracingTypeWmk )
+		{
+			TEST( E_INVALIDARG == JpfsvAttachContext( KernelCtx, TracingType, NULL ) );
+			Hr = JpfsvAttachContext( KernelCtx, TracingType, L"__kern.log" );
+		}
+		else
+		{
+			TEST( E_INVALIDARG == JpfsvAttachContext( KernelCtx, TracingType, L"__kern.log" ) );
+			Hr = JpfsvAttachContext( KernelCtx, TracingType, NULL );
+		}
 		if ( Hr == JPFSV_E_UNSUPPORTED_TRACING_TYPE ||
 			 Hr == HRESULT_FROM_NT( 0xC0049300L ) ) // STATUS_KFBT_KERNEL_NOT_SUPPORTED
 		{

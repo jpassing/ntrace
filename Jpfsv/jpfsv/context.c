@@ -721,7 +721,8 @@ HRESULT JpfsvLoadModuleContext(
 
 HRESULT JpfsvAttachContext(
 	__in JPFSV_HANDLE ContextHandle,
-	__in JPFSV_TRACING_TYPE TracingType
+	__in JPFSV_TRACING_TYPE TracingType,
+	__in_opt PCWSTR LogFilePath
 	)
 {
 	PJPFSV_CONTEXT Context = ( PJPFSV_CONTEXT ) ContextHandle;
@@ -756,6 +757,7 @@ HRESULT JpfsvAttachContext(
 			Hr = JpfsvpCreateKernelTraceSession(
 				ContextHandle,
 				TracingType,
+				LogFilePath,
 				&TraceSession );
 		}
 		else
@@ -765,7 +767,6 @@ HRESULT JpfsvAttachContext(
 			//
 			Hr = JpfsvpCreateProcessTraceSession(
 				ContextHandle,
-				TracingType,
 				&TraceSession );
 		}
 

@@ -61,7 +61,8 @@ static struct _ATTACH_COMMANDS
 	{ TRUE,		L"|%x.attach" },
 	{ TRUE,		L"|%x.attach 1" },
 	{ FALSE,	L"|%x.attach 1 0n1023" },
-	{ TRUE,		L"|%x.attach 64 0n1024" }
+	{ TRUE,		L"|%x.attach 64 0n1024" },
+	{ TRUE,		L"|%x.attach 64 0n1024 __test.log" }
 };
 
 static void TestAttachDetachCommands()
