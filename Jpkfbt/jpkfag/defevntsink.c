@@ -11,6 +11,8 @@
 typedef struct _JPKFAGP_DEF_EVENT_SINK
 {
 	JPKFAGP_EVENT_SINK Base;
+
+	HANDLE LogFile;
 } JPKFAGP_DEF_EVENT_SINK, *PJPKFAGP_DEF_EVENT_SINK;
 
 /*----------------------------------------------------------------------
@@ -85,7 +87,14 @@ static VOID JpkfagsDeleteDefEventSink(
 	__in PJPKFAGP_EVENT_SINK This
 	)
 {
-	ASSERT( This );
+	PJPKFAGP_DEF_EVENT_SINK Sink = ( PJPKFAGP_DEF_EVENT_SINK ) This;
+	ASSERT( Sink );
+
+	//
+	// N.B. Writer thread has already been stopped by now.
+	//
+	ZwClose( Sink->LogFile );
+
 	if ( This != NULL )
 	{
 		ExFreePoolWithTag( This, JPKFAG_POOL_TAG );
@@ -98,10 +107,56 @@ static VOID JpkfagsDeleteDefEventSink(
  *
  */
 NTSTATUS JpkfagpCreateDefaultEventSink(
+	__in PUNICODE_STRING LogFilePath,
 	__out PJPKFAGP_EVENT_SINK *Sink
 	)
 {
+	HANDLE FileHandle;
+	IO_STATUS_BLOCK IoStatus;
+	OBJECT_ATTRIBUTES ObjectAttributes;
+    NTSTATUS Status;
 	PJPKFAGP_DEF_EVENT_SINK TempSink;
+
+	ASSERT( KeGetCurrentIrql() == PASSIVE_LEVEL );
+
+	//
+	// Open log file.
+	//
+	// N.B. Path is user-provided and the user may not habe appropriate
+	// rights to access/create this file.
+	//
+	// N.B. We are in non-arbitrary thread context.
+	//
+	InitializeObjectAttributes(
+		&ObjectAttributes,
+		LogFilePath,
+		OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE | OBJ_FORCE_ACCESS_CHECK,
+		NULL,
+		NULL );
+
+    Status = ZwCreateFile(
+		&FileHandle,
+		GENERIC_WRITE,
+		&ObjectAttributes,
+		&IoStatus,
+		NULL,
+		FILE_ATTRIBUTE_NORMAL,
+		FILE_SHARE_READ,
+		FILE_CREATE,
+		FILE_SYNCHRONOUS_IO_NONALERT,
+		NULL,
+		0 );
+
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		KdPrint( ( "JPKFAG: Creating log file '%wZ' failed: %x\n", 
+			LogFilePath, Status ) );
+		return Status;
+	}
+	else
+	{
+		KdPrint( ( "JPKFAG: Created log file '%wZ'\n", LogFilePath ) );
+	}
 
 	TempSink = ( PJPKFAGP_DEF_EVENT_SINK ) ExAllocatePoolWithTag(
 		NonPagedPool,
@@ -117,6 +172,7 @@ NTSTATUS JpkfagpCreateDefaultEventSink(
 	TempSink->Base.OnProcedureExit		= JpkfagsOnProcedureExitDefEventSink;
 	TempSink->Base.OnProcessBuffer		= JpkfagsOnProcessBufferDefEventSink;
 	TempSink->Base.Delete				= JpkfagsDeleteDefEventSink;
+	TempSink->LogFile					= FileHandle;
 
 	*Sink = &TempSink->Base;
 	return STATUS_SUCCESS;

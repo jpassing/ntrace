@@ -285,6 +285,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 {
 	PJPKFAGP_EVENT_SINK EventSink = NULL;
 	ULONG InitFlags = 0;
+	UNICODE_STRING LogFilePath;
 	PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST Request;
 	NTSTATUS Status;
 
@@ -315,7 +316,11 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 
 		InitFlags |= JPFBT_FLAG_AUTOCOLLECT;
 
-		Status = JpkfagpCreateDefaultEventSink( &EventSink );
+		LogFilePath.MaximumLength	= Request->Log.FilePathLength * sizeof( WCHAR );
+		LogFilePath.Length			= Request->Log.FilePathLength * sizeof( WCHAR );
+		LogFilePath.Buffer			= Request->Log.FilePath;
+
+		Status = JpkfagpCreateDefaultEventSink( &LogFilePath, &EventSink );
 		break;
 
 #ifdef JPFBT_WMK
@@ -450,7 +455,7 @@ NTSTATUS JpkfagpInstrumentProcedureIoctl(
 	}
 
 	//
-	// Request fully validated - now instrument.
+	// Request now fully validated. - now instrument.
 	//
 	Status = JpfbtInstrumentProcedure(
 		Request->Action,

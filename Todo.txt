@@ -29,9 +29,6 @@ jpfsv
  * symsetopt( undnames )
  * symbol load status callback -> show on console
  
- * tp:check tracability for kernel mode via IOCTL
- 
- 
- * mask out nt-bit for message resolution?
+ * mask out nt-bit for message resolution? --> do in cdiag
  
  * allow second instance of ctrc

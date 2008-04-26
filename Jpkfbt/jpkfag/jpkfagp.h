@@ -123,6 +123,7 @@ typedef struct _JPKFAGP_EVENT_SINK
 		Create a default event sink.
 --*/
 NTSTATUS JpkfagpCreateDefaultEventSink(
+	__in PUNICODE_STRING LogFilePath,
 	__out PJPKFAGP_EVENT_SINK *Sink
 	);
 

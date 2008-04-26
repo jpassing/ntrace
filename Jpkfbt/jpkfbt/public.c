@@ -308,6 +308,7 @@ NTSTATUS JpkfbtInitializeTracing(
 		RequestSize,
 		NULL,
 		0 );
+	
 
 	free( Request );
 

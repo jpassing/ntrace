@@ -252,4 +252,12 @@ SymbolicName	= STATUS_FBT_PATCHES_ACTIVE
 Language		= English
 At least one patch is currently in use and cannot be removed.
 .
+
+MessageId		= 0x920e
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_INVALID_BUFFER_SIZE
+Language		= English
+Invalid buffer size - must be a multple of 8.
+.
 

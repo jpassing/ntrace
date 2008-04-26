@@ -45,13 +45,17 @@ NTSTATUS JpfbtInitializeEx(
 
 	ASSERT_IRQL_LTE( PASSIVE_LEVEL );
 
-	if ( BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 ||
-		 EntryEventRoutine == NULL ||
+	if ( EntryEventRoutine == NULL ||
 		 ExitEventRoutine == NULL ||
 		 ProcessBufferRoutine == NULL ||
 		 ( Flags != 0 && Flags != JPFBT_FLAG_AUTOCOLLECT ) )
 	{
 		return STATUS_INVALID_PARAMETER;
+	}
+
+	if ( BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 )
+	{
+		return STATUS_FBT_INVALID_BUFFER_SIZE;
 	}
 
 	if ( JpfbtpGlobalState != NULL )
