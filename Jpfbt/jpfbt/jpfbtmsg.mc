@@ -2,7 +2,7 @@
 ;// Definitions
 ;//--------------------------------------------------------------------
 
-MessageIdTypedef=HRESULT
+MessageIdTypedef=NTSTATUS
 
 SeverityNames=(
   Success=0x0

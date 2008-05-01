@@ -115,9 +115,9 @@ static VOID JpfbtsPatchRoutine(
 		//
 		for ( PatchIndex = 0; PatchIndex < Context->PatchCount; PatchIndex++ )
 		{
-			ULONG Index;
-			PUCHAR Source;
-			PUCHAR Target;
+			//ULONG Index;
+			//PUCHAR Source;
+			//PUCHAR Target;
 
 			if ( Context->Action == JpfbtPatch )
 			{
@@ -132,46 +132,46 @@ static VOID JpfbtsPatchRoutine(
 				//
 				// NewCode -> Target
 				//
-				///memcpy( 
-				//	Context->Patches[ PatchIndex ]->MappedAddress, 
-				//	Context->Patches[ PatchIndex ]->NewCode, 
-				//	Context->Patches[ PatchIndex ]->CodeSize );
-				Target = ( PUCHAR ) 
-					Context->Patches[ PatchIndex ]->MappedAddress;
-				Source = ( PUCHAR ) 
-					Context->Patches[ PatchIndex ]->NewCode;
-				for ( Index = 0; 
-					  Index < Context->Patches[ PatchIndex ]->CodeSize;
-					  Index++ )
-				{
-					ULONG RevIndex = 
-						Context->Patches[ PatchIndex ]->CodeSize - Index - 1;
-					TRACE( ( "Patch byte %d\n", Index ) );
-					Target[ RevIndex ] = Source[ RevIndex ];
-				}
+				memcpy( 
+					Context->Patches[ PatchIndex ]->MappedAddress, 
+					Context->Patches[ PatchIndex ]->NewCode, 
+					Context->Patches[ PatchIndex ]->CodeSize );
+				//Target = ( PUCHAR ) 
+				//	Context->Patches[ PatchIndex ]->MappedAddress;
+				//Source = ( PUCHAR ) 
+				//	Context->Patches[ PatchIndex ]->NewCode;
+				//for ( Index = 0; 
+				//	  Index < Context->Patches[ PatchIndex ]->CodeSize;
+				//	  Index++ )
+				//{
+				//	ULONG RevIndex = 
+				//		Context->Patches[ PatchIndex ]->CodeSize - Index - 1;
+				//	TRACE( ( "Patch byte %d\n", Index ) );
+				//	Target[ RevIndex ] = Source[ RevIndex ];
+				//}
 			}
 			else if ( Context->Action == JpfbtUnpatch )
 			{
 				//
 				// OldCode -> Target
 				//
-				//memcpy( 
-				//	Context->Patches[ PatchIndex ]->MappedAddress, 
-				//	Context->Patches[ PatchIndex ]->OldCode, 
-				//	Context->Patches[ PatchIndex ]->CodeSize );
-				Target = ( PUCHAR ) 
-					Context->Patches[ PatchIndex ]->MappedAddress;
-				Source = ( PUCHAR ) 
-					Context->Patches[ PatchIndex ]->OldCode;
-				for ( Index = 0; 
-					  Index < Context->Patches[ PatchIndex ]->CodeSize;
-					  Index++ )
-				{
-					ULONG RevIndex = 
-						Context->Patches[ PatchIndex ]->CodeSize - Index - 1;
-					TRACE( ( "Unpatch byte %d\n", Index ) );
-					Target[ RevIndex ] = Source[ RevIndex ];
-				}
+				memcpy( 
+					Context->Patches[ PatchIndex ]->MappedAddress, 
+					Context->Patches[ PatchIndex ]->OldCode, 
+					Context->Patches[ PatchIndex ]->CodeSize );
+				//Target = ( PUCHAR ) 
+				//	Context->Patches[ PatchIndex ]->MappedAddress;
+				//Source = ( PUCHAR ) 
+				//	Context->Patches[ PatchIndex ]->OldCode;
+				//for ( Index = 0; 
+				//	  Index < Context->Patches[ PatchIndex ]->CodeSize;
+				//	  Index++ )
+				//{
+				//	ULONG RevIndex = 
+				//		Context->Patches[ PatchIndex ]->CodeSize - Index - 1;
+				//	TRACE( ( "Unpatch byte %d\n", Index ) );
+				//	Target[ RevIndex ] = Source[ RevIndex ];
+				//}
 			}
 			else
 			{

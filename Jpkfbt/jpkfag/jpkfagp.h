@@ -13,6 +13,9 @@
 
 #define JPKFAG_POOL_TAG 'gafJ'
 
+#define JPKFAGP_THREAD_DATA_PREALLOCATIONS	128
+#define JPKFAGP_MAX_BUFFER_SIZE				( 1024 * 1024 ) 
+
 /*----------------------------------------------------------------------
  *
  * Utility routines.
@@ -36,6 +39,14 @@ NTSTATUS JpkfagpCompleteRequest(
  *
  */
 
+typedef struct _JPKFAGP_STATISTICS
+{
+	volatile LONG EntryEventsDropped;
+	volatile LONG ExitEventsDropped;
+	volatile LONG ImageInfoEventsDropped;
+	volatile LONG FailedChunkFlushes;
+} JPKFAGP_STATISTICS, *PJPKFAGP_STATISTICS;
+
 typedef struct _JPKFAGP_EVENT_SINK
 {
 	/*++
@@ -43,7 +54,7 @@ typedef struct _JPKFAGP_EVENT_SINK
 			Event: An additional image has been involved. This event
 			may be raised multiple times for the same image.
 
-			Callable at IRQL < DISPATCH_LEVEL.
+			Callable at PASSIVE_LEVEL.
 
 		Parameters:
 			ImageLoadAddress	- Load address.
@@ -124,6 +135,7 @@ typedef struct _JPKFAGP_EVENT_SINK
 --*/
 NTSTATUS JpkfagpCreateDefaultEventSink(
 	__in PUNICODE_STRING LogFilePath,
+	__in PJPKFAGP_STATISTICS Statistics,
 	__out PJPKFAGP_EVENT_SINK *Sink
 	);
 
@@ -137,20 +149,21 @@ NTSTATUS JpkfagpCreateWmkEventSink(
 	);
 #endif
 
-
 /*----------------------------------------------------------------------
  *
  * Device Extension.
  *
  */
+
 typedef struct _JPKFAGP_DEVICE_EXTENSION
 {
 	//
 	// Current event sink. Non-null iff tracing initialized.
 	//
 	PJPKFAGP_EVENT_SINK EventSink;
-} JPKFAGP_DEVICE_EXTENSION, *PJPKFAGP_DEVICE_EXTENSION;
 
+	JPKFAGP_STATISTICS Statistics;
+} JPKFAGP_DEVICE_EXTENSION, *PJPKFAGP_DEVICE_EXTENSION;
 
 /*----------------------------------------------------------------------
  *

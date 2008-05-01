@@ -74,6 +74,8 @@ static void TestAttachDetachCommands()
 
 	TEST_OK( JpfsvCreateCommandProcessor( Output, 0, &Processor ) );
 
+	DeleteFile( L"__test.log" );
+
 	for ( Index = 0; Index < _countof( AttachCommands ); Index++ )
 	{
 		HRESULT Hr;

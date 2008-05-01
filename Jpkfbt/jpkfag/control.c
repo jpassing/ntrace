@@ -11,9 +11,6 @@
 #include <aux_klib.h>
 #include "jpkfagp.h"
 
-#define JPKFAGP_THREAD_DATA_PREALLOCATIONS 128
-
-
 /*++
 	Routine Description:
 		See WDK. Declared in ntifs.h, therefore, re-declared here.
@@ -110,7 +107,7 @@ static NTSTATUS JpkfagsCheckProcedurePointers(
 	ULONG ModulesBufferSize = 0;
 	NTSTATUS Status;
 
-	ASSERT( KeGetCurrentIrql() < DISPATCH_LEVEL );
+	ASSERT( KeGetCurrentIrql() == PASSIVE_LEVEL );
 
 	//
 	// Check that all procedure addresses fall withing system address
@@ -306,6 +303,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 	case JpkfbtTracingTypeDefault:
 		if ( Request->BufferCount == 0 ||
 			 Request->BufferSize == 0 ||
+			 Request->BufferSize > JPKFAGP_MAX_BUFFER_SIZE ||
 			 Request->Log.FilePathLength == 0 ||
 			 ( ULONG ) FIELD_OFFSET( 
 				JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST,
@@ -320,7 +318,10 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		LogFilePath.Length			= Request->Log.FilePathLength * sizeof( WCHAR );
 		LogFilePath.Buffer			= Request->Log.FilePath;
 
-		Status = JpkfagpCreateDefaultEventSink( &LogFilePath, &EventSink );
+		Status = JpkfagpCreateDefaultEventSink( 
+			&LogFilePath, 
+			&DevExtension->Statistics,
+			&EventSink );
 		break;
 
 #ifdef JPFBT_WMK

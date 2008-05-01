@@ -212,6 +212,8 @@ NTSTATUS DriverEntry(
 			&NameStringNt );
 		if ( NT_SUCCESS( Status ) )
 		{
+			PJPKFAGP_DEVICE_EXTENSION DevExtension;
+
 			//
 			// Install routines.
 			//
@@ -220,6 +222,9 @@ NTSTATUS DriverEntry(
 			DriverObject->MajorFunction[ IRP_MJ_CLOSE ]		= JpkfagpDispatchClose;
 			DriverObject->MajorFunction[ IRP_MJ_DEVICE_CONTROL ] = JpkfagpDispatchDeviceControl;
 			DriverObject->DriverUnload						= JpkfagpUnload;
+
+			DevExtension = ( PJPKFAGP_DEVICE_EXTENSION ) DeviceObject->DeviceExtension;
+			RtlZeroMemory( DevExtension, sizeof( JPKFAGP_DEVICE_EXTENSION ) );
 		}
 		else
 		{

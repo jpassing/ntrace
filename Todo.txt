@@ -8,7 +8,7 @@ jpfbt
    * MmGetSystemAddressForMdlSafe may return NULL
    
  finegrained locking for TLS
- TLS entry preallocations --> high IRQL
+ 
  
 jpufbt
 ------------------------------------------------------------------------

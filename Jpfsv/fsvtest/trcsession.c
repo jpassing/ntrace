@@ -4,6 +4,11 @@
 #include <cdiag.h>
 #include "test.h"
 
+#pragma warning( push )
+#pragma warning( disable: 6011; disable: 6387 )
+#include <strsafe.h>
+#pragma warning( pop )
+
 #define DBGHELP_TRANSLATE_TCHAR
 #include <dbghelp.h>
 
@@ -636,6 +641,7 @@ static VOID TestAttachDetachKernel()
 
 		TEST( JPFSV_E_NO_TRACESESSION == JpfsvDetachContext( KernelCtx, TRUE ) );
 		
+		DeleteFile( L"__kern.log" );
 		if ( TracingType != JpfsvTracingTypeWmk )
 		{
 			TEST( E_INVALIDARG == JpfsvAttachContext( KernelCtx, TracingType, NULL ) );
@@ -692,7 +698,11 @@ static VOID TestTraceKernel()
 	{
 		UINT Index;
 		BOOL Instrumentable;
+		WCHAR LogFile[ MAX_PATH ];
 		UINT PaddingSize;
+
+		TEST_OK( StringCchPrintf( 
+			LogFile, _countof( LogFile ), L"__kern%d.log",  TracingType ) );
 
 		//
 		// Start a trace.
@@ -709,14 +719,15 @@ static VOID TestTraceKernel()
 		TEST( JPFSV_E_NO_TRACESESSION == 
 			JpfsvGetTracepointContext( KernelCtx, 0xF00, &Tracepnt ) );
 
+		DeleteFile( LogFile );
 		if ( TracingType != JpfsvTracingTypeWmk )
 		{
 			TEST( E_INVALIDARG == JpfsvAttachContext( KernelCtx, TracingType, NULL ) );
-			Hr = JpfsvAttachContext( KernelCtx, TracingType, L"__kern.log" );
+			Hr = JpfsvAttachContext( KernelCtx, TracingType, LogFile );
 		}
 		else
 		{
-			TEST( E_INVALIDARG == JpfsvAttachContext( KernelCtx, TracingType, L"__kern.log" ) );
+			TEST( E_INVALIDARG == JpfsvAttachContext( KernelCtx, TracingType, LogFile ) );
 			Hr = JpfsvAttachContext( KernelCtx, TracingType, NULL );
 		}
 		if ( Hr == JPFSV_E_UNSUPPORTED_TRACING_TYPE ||
@@ -889,6 +900,7 @@ static VOID TestTraceKernel()
 		//
 		// Trace again.
 		//
+		DeleteFile( LogFile );
 		TEST_OK( JpfsvStartTraceContext(
 			KernelCtx,
 			BufferCount,

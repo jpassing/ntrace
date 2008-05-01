@@ -240,7 +240,7 @@ typedef struct _JPFBT_PROCEDURE
 NTSTATUS JPFBTCALLTYPE JpfbtInstrumentProcedure(
 	__in JPFBT_INSTRUMENTATION_ACTION Action,
 	__in ULONG ProcedureCount,
-	__in_ecount(InstrCount) CONST PJPFBT_PROCEDURE Procedures,
+	__in_ecount(ProcedureCount) CONST PJPFBT_PROCEDURE Procedures,
 	__out_opt PJPFBT_PROCEDURE FailedProcedure
 	);
 

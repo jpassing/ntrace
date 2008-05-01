@@ -131,7 +131,9 @@ void TestInitShutdownTracing()
 			{
 				BufCount = 64;
 				BufSize = 64;
-				LogFile = L"foo";
+				LogFile = L"__testkfbt.log";
+
+				DeleteFile( LogFile );
 			}
 			else
 			{
@@ -236,7 +238,9 @@ void TestInstrumentFailures()
 			{
 				BufCount = 64;
 				BufSize = 64;
-				LogFile = L"__test.log";
+				LogFile = L"__testkfbt.log";
+
+				DeleteFile( LogFile );
 			}
 			else
 			{
