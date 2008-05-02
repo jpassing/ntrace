@@ -7,14 +7,19 @@
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
+
 #include <jpfbt.h>
 #include <jpkfagio.h>
 #include <jpkfbtmsg.h>
+#include <jptrcfmt.h>
 
 #define JPKFAG_POOL_TAG 'gafJ'
 
 #define JPKFAGP_THREAD_DATA_PREALLOCATIONS	128
-#define JPKFAGP_MAX_BUFFER_SIZE				( 1024 * 1024 ) 
+#define JPKFAGP_MIN_BUFFER_SIZE				\
+	( 2 * sizeof( JPTRC_PROCEDURE_TRANSITION32 ) )
+#define JPKFAGP_MAX_BUFFER_SIZE				\
+	( JPTRC_SEGMENT_SIZE - FIELD_OFFSET( JPTRC_TRACE_BUFFER_CHUNK32, Transitions ) ) 
 
 /*----------------------------------------------------------------------
  *

@@ -396,7 +396,9 @@ NTSTATUS JpfbtProcessBuffer(
 			Executive,
 			KernelMode,
 			FALSE,
-			&WaitTimeout ) )
+			Timeout == INFINITE
+				? NULL
+				: &WaitTimeout ) )
 		{
 			return STATUS_TIMEOUT;
 		}

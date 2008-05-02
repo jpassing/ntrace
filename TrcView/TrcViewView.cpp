@@ -10,7 +10,8 @@
 IMPLEMENT_DYNCREATE(CTrcViewView, CColumnTreeView)
 
 BEGIN_MESSAGE_MAP(CTrcViewView, CColumnTreeView)
-	ON_NOTIFY(TVN_ITEMEXPANDING, TreeID, OnGetDispInfo)
+	ON_NOTIFY(TVN_ITEMEXPANDING, TreeID, OnExpanding)
+	ON_NOTIFY(TVN_GETDISPINFO, TreeID, OnGetDispInfo)
 END_MESSAGE_MAP()
 
 
@@ -99,7 +100,7 @@ void CTrcViewView::OnInitialUpdate()
 	Node.hInsertAfter = TVI_LAST;
 	Node.item.mask = TVIF_CHILDREN | TVIF_TEXT;
 	Node.item.pszText = L"expandable";
-	Node.item.cChildren = I_CHILDRENCALLBACK;
+	//Node.item.cChildren = I_CHILDRENCALLBACK;
 
 	tree.InsertItem( &Node );
 
@@ -116,6 +117,34 @@ void CTrcViewView::OnInitialUpdate()
 	//tree.Expand(hRoot, TVE_EXPAND);
 }
 
-void CTrcViewView::OnGetDispInfo(NMHDR *Hdr, LRESULT *Lresult)
+void CTrcViewView::OnExpanding( NMHDR *Hdr, LRESULT *Lresult )
 {
+	LPNMTREEVIEW Notif = ( LPNMTREEVIEW ) Hdr;
+	if ( Notif->action == TVE_EXPAND )
+	{
+		TVINSERTSTRUCT Node;
+		Node.hParent = Notif->itemNew.hItem;
+		Node.hInsertAfter = TVI_LAST;
+		Node.item.mask = TVIF_CHILDREN | TVIF_TEXT | TVIF_PARAM;
+		Node.item.pszText = L"dynchild";
+		Node.item.cChildren = I_CHILDRENCALLBACK;
+		Node.item.lParam = 1;
+
+		CTreeCtrl& tree = GetTreeCtrl();
+		tree.InsertItem( &Node );
+
+		*Lresult = FALSE;
+	}
+	else if ( Notif->action == TVE_COLLAPSE )
+	{
+	}
+}
+
+void CTrcViewView::OnGetDispInfo( NMHDR *Hdr, LRESULT *Lresult )
+{
+	LPNMTVDISPINFO Notif = ( LPNMTVDISPINFO ) Hdr;
+	if ( Notif->item.mask & TVIF_CHILDREN )
+	{
+		Notif->item.cChildren = 0;
+	}
 }

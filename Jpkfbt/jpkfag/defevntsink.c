@@ -365,7 +365,7 @@ static VOID JpkfagsOnProcedureEntryDefEventSink(
 		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
 		Event->Info.CallerIp	= *Esp;
 
-		KdPrint( ( "Caller: %x\n", Event->Info.CallerIp ) );
+		//KdPrint( ( "Caller: %x\n", Event->Info.CallerIp ) );
 #else
 #error Unsupported architecture
 #endif

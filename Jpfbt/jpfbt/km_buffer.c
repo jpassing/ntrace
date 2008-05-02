@@ -397,6 +397,16 @@ VOID JpfbtpFreeThreadData(
 static VOID JpfbtsBufferCollectorThreadProc(  __in PVOID Unused )
 {
 	UNREFERENCED_PARAMETER( Unused );
+
+	while ( ! JpfbtpGlobalState->StopBufferCollector )
+	{
+		JpfbtProcessBuffer( 
+			JpfbtpGlobalState->Routines.ProcessBuffer,
+			INFINITE,
+			JpfbtpGlobalState->UserPointer );
+	}
+
+	TRACE( ( "JpfbtsBufferCollectorThreadProc exiting\n" ) );
 }
 
 VOID JpfbtpTriggerDirtyBufferCollection()

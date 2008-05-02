@@ -304,6 +304,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		if ( Request->BufferCount == 0 ||
 			 Request->BufferSize == 0 ||
 			 Request->BufferSize > JPKFAGP_MAX_BUFFER_SIZE ||
+			 Request->BufferSize < JPKFAGP_MIN_BUFFER_SIZE ||
 			 Request->Log.FilePathLength == 0 ||
 			 ( ULONG ) FIELD_OFFSET( 
 				JPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST,

@@ -13,8 +13,8 @@
 #define JPKFAG_DEVICE_NT_NAME L"\\Device\\Jpkfag"
 #define JPKFAG_DEVICE_DOS_NAME L"\\DosDevices\\Jpkfag"
 
-#define JPKFAGP_TRACE KdPrint
-//#define JPKFAGP_TRACE( x )
+//#define JPKFAGP_TRACE KdPrint
+#define JPKFAGP_TRACE( x )
 
 DRIVER_DISPATCH JpkfagpDispatchCreate;
 DRIVER_DISPATCH JpkfagpDispatchCleanup;
@@ -225,6 +225,8 @@ NTSTATUS DriverEntry(
 
 			DevExtension = ( PJPKFAGP_DEVICE_EXTENSION ) DeviceObject->DeviceExtension;
 			RtlZeroMemory( DevExtension, sizeof( JPKFAGP_DEVICE_EXTENSION ) );
+
+			KdPrint( ( "JPKFAG: Device Extension at %p\n", DevExtension ) );
 		}
 		else
 		{

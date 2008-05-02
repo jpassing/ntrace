@@ -168,7 +168,7 @@ NTSTATUS JpfbtSetFbtDataThread(
 	JpfbtsReleaseTlsLock( &LockHandle );
 
 	//
-	// N.B. We are not in charge of deleteing the old entry.
+	// N.B. We are not in charge of deleting the old entry.
 	//
 
 	return STATUS_SUCCESS;

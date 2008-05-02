@@ -25,6 +25,7 @@
 
 	#define ASSERT_IRQL_LTE( Irql )
 #elif defined( JPFBT_TARGET_KERNELMODE )
+	#define INFINITE ( ( ULONG ) -1 )
 	#define TRACE KdPrint
 
 	#define ASSERT_IRQL_LTE( Irql ) ASSERT( KeGetCurrentIrql() <= ( Irql ) )

@@ -23,6 +23,7 @@ public:
 	virtual void OnDraw(CDC* pDC);  // overridden to draw this view
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual void OnInitialUpdate();
+	virtual void OnExpanding(NMHDR *Hdr, LRESULT *Lresult);
 	virtual void OnGetDispInfo(NMHDR *Hdr, LRESULT *Lresult);
 protected:
 

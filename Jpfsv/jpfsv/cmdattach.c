@@ -75,7 +75,7 @@ BOOL JpfsvpAttachCommand(
 
 	JpfsvpOutput( 
 		ProcessorState, 
-		L"Using 0x%d buffers of size 0x%x\n",
+		L"Using 0x%x buffers of size 0x%x\n",
 		BufferCount,
 		BufferSize );
 

@@ -8,7 +8,8 @@ jpfbt
    * MmGetSystemAddressForMdlSafe may return NULL
    
  finegrained locking for TLS
- 
+
+ * Exceptions
  
 jpufbt
 ------------------------------------------------------------------------
@@ -19,8 +20,9 @@ jpufbt
  
 jpkfbt
 ------------------------------------------------------------------------
- * distinguish tracing types.
- * support default tracing on WRK/WMK?
+ * multiple instrumentability checks per IOCTL
+ 
+ * log stats at end of file/repeatedly
   
 jpfsv
 ------------------------------------------------------------------------
@@ -32,3 +34,5 @@ jpfsv
  * mask out nt-bit for message resolution? --> do in cdiag
  
  * allow second instance of ctrc
+ 
+ * declspec dllexport/import
