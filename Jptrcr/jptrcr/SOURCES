@@ -1,0 +1,41 @@
+#
+# setup VisualC++ source browsing
+#
+#BROWSER_INFO=1
+BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
+
+MSC_WARNING_LEVEL=/W4 /Wp64
+
+INCLUDES=$(SDKBASE)\Include;..\..\..\Jpht\Include;..\..\include;$(SDK_INC_PATH)\..\mfc42
+
+C_DEFINES=/D_UNICODE /DUNICODE
+
+!if "$(DDKBUILDENV)"=="chk"
+DEBUG_CRTS=1
+!endif
+
+USER_C_FLAGS=/analyze /wd4201
+
+USE_LIBCMT=1
+
+TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
+		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib
+		   
+
+TARGETNAME=jptrcr
+TARGETPATH=..\..\bin\$(DDKBUILDENV)
+TARGETTYPE=DYNLINK
+
+PASS0_HEADERDIR=..\..\include
+PASS0_SOURCEDIR=obj$(BUILD_ALT_DIR)\$(TARGET_DIRECTORY)
+
+SOURCES=\
+	open.c \
+	main.c \
+	module.c \
+	client.c \
+	util.c \
+	jptrcr.rc \
+	jptrcrmsg.mc
+	
+LINKER_FLAGS=/nxcompat /dynamicbase /SafeSEH
