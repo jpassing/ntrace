@@ -11,6 +11,75 @@
 #include <stdlib.h>
 #include <jptrcrp.h>
 
+#define JPTRCRP_SYM_PSEUDO_HANDLE		( ( HANDLE ) ( ULONG_PTR ) 0xF0F0F0F0 )
+#define JPTRCRP_SEGMENTS_MAP_AT_ONCE	4
+
+static HRESULT JptrcrsReadFileHeader(
+	__in PJPTRCRP_FILE File
+	)
+{
+	PJPTRC_FILE_HEADER Header;
+	HRESULT Hr;
+
+	Hr = JptrcrpMap( File, 0, &Header );
+	if ( FAILED( Hr ) )
+	{
+		return Hr;
+	}
+
+	if ( Header->Signature != JPTRC_HEADER_SIGNATURE )
+	{
+		return JPTRCR_E_INVALID_SIGNATURE;
+	}
+
+	if ( Header->Version != JPTRC_HEADER_VERSION )
+	{
+		return JPTRCR_E_INVALID_VERSION;
+	}
+
+	if ( ( Header->Characteristics & 3 ) == 3 ||
+		 ( Header->Characteristics & 3 ) == 0 ||
+		 ( Header->Characteristics & 12 ) == 0 ||
+		 ( Header->Characteristics & 12 ) == 12 )
+	{
+		return JPTRCR_E_INVALID_CHARACTERISTICS;
+	}
+
+	if ( Header->Characteristics & JPTRC_CHARACTERISTIC_64BIT )
+	{
+		return JPTRCR_E_BITNESS_NOT_SUPPRTED;
+	}
+
+	return S_OK;
+}
+
+static HRESULT JptrcrsPerformFileInventory(
+	__in PJPTRCRP_FILE File
+	)
+{
+	PJPTRC_CHUNK_HEADER Chunk;
+	HRESULT Hr;
+	ULONGLONG CurrentOffset = sizeof( JPTRC_FILE_HEADER );
+
+	//
+	// Traverse list of chunks.
+	//
+	for ( ;; )
+	{
+		Hr = JptrcrpMap( File, CurrentOffset, &Chunk );
+		if ( FAILED( Hr ) )
+		{
+			return Hr;
+		}
+
+		
+
+		CurrentOffset += Chunk->Size;
+	}
+	
+	return S_OK;
+}
+
 /*----------------------------------------------------------------------
  *
  * Exports.
@@ -25,10 +94,12 @@ HRESULT JptrcrOpenFile(
 	PJPTRCRP_FILE File = NULL;
 	HANDLE FileHandle;
 	HANDLE FileMapping = NULL;
+	LARGE_INTEGER FileSize;
 	HRESULT Hr;
 	
-	BOOL ModulesTableInitialited = FALSE;
 	BOOL ClientsTableInitialited = FALSE;
+	BOOL ModulesTableInitialited = FALSE;
+	BOOL SymInitialized = FALSE;
 
 	if ( ! FilePath || ! Handle )
 	{
@@ -59,13 +130,27 @@ HRESULT JptrcrOpenFile(
 		goto Cleanup;
 	}
 
+	FileSize.LowPart = GetFileSize( FileHandle, ( PDWORD ) &FileSize.HighPart );
+	if ( FileSize.LowPart == INVALID_FILE_SIZE &&
+		 GetLastError() != ERROR_SUCCESS )
+	{
+		Hr = HRESULT_FROM_WIN32( GetLastError() );
+		goto Cleanup;
+	}
+
+	if ( FileSize.QuadPart == 0 )
+	{
+		Hr = JPTRCR_E_FILE_EMPTY;
+		goto Cleanup;
+	}
+
 	//
 	// Crate a file mapping.
 	//
 	FileMapping = CreateFileMapping(
 		FileHandle,
 		NULL,
-		PAGE_READONLY,
+		PAGE_READONLY | SEC_COMMIT,
 		0,
 		0,
 		NULL );
@@ -88,6 +173,7 @@ HRESULT JptrcrOpenFile(
 	File->Signature			= JPTRCRP_FILE_SIGNATURE;
 	File->File.Handle		= FileHandle;
 	File->File.Mapping		= FileMapping;
+	File->File.Size			= FileSize.QuadPart;
 
 	if ( ! JphtInitializeHashtable(
 		&File->ModulesTable,
@@ -100,7 +186,6 @@ HRESULT JptrcrOpenFile(
 		Hr = E_OUTOFMEMORY;
 		goto Cleanup;
 	}
-
 	ModulesTableInitialited = TRUE;
 
 	if ( ! JphtInitializeHashtable(
@@ -114,17 +199,39 @@ HRESULT JptrcrOpenFile(
 		Hr = E_OUTOFMEMORY;
 		goto Cleanup;
 	}
-
 	ClientsTableInitialited = TRUE;
 
-	// TODO: check file header
+	if ( ! SymInitialize( JPTRCRP_SYM_PSEUDO_HANDLE, NULL, FALSE ) )
+	{
+		Hr = HRESULT_FROM_WIN32( GetLastError() );
+		goto Cleanup;
+	}
+	SymInitialized = TRUE;
+	File->SymHandle = JPTRCRP_SYM_PSEUDO_HANDLE;
 
+	File->CurrentMapping.Offset			= 0;
+	File->CurrentMapping.MappedAddress	= NULL;
+
+	Hr = JptrcrsReadFileHeader( File );
+	if ( FAILED( Hr ) )
+	{
+		goto Cleanup;
+	}
+
+	//
+	// File opened and appears to be valid, perform inventory.
+	//
+	Hr = JptrcrsPerformFileInventory( File );
 	*Handle = File;
-	Hr = S_OK;
 
 Cleanup:
 	if ( FAILED( Hr ) )
 	{
+		if ( SymInitialized )
+		{
+			SymCleanup( JPTRCRP_SYM_PSEUDO_HANDLE );
+		}
+
 		if ( ClientsTableInitialited )
 		{
 			JphtDeleteHashtable( &File->ClientsTable );
@@ -163,7 +270,7 @@ JPTRCRAPI HRESULT JptrcrCloseFile(
 		return E_INVALIDARG;
 	}
 
-	// TODO: unmapviewoffile
+	UnmapViewOfFile( File->CurrentMapping.MappedAddress );
 
 	//
 	// Delete all dependents.
@@ -183,6 +290,95 @@ JPTRCRAPI HRESULT JptrcrCloseFile(
 	VERIFY( CloseHandle( File->File.Mapping ) );
 	VERIFY( CloseHandle( File->File.Handle ) );
 	free( File );
+
+	return S_OK;
+}
+
+HRESULT JptrcrpMap( 
+	__in PJPTRCRP_FILE File,
+	__in ULONGLONG Offset,
+	__out PVOID *MappedAddress
+	)
+{
+	LARGE_INTEGER Li;
+	ULONGLONG MapIndex;
+
+	ASSERT( File && File->Signature == JPTRCRP_FILE_SIGNATURE );
+	ASSERT( MappedAddress );
+
+	if ( MappedAddress == NULL ||
+		 File == NULL )
+	{
+		return E_INVALIDARG;
+	}
+
+	if ( Offset > File->File.Size )
+	{
+		return JPTRCR_E_EOF;
+	}
+
+	*MappedAddress = NULL;
+
+	//
+	// Action required?
+	//
+	MapIndex = Offset / ( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE );
+	if ( File->CurrentMapping.MappedAddress != NULL &&
+		 MapIndex == File->CurrentMapping.MapIndex )
+	{
+		ASSERT( File->CurrentMapping.Offset <= Offset );
+		ASSERT( File->CurrentMapping.Offset + 
+			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE ) > Offset );
+
+		//
+		// Already mapped.
+		//
+	}
+	else
+	{
+		ULONG SizeToMap;
+
+		//
+		// Re-mapping required.
+		//
+		// Unmap.
+		//
+		if ( File->CurrentMapping.MappedAddress != NULL )
+		{
+			if ( ! UnmapViewOfFile( File->CurrentMapping.MappedAddress ) )
+			{
+				return HRESULT_FROM_WIN32( GetLastError() );
+			}
+		}
+
+		//
+		// Map.
+		//
+		SizeToMap = min( 
+			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE ),
+			( ULONG ) File->File.Size );
+
+		File->CurrentMapping.Offset = MapIndex * 
+			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE );
+		
+		Li.QuadPart = File->CurrentMapping.Offset;
+		File->CurrentMapping.MappedAddress = 
+			File->CurrentMapping.MappedAddress = MapViewOfFile(
+				File->File.Mapping,
+				FILE_MAP_READ,
+				Li.HighPart,
+				Li.LowPart,
+				SizeToMap );
+		if ( File->CurrentMapping.MappedAddress == NULL )
+		{
+			File->CurrentMapping.Offset = 0;
+			return HRESULT_FROM_WIN32( GetLastError() );
+		}
+	}
+
+	*MappedAddress = ( PUCHAR ) 
+		File->CurrentMapping.MappedAddress + 
+		( Offset - File->CurrentMapping.Offset );
 
 	return S_OK;
 }

@@ -48,8 +48,33 @@ typedef struct _JPTRCRP_FILE
 	{
 		HANDLE Handle;
 		HANDLE Mapping;
+		ULONGLONG Size;
 	} File;
+
+	//
+	// Pseudo-process handle used for dbghelp.
+	//
+	HANDLE SymHandle;
+
+	struct
+	{
+		ULONGLONG Offset;
+		PVOID MappedAddress;
+
+		ULONGLONG MapIndex;
+	} CurrentMapping;
 } JPTRCRP_FILE, *PJPTRCRP_FILE;
+
+/*++
+	Routine Description:
+		Maps in the given offset. At least the entire segment
+		surrounding the offset is mapped in.
+--*/
+HRESULT JptrcrpMap( 
+	__in PJPTRCRP_FILE File,
+	__in ULONGLONG Offset,
+	__out PVOID *MappedAddress
+	);
 
 /*----------------------------------------------------------------------
  *

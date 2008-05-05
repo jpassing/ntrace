@@ -1,6 +1,5 @@
 #include <jpfsv.h>
 #include <jpufbt.h>
-#include <jpfbtmsg.h>
 #include <cdiag.h>
 #include "test.h"
 

@@ -88,3 +88,11 @@ VOID JptrcrsRemoveAndDeleteClient(
 		u.HashtableEntry );
 	JptrcrpDeleteClient( Client );
 }
+
+
+VOID JptrcrpDeleteClient(
+	__in PJPTRCRP_CLIENT Client
+	)
+{
+	UNREFERENCED_PARAMETER( Client );
+}

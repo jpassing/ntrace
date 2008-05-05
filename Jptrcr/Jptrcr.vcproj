@@ -26,7 +26,7 @@
 				BuildCommandLine="ddkbuild -WLHNET checked $(ProjectDir)"
 				ReBuildCommandLine="ddkbuild -WLHNET checked $(ProjectDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\chk\i386\testkfbt.dll"
+				Output="..\bin\chk\i386\testtrcr.dll"
 				PreprocessorDefinitions="WIN32;_DEBUG;DBG;JPFBT_WMK"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -46,7 +46,7 @@
 				BuildCommandLine="ddkbuild -WLHNET free $(ProjectDir)"
 				ReBuildCommandLine="ddkbuild -WLHNET free $(ProjectDir) -cZ"
 				CleanCommandLine=""
-				Output="..\bin\fre\i386\testufbt.dll"
+				Output="..\bin\fre\i386\testtrcr.dll"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -64,6 +64,10 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath=".\DIRS"
+				>
+			</File>
 			<Filter
 				Name="jptrcr"
 				>
@@ -112,6 +116,22 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="testtrcr"
+				>
+				<File
+					RelativePath=".\testtrcr\SOURCES"
+					>
+				</File>
+				<File
+					RelativePath=".\testtrcr\testopen.c"
+					>
+				</File>
+				<File
+					RelativePath=".\testtrcr\testtrcr.def"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Shared Header Files"
@@ -124,6 +144,10 @@
 			</File>
 			<File
 				RelativePath="..\include\jptrcr.h"
+				>
+			</File>
+			<File
+				RelativePath="..\include\jptrcrmsg.h"
 				>
 			</File>
 		</Filter>

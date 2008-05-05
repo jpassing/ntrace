@@ -19,6 +19,7 @@ USER_C_FLAGS=/analyze /wd4201
 USE_LIBCMT=1
 
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
+		   $(MAKEDIR)\..\..\bin\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib \
 		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib
 		   
 

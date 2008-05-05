@@ -83,3 +83,10 @@ VOID JptrcrpRemoveAndDeleteModule(
 		u.HashtableEntry );
 	JptrcrpDeleteModule( Module );
 }
+
+VOID JptrcrpDeleteModule(
+	__in PJPTRCRP_LOADED_MODULE Module 
+	)
+{
+	UNREFERENCED_PARAMETER( Module );
+}
