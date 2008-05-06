@@ -6,7 +6,7 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
-#define JPTRCRAPI __declspec( dllexport )
+#define JPTRCRAPI 
 
 #include <stdlib.h>
 #include <jptrcrp.h>
@@ -26,7 +26,15 @@ typedef struct _JPTRCRP_LOADED_MODULE
 	BOOL SymbolsLoaded;
 	JPTRCR_MODULE Information;
 	PJPTRCRP_FILE File;
+
+	WCHAR PathBuffer[ MAX_PATH ];
 } JPTRCRP_LOADED_MODULE, *PJPTRCRP_LOADED_MODULE;
+
+typedef struct _JPTRCRP_ENUM_CONTEXT
+{
+	JPTRCR_ENUM_MODULES_ROUTINE Callback;
+	PVOID Context;
+} JPTRCRP_ENUM_CONTEXT, *PJPTRCRP_ENUM_CONTEXT;
 
 /*----------------------------------------------------------------------
  *
@@ -86,9 +94,31 @@ VOID JptrcrpRemoveAndDeleteModule(
 	JptrcrpDeleteModule( Module );
 }
 
+static VOID JptrcrsEnumModules(
+	__in PJPHT_HASHTABLE Hashtable,
+	__in PJPHT_HASHTABLE_ENTRY Entry,
+	__in_opt PVOID PvContext
+	)
+{
+	PJPTRCRP_ENUM_CONTEXT Context = ( PJPTRCRP_ENUM_CONTEXT ) PvContext;
+	PJPTRCRP_LOADED_MODULE Module;
+
+	UNREFERENCED_PARAMETER( Hashtable );
+
+	Module = CONTAINING_RECORD(
+		Entry,
+		JPTRCRP_LOADED_MODULE,
+		u.HashtableEntry );
+
+	if ( Context )
+	{
+		( Context->Callback )( &Module->Information, Context->Context );
+	}
+}
+
 /*----------------------------------------------------------------------
  *
- * Main routines.
+ * Internal routines.
  *
  */
 
@@ -102,11 +132,11 @@ HRESULT JptrcrpLoadModule(
 	__out PJPTRCRP_LOADED_MODULE *LoadedModule
 	)
 {
+	HRESULT Hr;
 	PJPTRCRP_LOADED_MODULE Module;
 	MODLOAD_DATA ModLoadData;
 	PWSTR Name;
 	PJPHT_HASHTABLE_ENTRY OldEntry;
-	WCHAR Path[ MAX_PATH ];
 	DWORD64 SymBase;
 
 	ASSERT( LoadAddress > 0 );
@@ -118,29 +148,39 @@ HRESULT JptrcrpLoadModule(
 
 	*LoadedModule = NULL;
 
+	Module = ( PJPTRCRP_LOADED_MODULE ) malloc(
+		sizeof( JPTRCRP_LOADED_MODULE ) );
+	if ( Module == NULL )
+	{
+		return E_OUTOFMEMORY;
+	}
+
+	ZeroMemory( Module, sizeof( JPTRCRP_LOADED_MODULE ) );
+
 	if ( 0 == MultiByteToWideChar(
 		CP_ACP,
 		0,
 		NtPathOfModule->Buffer,
 		NtPathOfModule->Length,
-		Path,
-		_countof( Path ) - 1 ) )
+		Module->PathBuffer,
+		_countof( Module->PathBuffer ) - 1 ) )
 	{
-		return HRESULT_FROM_WIN32( GetLastError() );
+		Hr = HRESULT_FROM_WIN32( GetLastError() );
+		goto Cleanup;
 	}
 
 	//
 	// Hmm...
 	//
-	Path[ NtPathOfModule->Length ] = UNICODE_NULL;
+	Module->PathBuffer[ NtPathOfModule->Length ] = UNICODE_NULL;
 
 	//
 	// Get filename from path.
 	//
-	Name = wcsrchr( Path, L'\\' );
+	Name = wcsrchr( Module->PathBuffer, L'\\' );
 	if ( Name == NULL )
 	{
-		Name = Path;
+		Name = Module->PathBuffer;
 	}
 	else
 	{
@@ -169,19 +209,10 @@ HRESULT JptrcrpLoadModule(
 		0 );
 	ASSERT( SymBase == 0 || SymBase == LoadAddress );
 
-	Module = ( PJPTRCRP_LOADED_MODULE ) malloc(
-		sizeof( JPTRCRP_LOADED_MODULE ) );
-	if ( Module == NULL )
-	{
-		return E_OUTOFMEMORY;
-	}
-
-	ZeroMemory( Module, sizeof( JPTRCRP_LOADED_MODULE ) );
-
 	Module->Information.LoadAddress	= LoadAddress;
 	Module->Information.Size		= Size;
 	Module->Information.Name		= Name;
-	Module->Information.FilePath	= Path;
+	Module->Information.FilePath	= Module->PathBuffer;
 	Module->SymbolsLoaded			= ( SymBase != 0 );
 	Module->File					= File;
 
@@ -194,7 +225,15 @@ HRESULT JptrcrpLoadModule(
 	ASSERT( OldEntry == NULL );
 
 	*LoadedModule = Module;
-	return S_OK;
+	Hr = S_OK;
+
+Cleanup:
+	if ( FAILED( Hr ) )
+	{
+		free( Module );
+	}
+
+	return Hr;
 }
 
 VOID JptrcrpDeleteModule(
@@ -216,4 +255,37 @@ VOID JptrcrpDeleteModule(
 	}
 
 	free( Module );
+}
+
+/*----------------------------------------------------------------------
+ *
+ * Exports.
+ *
+ */
+
+HRESULT JptrcrEnumModules(
+	__in JPTRCRHANDLE FileHandle,
+	__in JPTRCR_ENUM_MODULES_ROUTINE Callback,
+	__in_opt PVOID Context
+	)
+{
+	JPTRCRP_ENUM_CONTEXT EnumContext;
+	PJPTRCRP_FILE File = ( PJPTRCRP_FILE ) FileHandle;
+
+	if ( File == NULL ||
+		 File->Signature != JPTRCRP_FILE_SIGNATURE ||
+		 Callback == NULL )
+	{
+		return E_INVALIDARG;
+	}
+
+	EnumContext.Callback	= Callback;
+	EnumContext.Context		= Context;
+
+	JphtEnumerateEntries(
+		&File->ModulesTable,
+		JptrcrsEnumModules,
+		&EnumContext );
+
+	return S_OK;
 }

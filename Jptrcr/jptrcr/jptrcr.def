@@ -1,2 +1,5 @@
 EXPORTS
 	JptrcrOpenFile
+	JptrcrCloseFile
+	JptrcrEnumModules
+	JptrcrEnumClients

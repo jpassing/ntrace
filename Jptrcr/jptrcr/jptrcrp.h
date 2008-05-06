@@ -129,6 +129,11 @@ VOID JptrcrpRemoveAndDeleteModule(
 	__in_opt PVOID Context
 	);
 
+/*++
+	Routine Description:
+		Load symbols for the module and register it with the
+		file structure.
+--*/
 HRESULT JptrcrpLoadModule(
 	__in PJPTRCRP_FILE File,
 	__in ULONGLONG LoadAddress,
@@ -139,6 +144,11 @@ HRESULT JptrcrpLoadModule(
 	__out PJPTRCRP_LOADED_MODULE *LoadedModule
 	);
 
+/*++
+	Routine Description:
+		Delete module. The module must have previously been
+		unregistered from the file structure.
+--*/
 VOID JptrcrpDeleteModule(
 	__in PJPTRCRP_LOADED_MODULE Module 
 	);
@@ -166,6 +176,22 @@ VOID JptrcrsRemoveAndDeleteClient(
 	__in_opt PVOID Context
 	);
 
+/*++
+	Routine Description:
+		Register a chunk and create a client entry if none
+		exists yet.
+--*/
+HRESULT JptrcrpRegisterTraceBufferClient(
+	__in PJPTRCRP_FILE File,
+	__in PJPTRCR_CLIENT Client,
+	__in ULONGLONG ChunkOffset
+	);
+
+/*++
+	Routine Description:
+		Delete module. The client must have previously been
+		unregistered from the file structure.
+--*/
 VOID JptrcrpDeleteClient(
 	__in PJPTRCRP_CLIENT Client
 	);

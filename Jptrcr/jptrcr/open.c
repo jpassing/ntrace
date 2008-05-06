@@ -6,7 +6,7 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
-#define JPTRCRAPI __declspec( dllexport )
+#define JPTRCRAPI 
 
 #include <stdlib.h>
 #include <jptrcrp.h>
@@ -78,12 +78,21 @@ static HRESULT JptrcrsLoadModuleForImage(
 	return Hr;
 }
 
-static HRESULT JptrcrsRegisterTraceChunk(
-	__in PJPTRC_TRACE_BUFFER_CHUNK32 Chunk
+static HRESULT JptrcrsRegisterTraceBuffer(
+	__in PJPTRCRP_FILE File,
+	__in PJPTRC_TRACE_BUFFER_CHUNK32 Chunk,
+	__in ULONGLONG Offset
 	)
 {
-	UNREFERENCED_PARAMETER( Chunk );
-	return S_OK;
+	JPTRCR_CLIENT Client;
+
+	Client.ProcessId	= Chunk->Client.ProcessId;
+	Client.ThreadId		= Chunk->Client.ThreadId;
+
+	return JptrcrpRegisterTraceBufferClient(
+		File,
+		&Client,
+		Offset );
 }
 
 static HRESULT JptrcrsPerformFileInventory(
@@ -149,8 +158,10 @@ static HRESULT JptrcrsPerformFileInventory(
 			//
 			TRACE( ( L"Trace chunk @ %I64u\n", CurrentOffset ) );
 			
-			Hr = JptrcrsRegisterTraceChunk( 
-				( PJPTRC_TRACE_BUFFER_CHUNK32 ) Chunk );
+			Hr = JptrcrsRegisterTraceBuffer( 
+				File,
+				( PJPTRC_TRACE_BUFFER_CHUNK32 ) Chunk,
+				CurrentOffset );
 			if ( FAILED( Hr ) )
 			{
 				return Hr;
@@ -453,15 +464,16 @@ HRESULT JptrcrpMap(
 		}
 
 		//
-		// Map.
+		// Map. If we are at the end of the file, we may have to map
+		// less than JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE.
 		//
-		SizeToMap = min( 
-			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE ),
-			( ULONG ) File->File.Size );
-
 		File->CurrentMapping.Offset = MapIndex * 
 			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE );
 		
+		SizeToMap = min( 
+			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE ),
+			( ULONG ) ( File->File.Size - File->CurrentMapping.Offset ) );
+
 		Li.QuadPart = File->CurrentMapping.Offset;
 		File->CurrentMapping.MappedAddress = 
 			File->CurrentMapping.MappedAddress = MapViewOfFile(
