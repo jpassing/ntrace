@@ -6,8 +6,11 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 #include <ntddk.h>
+#include <ntimage.h>
 #include <jptrcfmt.h>
 #include "jpkfagp.h"
+
+#define JpkfagsPtrFromRva( base, rva ) ( ( ( PUCHAR ) base ) + rva )
 
 typedef struct _JPKFAGP_IMAGE_INFO_EVENT
 {
@@ -249,6 +252,20 @@ static VOID JpkfagsFlushImageInfoEventQueue(
 	}
 }
 
+static PIMAGE_DATA_DIRECTORY JpkfagsGetDebugDataDirectory(
+	__in ULONGLONG LoadAddress
+	)
+{
+	PIMAGE_DOS_HEADER DosHeader = 
+		( PIMAGE_DOS_HEADER ) ( PVOID ) ( ULONG_PTR ) LoadAddress;
+	PIMAGE_NT_HEADERS NtHeader = ( PIMAGE_NT_HEADERS ) 
+		JpkfagsPtrFromRva( DosHeader, DosHeader->e_lfanew );
+	ASSERT ( IMAGE_NT_SIGNATURE == NtHeader->Signature );
+
+	return &NtHeader->OptionalHeader.DataDirectory
+			[ IMAGE_DIRECTORY_ENTRY_DEBUG ];
+}
+
 /*----------------------------------------------------------------------
  *
  * Methods.
@@ -262,8 +279,9 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 	__in PJPKFAGP_EVENT_SINK This
 	)
 {
+	PIMAGE_DATA_DIRECTORY DebugDataDirectory;
 	PJPKFAGP_IMAGE_INFO_EVENT Event;
-	USHORT EventSize;
+	ULONG EventSize;
 	PJPKFAGP_DEF_EVENT_SINK Sink = ( PJPKFAGP_DEF_EVENT_SINK ) This;
 
 	ASSERT( Sink );
@@ -275,12 +293,23 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 		return;
 	}
 
+	//
+	// We need to log two things. First, the basic module info - 
+	// name, path etc. Secondly, in order to be able to load proper
+	// symbols on a different machine, we need to log the debug
+	// information. This is obtained from the image's debug
+	// directory.
+	//
+
+	DebugDataDirectory = JpkfagsGetDebugDataDirectory( ImageLoadAddress );
+
+
 	EventSize = ( USHORT ) RTL_SIZEOF_THROUGH_FIELD( 
 		JPKFAGP_IMAGE_INFO_EVENT,
-		Event.Path[ Path->Length ] );
+		Event.Path[ Path->Length ] ) + DebugDataDirectory->Size;
 
 	//
-	// Adjust EventSize s.t. it adheres to JPTRC_CHUNK_ALIGNMENT.
+	// Round up EventSize s.t. it adheres to JPTRC_CHUNK_ALIGNMENT.
 	//
 	EventSize = 
 		( EventSize + ( JPTRC_CHUNK_ALIGNMENT - 1 ) ) &
@@ -298,6 +327,7 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 
 	if ( Event != NULL )
 	{
+		PCHAR DebugDataStart;
 		PCHAR PaddingStart;
 
 		Event->Event.Header.Type		= JPTRC_CHUNK_TYPE_IMAGE_INFO;
@@ -314,10 +344,22 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 			Path->Length );
 
 		//
+		// The debug data follows.
+		//
+		DebugDataStart = &Event->Event.Path[ Path->Length ];
+		RtlCopyMemory( 
+			DebugDataStart,
+			JpkfagsPtrFromRva( ImageLoadAddress, DebugDataDirectory->VirtualAddress ),
+			DebugDataDirectory->Size );
+		Event->Event.DebugDirectorySize = ( USHORT ) DebugDataDirectory->Size;
+		Event->Event.DebugDirectoryOffset = 
+			( USHORT ) ( DebugDataStart - ( PCHAR ) Event );
+
+		//
 		// Zero out padding space to avoid writing arbitrary content
 		// to disk.
 		//
-		PaddingStart = &Event->Event.Path[ Path->Length ];
+		PaddingStart = DebugDataStart + DebugDataDirectory->Size;
 		ASSERT( PaddingStart <= ( PCHAR ) &Event->Event + EventSize );
 
 		RtlZeroMemory(

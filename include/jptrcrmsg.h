@@ -94,3 +94,30 @@
 //
 #define JPTRCR_E_EOF                     ((HRESULT)0xC0049405L)
 
+//
+// MessageId: JPTRCR_E_UNRECOGNIZED_CHUNK_TYPE
+//
+// MessageText:
+//
+// The file contains an unrecognized chunk type.
+//
+#define JPTRCR_E_UNRECOGNIZED_CHUNK_TYPE ((HRESULT)0xC0049406L)
+
+//
+// MessageId: JPTRCR_E_RESERVED_FIELDS_USED
+//
+// MessageText:
+//
+// The file uses reserved fields.
+//
+#define JPTRCR_E_RESERVED_FIELDS_USED    ((HRESULT)0xC0049407L)
+
+//
+// MessageId: JPTRCR_E_TRUNCATED_CHUNK
+//
+// MessageText:
+//
+// File contains a truncated chunk.
+//
+#define JPTRCR_E_TRUNCATED_CHUNK         ((HRESULT)0xC0049408L)
+

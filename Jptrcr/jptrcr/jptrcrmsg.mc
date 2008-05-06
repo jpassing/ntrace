@@ -68,3 +68,27 @@ SymbolicName	= JPTRCR_E_EOF
 Language		= English
 End of file reached.
 .
+
+MessageId		= 0x9406
+Severity		= Error
+Facility		= Interface
+SymbolicName	= JPTRCR_E_UNRECOGNIZED_CHUNK_TYPE
+Language		= English
+The file contains an unrecognized chunk type.
+.
+
+MessageId		= 0x9407
+Severity		= Error
+Facility		= Interface
+SymbolicName	= JPTRCR_E_RESERVED_FIELDS_USED
+Language		= English
+The file uses reserved fields.
+.
+
+MessageId		= 0x9408
+Severity		= Error
+Facility		= Interface
+SymbolicName	= JPTRCR_E_TRUNCATED_CHUNK
+Language		= English
+File contains a truncated chunk.
+.

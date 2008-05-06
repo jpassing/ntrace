@@ -53,6 +53,39 @@ static HRESULT JptrcrsReadFileHeader(
 	return S_OK;
 }
 
+static HRESULT JptrcrsLoadModuleForImage(
+	__in PJPTRCRP_FILE File,
+	__in PJPTRC_IMAGE_INFO_CHUNK Chunk
+	)
+{
+	HRESULT Hr;
+	PJPTRCRP_LOADED_MODULE Module;
+	ANSI_STRING Path;
+
+	Path.Length			= Chunk->PathSize;
+	Path.MaximumLength	= Chunk->PathSize;
+	Path.Buffer			= Chunk->Path;
+
+	Hr = JptrcrpLoadModule(
+		File,
+		Chunk->LoadAddress,
+		Chunk->Size,
+		&Path,
+		Chunk->DebugDirectorySize,
+		( PIMAGE_DEBUG_DIRECTORY ) 
+			( ( PUCHAR ) Chunk + Chunk->DebugDirectoryOffset ),
+		&Module );
+	return Hr;
+}
+
+static HRESULT JptrcrsRegisterTraceChunk(
+	__in PJPTRC_TRACE_BUFFER_CHUNK32 Chunk
+	)
+{
+	UNREFERENCED_PARAMETER( Chunk );
+	return S_OK;
+}
+
 static HRESULT JptrcrsPerformFileInventory(
 	__in PJPTRCRP_FILE File
 	)
@@ -67,12 +100,67 @@ static HRESULT JptrcrsPerformFileInventory(
 	for ( ;; )
 	{
 		Hr = JptrcrpMap( File, CurrentOffset, &Chunk );
-		if ( FAILED( Hr ) )
+		if ( Hr == JPTRCR_E_EOF )
+		{
+			break;
+		}
+		else if ( FAILED( Hr ) )
 		{
 			return Hr;
 		}
 
-		
+		if ( Chunk->Reserved != 0 )
+		{
+			return JPTRCR_E_RESERVED_FIELDS_USED;
+		}
+		else if ( Chunk->Size < sizeof( JPTRC_CHUNK_HEADER ) )
+		{
+			return JPTRCR_E_TRUNCATED_CHUNK;
+		}
+
+		switch ( Chunk->Type )
+		{
+		case JPTRC_CHUNK_TYPE_PAD:
+			//
+			// Just skip over this one.
+			//
+			TRACE( ( L"Pad chunk @ %I64u\n", CurrentOffset ) );
+			break;
+
+		case JPTRC_CHUNK_TYPE_IMAGE_INFO:
+			//
+			// Subsequent chunks may refer to this image - load.
+			//
+			TRACE( ( L"Image chunk @ %I64u\n", CurrentOffset ) );
+
+			Hr = JptrcrsLoadModuleForImage( 
+				File,
+				( PJPTRC_IMAGE_INFO_CHUNK ) Chunk );
+			if ( FAILED( Hr ) )
+			{
+				return Hr;
+			}
+
+			break;
+
+		case JPTRC_CHUNK_TYPE_TRACE_BUFFER:
+			//
+			// Trace chunk - register for later retrieval.
+			//
+			TRACE( ( L"Trace chunk @ %I64u\n", CurrentOffset ) );
+			
+			Hr = JptrcrsRegisterTraceChunk( 
+				( PJPTRC_TRACE_BUFFER_CHUNK32 ) Chunk );
+			if ( FAILED( Hr ) )
+			{
+				return Hr;
+			}
+
+			break;
+
+		default:
+			return JPTRCR_E_UNRECOGNIZED_CHUNK_TYPE;
+		}
 
 		CurrentOffset += Chunk->Size;
 	}
@@ -91,6 +179,7 @@ HRESULT JptrcrOpenFile(
 	__out JPTRCRHANDLE *Handle
 	)
 {
+	DWORD AdditionalOptions;
 	PJPTRCRP_FILE File = NULL;
 	HANDLE FileHandle;
 	HANDLE FileMapping = NULL;
@@ -201,6 +290,9 @@ HRESULT JptrcrOpenFile(
 	}
 	ClientsTableInitialited = TRUE;
 
+	//
+	// Initialize dbghelp.
+	//
 	if ( ! SymInitialize( JPTRCRP_SYM_PSEUDO_HANDLE, NULL, FALSE ) )
 	{
 		Hr = HRESULT_FROM_WIN32( GetLastError() );
@@ -208,6 +300,15 @@ HRESULT JptrcrOpenFile(
 	}
 	SymInitialized = TRUE;
 	File->SymHandle = JPTRCRP_SYM_PSEUDO_HANDLE;
+
+	AdditionalOptions = 
+			SYMOPT_DEFERRED_LOADS |
+			SYMOPT_CASE_INSENSITIVE |
+			SYMOPT_UNDNAME;
+#if DBG
+	AdditionalOptions |= SYMOPT_DEBUG;
+#endif
+	SymSetOptions( SymGetOptions() | AdditionalOptions );
 
 	File->CurrentMapping.Offset			= 0;
 	File->CurrentMapping.MappedAddress	= NULL;
@@ -312,7 +413,7 @@ HRESULT JptrcrpMap(
 		return E_INVALIDARG;
 	}
 
-	if ( Offset > File->File.Size )
+	if ( Offset >= File->File.Size )
 	{
 		return JPTRCR_E_EOF;
 	}

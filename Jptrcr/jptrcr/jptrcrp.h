@@ -21,6 +21,12 @@
 	#define VERIFY( x ) ( VOID ) ( x )
 #endif
 
+typedef struct _ANSI_STRING 
+{
+    __maybevalid USHORT Length;
+    __maybevalid USHORT MaximumLength;
+    __field_bcount_part_opt(MaximumLength, Length) PCHAR Buffer;
+} ANSI_STRING, *PANSI_STRING;
 
 typedef struct _JPTRCRP_CHUNK_REF
 {
@@ -89,6 +95,17 @@ VOID JptrcrpFreeHashtableMemory(
 	__in PVOID Mem
 	);
 
+#if DBG
+	#define TRACE( Args ) JptrcrpDbgPrint##Args
+#else
+	#define TRACE( Args ) 
+#endif
+
+VOID JptrcrpDbgPrint(
+	__in PCWSTR Format,
+	...
+	);
+
 /*----------------------------------------------------------------------
  *
  * Modules routines.
@@ -110,6 +127,16 @@ VOID JptrcrpRemoveAndDeleteModule(
 	__in PJPHT_HASHTABLE Hashtable,
 	__in PJPHT_HASHTABLE_ENTRY Entry,
 	__in_opt PVOID Context
+	);
+
+HRESULT JptrcrpLoadModule(
+	__in PJPTRCRP_FILE File,
+	__in ULONGLONG LoadAddress,
+	__in ULONG Size,
+	__in PANSI_STRING NtPathOfModule,
+	__in USHORT DebugDirSize,
+	__in_bcount( DebugDirSize ) PIMAGE_DEBUG_DIRECTORY DebugDir,
+	__out PJPTRCRP_LOADED_MODULE *LoadedModule
 	);
 
 VOID JptrcrpDeleteModule(

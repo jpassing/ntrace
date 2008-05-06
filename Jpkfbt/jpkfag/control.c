@@ -76,7 +76,7 @@ static BOOLEAN JpkfagsIsValidCodePointer(
 		if ( Pointer >= ImageBegin && Pointer <  ImageEnd )
 		{
 			//
-			// Pointer points to this module. This check out to be 
+			// Pointer points to this module. This check ought to be 
 			// sufficient: The memory pointed is valid and the test
 			// whether it is in fact a patchable function prolog can
 			// be safely conducted.

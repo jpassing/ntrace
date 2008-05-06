@@ -158,8 +158,21 @@ typedef struct _JPTRC_IMAGE_INFO_CHUNK
 {
 	JPTRC_CHUNK_HEADER Header;
 	
+	//
+	// Image information.
+	//
 	ULONGLONG LoadAddress;
 	ULONG Size;
+
+	//
+	// Debug information.
+	//
+	USHORT DebugDirectoryOffset;
+	USHORT DebugDirectorySize;
+
+	//
+	// Module path - in NT format.
+	//
 	USHORT PathSize;
 	CHAR Path[ ANYSIZE_ARRAY ];
 } JPTRC_IMAGE_INFO_CHUNK, *PJPTRC_IMAGE_INFO_CHUNK;
