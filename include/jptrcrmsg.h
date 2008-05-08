@@ -121,3 +121,40 @@
 //
 #define JPTRCR_E_TRUNCATED_CHUNK         ((HRESULT)0xC0049408L)
 
+//
+// MessageId: JPTRCR_E_CHUNK_STRADDLES_SEGMENT
+//
+// MessageText:
+//
+// The file contains a chunk that is so large that it straddles a 
+// segment boundary.
+//
+#define JPTRCR_E_CHUNK_STRADDLES_SEGMENT ((HRESULT)0xC0049409L)
+
+//
+// MessageId: JPTRCR_E_INVALID_CALL_HANDLE
+//
+// MessageText:
+//
+// The call handle is invalid.
+//
+#define JPTRCR_E_INVALID_CALL_HANDLE     ((HRESULT)0xC004940AL)
+
+//
+// MessageId: JPTRCR_E_INVALID_TRANSITION
+//
+// MessageText:
+//
+// Encountered invalid transition type in file.
+//
+#define JPTRCR_E_INVALID_TRANSITION      ((HRESULT)0xC004940BL)
+
+//
+// MessageId: JPTRCR_E_CORRUPT
+//
+// MessageText:
+//
+// File corrupt.
+//
+#define JPTRCR_E_CORRUPT                 ((HRESULT)0xC004940CL)
+

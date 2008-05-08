@@ -92,3 +92,36 @@ SymbolicName	= JPTRCR_E_TRUNCATED_CHUNK
 Language		= English
 File contains a truncated chunk.
 .
+
+MessageId		= 0x9409
+Severity		= Error
+Facility		= Interface
+SymbolicName	= JPTRCR_E_CHUNK_STRADDLES_SEGMENT
+Language		= English
+The file contains a chunk that is so large that it straddles a 
+segment boundary.
+.
+
+MessageId		= 0x940a
+Severity		= Error
+Facility		= Interface
+SymbolicName	= JPTRCR_E_INVALID_CALL_HANDLE
+Language		= English
+The call handle is invalid.
+.
+
+MessageId		= 0x940b
+Severity		= Error
+Facility		= Interface
+SymbolicName	= JPTRCR_E_INVALID_TRANSITION
+Language		= English
+Encountered invalid transition type in file.
+.
+
+MessageId		= 0x940c
+Severity		= Error
+Facility		= Interface
+SymbolicName	= JPTRCR_E_CORRUPT
+Language		= English
+File corrupt.
+.

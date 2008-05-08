@@ -3,3 +3,4 @@ EXPORTS
 	JptrcrCloseFile
 	JptrcrEnumModules
 	JptrcrEnumClients
+	JptrcrEnumCalls

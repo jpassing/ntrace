@@ -28,12 +28,6 @@ typedef struct _ANSI_STRING
     __field_bcount_part_opt(MaximumLength, Length) PCHAR Buffer;
 } ANSI_STRING, *PANSI_STRING;
 
-typedef struct _JPTRCRP_CHUNK_REF
-{
-	LIST_ENTRY ListEntry;
-	ULONGLONG FileOffset;
-} JPTRCRP_CHUNK_REF, *PJPTRCRP_CHUNK_REF;
-
 #define JPTRCRP_FILE_SIGNATURE 'crtJ'
 
 typedef struct _JPTRCRP_FILE

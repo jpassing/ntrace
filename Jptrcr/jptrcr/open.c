@@ -126,6 +126,10 @@ static HRESULT JptrcrsPerformFileInventory(
 		{
 			return JPTRCR_E_TRUNCATED_CHUNK;
 		}
+		else if ( Chunk->Size > JPTRC_SEGMENT_SIZE )
+		{
+			return JPTRCR_E_CHUNK_STRADDLES_SEGMENT;
+		}
 
 		switch ( Chunk->Type )
 		{

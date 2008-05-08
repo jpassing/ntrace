@@ -30,11 +30,301 @@ typedef struct _JPTRCRP_CLIENT
 	JPTRCR_CLIENT Information;
 } JPTRCRP_CLIENT, *PJPTRCRP_CLIENT;
 
+typedef struct _JPTRCRP_CHUNK_REF
+{
+	LIST_ENTRY ListEntry;
+	ULONGLONG FileOffset;
+	PJPTRCRP_CLIENT Client;
+} JPTRCRP_CHUNK_REF, *PJPTRCRP_CHUNK_REF;
+
 typedef struct _JPTRCRP_CLIENT_ENUM_CONTEXT
 {
 	JPTRCR_ENUM_CLIENTS_ROUTINE Callback;
 	PVOID Context;
 } JPTRCRP_CLIENT_ENUM_CONTEXT, *PJPTRCRP_CLIENT_ENUM_CONTEXT;
+
+/*----------------------------------------------------------------------
+ *
+ * Private routines.
+ *
+ */
+
+static HRESULT JptrcrsEnumCalls(
+	__in PJPTRCRP_FILE File,
+	__in PJPTRCR_CALL_HANDLE CallerHandle,
+	__in BOOL SkipFirst,
+	__in BOOL IncludeAllTopLevelCalls,
+	__in JPTRCR_ENUM_CALLS_ROUTINE Callback,
+	__in_opt PVOID Context
+	)
+{
+	PLIST_ENTRY ListEntry;
+	PJPTRCRP_CHUNK_REF ChunkRef;
+	JPTRCR_CALL Call;
+	PJPTRCRP_CLIENT Client;
+	ULONG CurrentIndex;
+	LONG Depth = 0;
+	ULONG_PTR Procedure = 0;
+
+	ASSERT( File );
+	ASSERT( CallerHandle );
+	ASSERT( Callback );
+
+	CurrentIndex	= CallerHandle->Index;
+	ChunkRef		= ( PJPTRCRP_CHUNK_REF ) CallerHandle->Chunk;
+	Client			= ChunkRef->Client;
+
+	ZeroMemory( &Call, sizeof( JPTRCR_CALL ) );
+
+	//
+	// Beginning with the chunk referred to by ChunkRef (which may
+	// or may not be the first chunk of this client), we walk
+	// the list of sibling chunks.
+	//
+
+	ListEntry = &ChunkRef->ListEntry;
+	while ( ListEntry != &Client->ChunkRefListHead )
+	{
+		PJPTRC_TRACE_BUFFER_CHUNK32 Chunk;
+		PJPTRCRP_CHUNK_REF CurrentChunkRef;
+		HRESULT Hr;
+		ULONG TransitionCount;
+		
+		CurrentChunkRef = CONTAINING_RECORD(
+			ListEntry,
+			JPTRCRP_CHUNK_REF,
+			ListEntry );
+
+		ASSERT( CurrentChunkRef->Client == Client );
+
+		//
+		// Map in entire chunk.
+		//
+		Hr = JptrcrpMap( File, CurrentChunkRef->FileOffset, &Chunk );
+		if ( FAILED( Hr ) )
+		{
+			return Hr;
+		}
+
+		ASSERT( Chunk->Header.Type == JPTRC_CHUNK_TYPE_TRACE_BUFFER );
+		if ( Chunk->Header.Type != JPTRC_CHUNK_TYPE_TRACE_BUFFER )
+		{
+			return JPTRCR_E_INVALID_CALL_HANDLE;
+		}
+
+		//
+		// See how many tranitions this chunk holds.
+		//
+		ASSERT( ( ( Chunk->Header.Size - FIELD_OFFSET(
+			JPTRC_TRACE_BUFFER_CHUNK32, Transitions ) ) %
+			sizeof( JPTRC_PROCEDURE_TRANSITION32 ) ) == 0 );
+
+		TransitionCount = ( Chunk->Header.Size - FIELD_OFFSET(
+			JPTRC_TRACE_BUFFER_CHUNK32, Transitions ) ) /
+			sizeof( JPTRC_PROCEDURE_TRANSITION32 );
+
+		if ( CurrentIndex > TransitionCount )
+		{
+			return JPTRCR_E_INVALID_CALL_HANDLE;
+		}
+
+		if ( SkipFirst )
+		{
+			//
+			// Advance index - index may now be == TransitionCount,
+			// s.t. the loop is skipped and the next chunk will
+			// be examined.
+			//
+			CurrentIndex++;
+			SkipFirst = FALSE;
+		}
+
+		//
+		// Scan transitions of Depth 0.
+		//
+		for ( ; CurrentIndex < TransitionCount; CurrentIndex++ )
+		{
+			LONG DepthDelta;
+			BOOL IsEntry;
+			PJPTRC_PROCEDURE_TRANSITION32 Transition = 
+				&Chunk->Transitions[ CurrentIndex ];
+
+			switch ( Transition->Type )
+			{
+			case JPTRC_PROCEDURE_TRANSITION_ENTRY:
+				//
+				// Adjust depth at end of iteration.
+				//
+				ASSERT( Depth >= 0 );
+
+				DepthDelta = 1;
+				IsEntry = TRUE;
+				break;
+
+			case JPTRC_PROCEDURE_TRANSITION_EXIT:
+			case JPTRC_PROCEDURE_TRANSITION_EXCEPTION:
+				//
+				// Adjust depth immediately.
+				//
+				DepthDelta = 0;
+				Depth--;
+				IsEntry = FALSE;
+				break;
+
+			default:
+				return JPTRCR_E_INVALID_TRANSITION;
+			}
+
+			if ( Depth < 0 )
+			{
+				if ( IncludeAllTopLevelCalls )
+				{
+					ASSERT( ! IsEntry );
+
+					//
+					// We are enumerating top level calls and depth has
+					// dropped below 0. This should not happen, but
+					// is possible because of missed entry transitions. 
+					// If we were to stop here, the remaining calls of this 
+					// client can never be enumerated - this is bad. Therefore,
+					// we ignore this exit.
+					//
+					TRACE( ( L"Missing entry transition\n" ) );
+						
+					Depth = 0;
+				}
+				else
+				{
+					//
+					// Any subsequent transitions do not affect us any
+					// more - quit.
+					//
+					return S_OK;
+				}
+			}
+			else if ( Depth == 0 )
+			{
+				//
+				// Good one - either its the entry or the exit for
+				// a call we are interested in.
+				//
+				if ( IsEntry )
+				{
+					TRACE( ( L"Entry [Index %d]\n", CurrentIndex ) );
+
+					ASSERT( Call.CallHandle.Chunk == NULL );
+
+					//
+					// N.B. The entry transition is significamt for 
+					// examining child calls, not the exit transition.
+					//
+					Call.EntryType			= JptrcrNormalEntry;
+
+					Call.CallHandle.Chunk 	= CurrentChunkRef;
+					Call.CallHandle.Index 	= CurrentIndex;
+
+					Call.Procedure			= NULL;	// TODO
+					Call.Module				= NULL;	// TODO
+
+					Call.EntryTimestamp		= Transition->Timestamp;
+					Call.CallerIp			= Transition->Info.CallerIp;
+					
+					//
+					// The rest is captured on exit.
+					//
+					Procedure = Transition->Procedure;
+				}
+				else // Exit
+				{
+					TRACE( ( L"Exit [Index %d]\n", CurrentIndex ) );
+	
+					Call.ExitTimestamp = Transition->Timestamp;
+						
+					if ( Procedure != Transition->Procedure )
+					{
+						TRACE( ( L"Missing exit transition\n" ) );
+						
+						//
+						// Exit transition does not match entry transition -
+						// either an exit or an entry transition must have
+						// been lost. We try to avoid larger damage
+						// by introducing 2 synthetic transitions.
+						//
+
+						//
+						// End the previous call with a syntehtic exit.
+						//
+						Call.Result.ReturnValue	= 0;
+						Call.ExitType			= JptrcrSyntheticExit;
+
+						( Callback )( &Call, Context );
+
+						//
+						// Create a synthetic entry for this exit.
+						//
+						Call.EntryType			= JptrcrSyntheticEntry;
+
+						Call.CallHandle.Chunk 	= 0;
+						Call.CallHandle.Index 	= 0;
+
+						Call.Procedure			= NULL;	// TODO
+						Call.Module				= NULL;	// TODO
+
+						Call.EntryTimestamp		= Transition->Timestamp;
+						Call.CallerIp			= 0;
+
+						//
+						// Continue with exit handling.
+						//
+					}
+
+					if ( Transition->Type == JPTRC_PROCEDURE_TRANSITION_EXIT )
+					{
+						Call.ExitType			= JptrcrNormalExit;
+						Call.Result.ReturnValue = Transition->Info.ReturnValue;
+					}
+					else
+					{
+						ASSERT( Transition->Type == JPTRC_PROCEDURE_TRANSITION_EXCEPTION );
+
+						Call.ExitType			= JptrcrException;
+						Call.Result.ExceptionCode = Transition->Info.Exception.Code;
+					}
+
+					( Callback )( &Call, Context );
+
+					Procedure = 0;
+#if DBG
+					ZeroMemory( &Call, sizeof( JPTRCR_CALL ) );
+#else
+					Call.CallHandle.Chunk = NULL;
+#endif
+				}
+			}
+			else // Depth > 0
+			{
+				//TRACE( ( L"Indirect/Ignored [Index %d]\n", CurrentIndex ) );
+
+				//
+				// Indirect call - ignore.
+				//
+			}
+
+			//
+			// Adjust depth for subsequent iterations.
+			//
+			Depth += DepthDelta;
+		}
+
+		//
+		// Proceed at beginning of next chunk.
+		//
+		ListEntry		= ListEntry->Flink;
+		CurrentIndex	= 0;
+	}
+
+	return S_OK;
+}
 
 /*----------------------------------------------------------------------
  *
@@ -183,7 +473,8 @@ HRESULT JptrcrpRegisterTraceBufferClient(
 		return E_OUTOFMEMORY;
 	}
 
-	ChunkRef->FileOffset = ChunkOffset;
+	ChunkRef->FileOffset	= ChunkOffset;
+	ChunkRef->Client		= ClientData;
 	InsertTailList( &ClientData->ChunkRefListHead, &ChunkRef->ListEntry );
 
 	return S_OK;
@@ -213,6 +504,8 @@ VOID JptrcrpDeleteClient(
 			ListEntry,
 			JPTRCRP_CHUNK_REF,
 			ListEntry );
+
+		ASSERT( ChunkRef->Client == Client );
 
 		ListEntry = ListEntry->Flink;
 
@@ -253,4 +546,94 @@ HRESULT JptrcrEnumClients(
 		&EnumContext );
 
 	return S_OK;
+}
+
+HRESULT JptrcrEnumCalls(
+	__in JPTRCRHANDLE FileHandle,
+	__in PJPTRCR_CLIENT Client,
+	__in JPTRCR_ENUM_CALLS_ROUTINE Callback,
+	__in_opt PVOID Context
+	)
+{
+	PJPTRCRP_CLIENT ClientData;
+	PJPHT_HASHTABLE_ENTRY Entry;
+	PJPTRCRP_FILE File = ( PJPTRCRP_FILE ) FileHandle;
+	JPTRCR_CALL_HANDLE PseudoCallerHandle;
+
+	if ( File == NULL ||
+		 File->Signature != JPTRCRP_FILE_SIGNATURE ||
+		 Client == NULL ||
+		 Callback == NULL )
+	{
+		return E_INVALIDARG;
+	}
+
+	//
+	// Get client entry.
+	//
+	Entry = JphtGetEntryHashtable(
+		&File->ClientsTable,
+		( ULONG_PTR ) ( PVOID ) Client );
+	if ( Entry == NULL )
+	{
+		//
+		// Client unknown - no calls.
+		//
+		return S_FALSE;
+	}
+
+	ClientData = CONTAINING_RECORD(
+		Entry,
+		JPTRCRP_CLIENT,
+		u.HashtableEntry );
+
+	//
+	// Now we construct a pseudo CallerHandle that points to
+	// the very beginning of the first chunk of this client.
+	//
+	PseudoCallerHandle.Index = 0;
+	PseudoCallerHandle.Chunk = CONTAINING_RECORD(
+		ClientData->ChunkRefListHead.Flink,
+		JPTRCRP_CHUNK_REF,
+		ListEntry );
+
+	return JptrcrsEnumCalls(
+		File,
+		&PseudoCallerHandle,
+		FALSE,
+		TRUE,
+		Callback,
+		Context );
+}
+
+HRESULT JptrcrEnumChildCalls(
+	__in JPTRCRHANDLE FileHandle,
+	__in PJPTRCR_CALL_HANDLE CallerHandle,
+	__in JPTRCR_ENUM_CALLS_ROUTINE Callback,
+	__in_opt PVOID Context
+	)
+{
+	PJPTRCRP_FILE File = ( PJPTRCRP_FILE ) FileHandle;
+
+	if ( File == NULL ||
+		 File->Signature != JPTRCRP_FILE_SIGNATURE ||
+		 CallerHandle == NULL ||
+		 CallerHandle->Chunk == NULL ||
+		 Callback == NULL )
+	{
+		return E_INVALIDARG;
+	}
+
+	//
+	// If we passed CallerHandle, the same call would be examined. 
+	// Thus, we have to start at the first callee, which is one
+	// index further.
+	//
+	return JptrcrsEnumCalls(
+		File,
+		CallerHandle,
+		TRUE,
+		FALSE,
+		Callback,
+		Context );
 }
