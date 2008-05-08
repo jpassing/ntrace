@@ -104,6 +104,13 @@ typedef struct _JPTRCR_CALL
 	ULONGLONG ExitTimestamp;
 	ULONG CallerIp;
 
+	//
+	// Total number of direct and indirect child calls. The number
+	// may not be fully accurate if there are missing entry/exit
+	// transitions in the file.
+	//
+	ULONG ChildCalls;
+
 	union
 	{
 		//

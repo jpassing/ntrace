@@ -210,7 +210,7 @@ static HRESULT JptrcrsEnumCalls(
 				//
 				if ( IsEntry )
 				{
-					TRACE( ( L"Entry [Index %d]\n", CurrentIndex ) );
+					//TRACE( ( L"Entry [Index %d]\n", CurrentIndex ) );
 
 					ASSERT( Call.CallHandle.Chunk == NULL );
 
@@ -228,6 +228,8 @@ static HRESULT JptrcrsEnumCalls(
 
 					Call.EntryTimestamp		= Transition->Timestamp;
 					Call.CallerIp			= Transition->Info.CallerIp;
+
+					Call.ChildCalls			= 0;
 					
 					//
 					// The rest is captured on exit.
@@ -236,7 +238,7 @@ static HRESULT JptrcrsEnumCalls(
 				}
 				else // Exit
 				{
-					TRACE( ( L"Exit [Index %d]\n", CurrentIndex ) );
+					//TRACE( ( L"Exit [Index %d]\n", CurrentIndex ) );
 	
 					Call.ExitTimestamp = Transition->Timestamp;
 						
@@ -273,6 +275,8 @@ static HRESULT JptrcrsEnumCalls(
 						Call.EntryTimestamp		= Transition->Timestamp;
 						Call.CallerIp			= 0;
 
+						Call.ChildCalls			= 0;
+
 						//
 						// Continue with exit handling.
 						//
@@ -308,6 +312,10 @@ static HRESULT JptrcrsEnumCalls(
 				//
 				// Indirect call - ignore.
 				//
+				if ( IsEntry )
+				{
+					Call.ChildCalls++;
+				}
 			}
 
 			//

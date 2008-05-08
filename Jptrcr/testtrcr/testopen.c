@@ -60,7 +60,7 @@ static void ExpectNtfsModuleCallback(
 	TEST( 0 == _wcsicmp( Module->Name, L"ntfs.sys" ) );
 }
 
-static void ExpectSomeCallsCallback(
+static void ChildCallsCallback(
 	__in PJPTRCR_CALL Call,
 	__in_opt PVOID Context
 	)
@@ -70,9 +70,63 @@ static void ExpectSomeCallsCallback(
 	if ( ! Ctx ) return;
 	Ctx->Counter++;
 
-	UNREFERENCED_PARAMETER( Call );
-}
+	TEST( ! ( ( Call->EntryType == JptrcrSyntheticEntry ) && 
+		      ( Call->ExitType == JptrcrSyntheticExit ) ) );
+
+	//
+	// Recurse.
+	//
+	if ( Call->EntryType == JptrcrSyntheticEntry )
+	{
+		TEST( Call->ChildCalls == 0 );
 	
+		TEST_HR( E_INVALIDARG, 
+			JptrcrEnumChildCalls( Ctx->Handle, &Call->CallHandle, ChildCallsCallback, Ctx ) );
+	}
+	else
+	{
+		TEST_OK( JptrcrEnumChildCalls( Ctx->Handle, &Call->CallHandle, ChildCallsCallback, Ctx ) );
+	}
+}
+
+static void TopLevelCallsCallback(
+	__in PJPTRCR_CALL Call,
+	__in_opt PVOID Context
+	)
+{
+	PCALLBACK_CONTEXT Ctx = ( PCALLBACK_CONTEXT ) Context;
+	CALLBACK_CONTEXT ChildrenCtx;
+
+	TEST( Ctx );
+	if ( ! Ctx ) return;
+	Ctx->Counter++;
+
+	TEST( ! ( ( Call->EntryType == JptrcrSyntheticEntry ) && 
+		      ( Call->ExitType == JptrcrSyntheticExit ) ) );
+
+	if ( Call->EntryType == JptrcrSyntheticEntry )
+	{
+		TEST( Call->ChildCalls == 0 );
+
+		TEST_HR( E_INVALIDARG, 
+			JptrcrEnumChildCalls( Ctx->Handle, &Call->CallHandle, ChildCallsCallback, &ChildrenCtx ) );
+	}
+	else
+	{
+		//
+		// Walk all children and see if their count is correct.
+		//
+		ChildrenCtx.Counter = 0;
+		ChildrenCtx.Handle = Ctx->Handle;
+		TEST_OK( JptrcrEnumChildCalls( Ctx->Handle, &Call->CallHandle, ChildCallsCallback, &ChildrenCtx ) );
+
+		//
+		// Allow some bias due to missing tranitions
+		//
+		TEST( abs( ( LONG ) ChildrenCtx.Counter - ( LONG ) Call->ChildCalls ) <= 
+			  ( LONG ) ChildrenCtx.Counter / 20 + 5 );
+	}
+}
 
 static void ExpectSomeClientsCallback(
 	__in PJPTRCR_CLIENT Client,
@@ -86,12 +140,11 @@ static void ExpectSomeClientsCallback(
 	if ( ! Ctx ) return;
 	Ctx->Counter++;
 
-	//TEST( Client->ThreadId != 0 );
 	TEST( ( Client->ThreadId % 4 ) == 0 );
 
 	SubCtx.Handle = Ctx->Handle;
 	SubCtx.Counter = 0;
-	TEST_OK( JptrcrEnumCalls( Ctx->Handle, Client, ExpectSomeCallsCallback, &SubCtx ) );
+	TEST_OK( JptrcrEnumCalls( Ctx->Handle, Client, TopLevelCallsCallback, &SubCtx ) );
 
 	TEST( SubCtx.Counter > 0 );
 }
