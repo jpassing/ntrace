@@ -11,6 +11,7 @@
 #include "jpkfagp.h"
 
 #define JpkfagsPtrFromRva( base, rva ) ( ( ( PUCHAR ) base ) + rva )
+#define JpkfagsAlignUpToQword( p ) ( ( ( p ) + 15 ) & ~15 )
 
 typedef struct _JPKFAGP_IMAGE_INFO_EVENT
 {
@@ -280,10 +281,17 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 	)
 {
 	PIMAGE_DATA_DIRECTORY DebugDataDirectory;
+	PIMAGE_DEBUG_DIRECTORY DebugHeaders;
 	PJPKFAGP_IMAGE_INFO_EVENT Event;
-	ULONG EventSize;
+	ULONG Index;
+	ULONG NumberOfDebugDirs;
 	PJPKFAGP_DEF_EVENT_SINK Sink = ( PJPKFAGP_DEF_EVENT_SINK ) This;
 
+	ULONG StructAndPathSizeAligned;
+	ULONG DebugHeadersSize;
+	ULONG DebugDataSize;
+	ULONG EventSize;
+	
 	ASSERT( Sink );
 	ASSERT( KeGetCurrentIrql() == PASSIVE_LEVEL );
 	
@@ -301,12 +309,32 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 	// directory.
 	//
 
-	DebugDataDirectory = JpkfagsGetDebugDataDirectory( ImageLoadAddress );
+	DebugDataDirectory	= JpkfagsGetDebugDataDirectory( ImageLoadAddress );
+	DebugHeaders		= ( PIMAGE_DEBUG_DIRECTORY )
+		JpkfagsPtrFromRva( ImageLoadAddress, DebugDataDirectory->VirtualAddress );
 
+	ASSERT( ( DebugDataDirectory->Size % sizeof( IMAGE_DEBUG_DIRECTORY ) ) == 0 );
+	NumberOfDebugDirs = DebugDataDirectory->Size / sizeof( IMAGE_DEBUG_DIRECTORY );
 
-	EventSize = ( USHORT ) RTL_SIZEOF_THROUGH_FIELD( 
+	//
+	// Calculate space requirements.
+	//
+	StructAndPathSizeAligned = RTL_SIZEOF_THROUGH_FIELD( 
 		JPKFAGP_IMAGE_INFO_EVENT,
-		Event.Path[ Path->Length ] ) + DebugDataDirectory->Size;
+		Event.Path[ Path->Length ] );
+	StructAndPathSizeAligned = JpkfagsAlignUpToQword( StructAndPathSizeAligned );
+
+	DebugHeadersSize = DebugDataDirectory->Size;
+
+	DebugDataSize = 0;
+	for ( Index = 0; Index < NumberOfDebugDirs; Index++ )
+	{
+		DebugDataSize += DebugHeaders[ Index ].SizeOfData;
+	}
+
+	EventSize = StructAndPathSizeAligned + 
+		DebugHeadersSize +
+		DebugDataSize;
 
 	//
 	// Round up EventSize s.t. it adheres to JPTRC_CHUNK_ALIGNMENT.
@@ -327,8 +355,13 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 
 	if ( Event != NULL )
 	{
-		PCHAR DebugDataStart;
-		PCHAR PaddingStart;
+		//
+		// Pointers into event structure.
+		//
+		PIMAGE_DEBUG_DIRECTORY EventDebugHeaders;
+		PUCHAR EventDebugHeadersStart;
+		PUCHAR EventDebugDataStart;
+		PUCHAR EventPaddingStart;
 
 		Event->Event.Header.Type		= JPTRC_CHUNK_TYPE_IMAGE_INFO;
 		Event->Event.Header.Reserved	= 0;
@@ -344,27 +377,55 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 			Path->Length );
 
 		//
-		// The debug data follows.
+		// The debug headers (IMAGE_DEBUG_DIRECTORY structs) follow. They
+		// are contigous, so copy in one batch.
 		//
-		DebugDataStart = &Event->Event.Path[ Path->Length ];
+		EventDebugHeadersStart = ( PUCHAR ) &Event->Event + StructAndPathSizeAligned;
+		EventDebugHeaders = ( PIMAGE_DEBUG_DIRECTORY ) EventDebugHeadersStart;
+
 		RtlCopyMemory( 
-			DebugDataStart,
-			JpkfagsPtrFromRva( ImageLoadAddress, DebugDataDirectory->VirtualAddress ),
-			DebugDataDirectory->Size );
-		Event->Event.DebugDirectorySize = ( USHORT ) DebugDataDirectory->Size;
+			EventDebugHeadersStart,
+			DebugHeaders,
+			DebugHeadersSize );
+		Event->Event.DebugDirectorySize = ( USHORT ) DebugHeadersSize;
 		Event->Event.DebugDirectoryOffset = 
-			( USHORT ) ( DebugDataStart - ( PCHAR ) Event );
+			( USHORT ) ( EventDebugHeadersStart - ( PUCHAR ) &Event->Event );
+		Event->Event.DebugSize = ( USHORT ) ( DebugHeadersSize + DebugDataSize );
+
+		//
+		// The debug data follows. Copy each in turn and fix up
+		// the pointers in the IMAGE_DEBUG_DIRECTORY structs.
+		//
+		EventDebugDataStart = EventDebugHeadersStart + DebugHeadersSize;
+		for ( Index = 0; Index < NumberOfDebugDirs; Index++ )
+		{
+			RtlCopyMemory( 
+				EventDebugDataStart,
+				JpkfagsPtrFromRva( 
+					ImageLoadAddress, 
+					DebugHeaders[ Index ].AddressOfRawData ),
+				DebugHeaders[ Index ].SizeOfData );
+
+			//
+			// Fixup.
+			//
+			EventDebugHeaders[ Index ].AddressOfRawData = 0;
+			EventDebugHeaders[ Index ].PointerToRawData = ( ULONG ) 
+				( EventDebugDataStart - ( ( PUCHAR ) &EventDebugHeaders[ Index ] ) );
+
+			EventDebugDataStart += DebugHeaders[ Index ].SizeOfData;
+		}
 
 		//
 		// Zero out padding space to avoid writing arbitrary content
 		// to disk.
 		//
-		PaddingStart = DebugDataStart + DebugDataDirectory->Size;
-		ASSERT( PaddingStart <= ( PCHAR ) &Event->Event + EventSize );
+		EventPaddingStart = EventDebugDataStart;
+		ASSERT( EventPaddingStart <= ( PUCHAR ) &Event->Event + EventSize );
 
 		RtlZeroMemory(
-			PaddingStart,
-			( PCHAR ) &Event->Event + EventSize - PaddingStart );
+			EventPaddingStart,
+			( PUCHAR ) &Event->Event + EventSize - EventPaddingStart );
 
 		//
 		// Enqueue.

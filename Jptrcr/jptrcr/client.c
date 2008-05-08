@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <jptrcrp.h>
 
+#define JPTRCRP_MAX_SYM_LENGTH	64
+
 typedef struct _JPTRCRP_CLIENT
 {
 	union
@@ -43,11 +45,58 @@ typedef struct _JPTRCRP_CLIENT_ENUM_CONTEXT
 	PVOID Context;
 } JPTRCRP_CLIENT_ENUM_CONTEXT, *PJPTRCRP_CLIENT_ENUM_CONTEXT;
 
+typedef struct _JPTRCRP_SYMBOL_INFO
+{
+	SYMBOL_INFO Info;
+	WCHAR __NameBuffer[ JPTRCRP_MAX_SYM_LENGTH - 1 ];
+} JPTRCRP_SYMBOL_INFO, *PJPTRCRP_SYMBOL_INFO;
+
 /*----------------------------------------------------------------------
  *
  * Private routines.
  *
  */
+
+static VOID JptrcrsResolveSymbolAndDeliverCallback(
+	__in PJPTRCRP_FILE File,
+	__in PJPTRCR_CALL Call,
+	__in JPTRCR_ENUM_CALLS_ROUTINE Callback,
+	__in_opt PVOID Context
+	)
+{
+	DWORD64 Displacement;
+	JPTRCRP_SYMBOL_INFO SymbolInfo;
+
+	ASSERT( File );
+	ASSERT( Call );
+	ASSERT( Callback );
+
+	SymbolInfo.Info.SizeOfStruct	= sizeof( SYMBOL_INFO );
+	SymbolInfo.Info.MaxNameLen		= JPTRCRP_MAX_SYM_LENGTH;
+
+	if ( SymFromAddr(
+		File->SymHandle,
+		Call->Procedure,
+		&Displacement,
+		&SymbolInfo.Info ) )
+	{
+		ASSERT( Displacement == 0 );
+	
+		Call->Symbol = &SymbolInfo.Info;
+
+		VERIFY( S_OK == JptrcrGetModule( 
+			File, 
+			SymbolInfo.Info.ModBase,
+			&Call->Module ) );
+	}
+	else
+	{
+		Call->Symbol = NULL;
+		Call->Module = NULL;
+	}
+
+	( Callback )( Call, Context );
+}
 
 static HRESULT JptrcrsEnumCalls(
 	__in PJPTRCRP_FILE File,
@@ -64,7 +113,6 @@ static HRESULT JptrcrsEnumCalls(
 	PJPTRCRP_CLIENT Client;
 	ULONG CurrentIndex;
 	LONG Depth = 0;
-	ULONG_PTR Procedure = 0;
 
 	ASSERT( File );
 	ASSERT( CallerHandle );
@@ -215,7 +263,7 @@ static HRESULT JptrcrsEnumCalls(
 					ASSERT( Call.CallHandle.Chunk == NULL );
 
 					//
-					// N.B. The entry transition is significamt for 
+					// N.B. The entry transition is significant for 
 					// examining child calls, not the exit transition.
 					//
 					Call.EntryType			= JptrcrNormalEntry;
@@ -223,8 +271,7 @@ static HRESULT JptrcrsEnumCalls(
 					Call.CallHandle.Chunk 	= CurrentChunkRef;
 					Call.CallHandle.Index 	= CurrentIndex;
 
-					Call.Procedure			= NULL;	// TODO
-					Call.Module				= NULL;	// TODO
+					Call.Procedure			= Transition->Procedure;
 
 					Call.EntryTimestamp		= Transition->Timestamp;
 					Call.CallerIp			= Transition->Info.CallerIp;
@@ -234,7 +281,6 @@ static HRESULT JptrcrsEnumCalls(
 					//
 					// The rest is captured on exit.
 					//
-					Procedure = Transition->Procedure;
 				}
 				else // Exit
 				{
@@ -242,7 +288,7 @@ static HRESULT JptrcrsEnumCalls(
 	
 					Call.ExitTimestamp = Transition->Timestamp;
 						
-					if ( Procedure != Transition->Procedure )
+					if ( Call.Procedure != Transition->Procedure )
 					{
 						TRACE( ( L"Missing exit transition\n" ) );
 						
@@ -259,7 +305,11 @@ static HRESULT JptrcrsEnumCalls(
 						Call.Result.ReturnValue	= 0;
 						Call.ExitType			= JptrcrSyntheticExit;
 
-						( Callback )( &Call, Context );
+						JptrcrsResolveSymbolAndDeliverCallback(
+							File,
+							&Call,
+							Callback,
+							Context );
 
 						//
 						// Create a synthetic entry for this exit.
@@ -269,8 +319,7 @@ static HRESULT JptrcrsEnumCalls(
 						Call.CallHandle.Chunk 	= 0;
 						Call.CallHandle.Index 	= 0;
 
-						Call.Procedure			= NULL;	// TODO
-						Call.Module				= NULL;	// TODO
+						Call.Procedure			= Transition->Procedure;
 
 						Call.EntryTimestamp		= Transition->Timestamp;
 						Call.CallerIp			= 0;
@@ -295,9 +344,13 @@ static HRESULT JptrcrsEnumCalls(
 						Call.Result.ExceptionCode = Transition->Info.Exception.Code;
 					}
 
-					( Callback )( &Call, Context );
+					JptrcrsResolveSymbolAndDeliverCallback(
+						File,
+						&Call,
+						Callback,
+						Context );
 
-					Procedure = 0;
+					Call.Procedure = 0;
 #if DBG
 					ZeroMemory( &Call, sizeof( JPTRCR_CALL ) );
 #else

@@ -121,7 +121,7 @@ Encountered invalid transition type in file.
 MessageId		= 0x940c
 Severity		= Error
 Facility		= Interface
-SymbolicName	= JPTRCR_E_CORRUPT
+SymbolicName	= JPTRCR_E_MODULE_UNKNOWN
 Language		= English
-File corrupt.
+Unknown module.
 .

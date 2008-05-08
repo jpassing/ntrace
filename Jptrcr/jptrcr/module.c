@@ -16,10 +16,12 @@ typedef struct _JPTRCRP_LOADED_MODULE
 	union
 	{
 		//
-		// N.B. Although truncated on 32bit platforms, ULONG_PTR
-		// is suffient to be unique.
+		// Backpointer to JPTRCRP_LOADED_MODULE::Information::LoadAddress.
 		//
-		ULONG_PTR LoadAddress;
+		// For WOW64, the load address does not fit into a ULONG_PTR, 
+		// therefore we have to use this indirection.
+		//
+		PULONGLONG LoadAddress;
 		JPHT_HASHTABLE_ENTRY HashtableEntry;
 	} u;
 
@@ -43,13 +45,15 @@ typedef struct _JPTRCRP_ENUM_CONTEXT
  */
 
 ULONG JptrcrpHashModule(
-	__in ULONG_PTR LoadAddress
+	__in ULONG_PTR LoadAddressPtr
 	)
 {
+	PULONGLONG LoadAddress = ( PULONGLONG ) ( PVOID ) LoadAddressPtr;
+
 	//
 	// Truncate.
 	//
-	return ( ULONG ) LoadAddress;
+	return ( ULONG ) *LoadAddress;
 }
 
 BOOLEAN JptrcrpEqualsModule(
@@ -57,11 +61,14 @@ BOOLEAN JptrcrpEqualsModule(
 	__in ULONG_PTR KeyRhs
 	)
 {
+	PULONGLONG LoadAddressLhs = ( PULONGLONG ) ( PVOID ) KeyLhs;
+	PULONGLONG LoadAddressRhs = ( PULONGLONG ) ( PVOID ) KeyRhs;
+
 	//
 	// ULONG_PTR is long enough to be unique, simple comparison is 
 	// therefore ok.
 	//
-	return ( KeyLhs == KeyRhs ) ? TRUE : FALSE;
+	return ( *LoadAddressLhs == *LoadAddressRhs ) ? TRUE : FALSE;
 }
 
 VOID JptrcrpRemoveAndDeleteModule(
@@ -127,8 +134,8 @@ HRESULT JptrcrpLoadModule(
 	__in ULONGLONG LoadAddress,
 	__in ULONG Size,
 	__in PANSI_STRING NtPathOfModule,
-	__in USHORT DebugDirSize,
-	__in_bcount( DebugDirSize ) PIMAGE_DEBUG_DIRECTORY DebugDir,
+	__in USHORT DebugSize,
+	__in_bcount( DebugSize ) PIMAGE_DEBUG_DIRECTORY DebugDir,
 	__out PJPTRCRP_LOADED_MODULE *LoadedModule
 	)
 {
@@ -142,7 +149,7 @@ HRESULT JptrcrpLoadModule(
 	ASSERT( LoadAddress > 0 );
 	ASSERT( Size > 0 );
 	ASSERT( NtPathOfModule );
-	ASSERT( DebugDirSize > 0 );
+	ASSERT( DebugSize > 0 );
 	ASSERT( DebugDir );
 	ASSERT( LoadedModule );
 
@@ -195,7 +202,7 @@ HRESULT JptrcrpLoadModule(
 	ModLoadData.ssize	= sizeof( MODLOAD_DATA );
 	ModLoadData.ssig	= DBHHEADER_DEBUGDIRS;
 	ModLoadData.data	= DebugDir;
-	ModLoadData.size	= DebugDirSize;
+	ModLoadData.size	= DebugSize;
 	ModLoadData.flags	= 0;
 
 	SymBase = SymLoadModuleEx(
@@ -216,7 +223,7 @@ HRESULT JptrcrpLoadModule(
 	Module->SymbolsLoaded			= ( SymBase != 0 );
 	Module->File					= File;
 
-	Module->u.LoadAddress			= ( ULONG_PTR ) LoadAddress;
+	Module->u.LoadAddress			= &Module->Information.LoadAddress;
 	
 	JphtPutEntryHashtable(
 		&File->ModulesTable,
@@ -286,6 +293,43 @@ HRESULT JptrcrEnumModules(
 		&File->ModulesTable,
 		JptrcrsEnumModules,
 		&EnumContext );
+
+	return S_OK;
+}
+
+HRESULT JptrcrGetModule(
+	__in PJPTRCRP_FILE File,
+	__in ULONGLONG LoadAddress,
+	__out PJPTRCR_MODULE *Module 
+	)
+{
+	PJPHT_HASHTABLE_ENTRY Entry;
+	PJPTRCRP_LOADED_MODULE LoadedModule;
+	
+	if ( File == NULL ||
+		 File->Signature != JPTRCRP_FILE_SIGNATURE ||
+		 LoadAddress == 0 ||
+		 Module == NULL )
+	{
+		return E_INVALIDARG;
+	}
+
+	*Module = NULL;
+
+	Entry = JphtGetEntryHashtable( 
+		&File->ModulesTable,
+		( ULONG_PTR ) &LoadAddress );
+	if ( Entry == NULL )
+	{
+		return JPTRCR_E_MODULE_UNKNOWN;
+	}
+
+	LoadedModule = CONTAINING_RECORD(
+		Entry,
+		JPTRCRP_LOADED_MODULE,
+		u.HashtableEntry );
+
+	*Module = &LoadedModule->Information;
 
 	return S_OK;
 }

@@ -92,7 +92,17 @@ typedef struct _JPTRCR_CALL
 	//
 	JPTRCR_CALL_HANDLE CallHandle;
 
-	PSYMBOL_INFO Procedure;
+	ULONGLONG Procedure;
+
+	//
+	// Symbol information, may be NULL if symbols are unavailable.
+	//
+	PSYMBOL_INFO Symbol;
+
+	//
+	// Module containing affected procedure. May be NULL if symbols are 
+	// unavailable.
+	//
 	PJPTRCR_MODULE Module;
 
 	ULONGLONG EntryTimestamp;

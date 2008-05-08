@@ -133,8 +133,8 @@ HRESULT JptrcrpLoadModule(
 	__in ULONGLONG LoadAddress,
 	__in ULONG Size,
 	__in PANSI_STRING NtPathOfModule,
-	__in USHORT DebugDirSize,
-	__in_bcount( DebugDirSize ) PIMAGE_DEBUG_DIRECTORY DebugDir,
+	__in USHORT DebugSize,
+	__in_bcount( DebugSize ) PIMAGE_DEBUG_DIRECTORY DebugDir,
 	__out PJPTRCRP_LOADED_MODULE *LoadedModule
 	);
 
@@ -145,6 +145,22 @@ HRESULT JptrcrpLoadModule(
 --*/
 VOID JptrcrpDeleteModule(
 	__in PJPTRCRP_LOADED_MODULE Module 
+	);
+
+/*++
+	Routine Description:
+		Lookup a module by its load address. The pointer is valid
+		as long as the file remains open.
+
+	Return Value:
+		S_OK on success.
+		JPTRCR_E_MODULE_UNKNOWN is module is unknown.
+		Any other failure HRESULT.
+--*/
+HRESULT JptrcrGetModule(
+	__in PJPTRCRP_FILE File,
+	__in ULONGLONG LoadAddress,
+	__out PJPTRCR_MODULE *Module 
 	);
 
 /*----------------------------------------------------------------------

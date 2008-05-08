@@ -154,6 +154,29 @@ typedef struct _JPTRC_TRACE_BUFFER_CHUNK32
 	JPTRC_PROCEDURE_TRANSITION32 Transitions[ ANYSIZE_ARRAY ];
 } JPTRC_TRACE_BUFFER_CHUNK32, *PJPTRC_TRACE_BUFFER_CHUNK32;
 
+/*++
+	Structure Description:
+		Information about a module that has been involved in
+		tracing activity. The structure is of variable length and
+		structured as follows:
+
+		+-----------------------------------------+
+		| JPTRC_IMAGE_INFO_CHUNK members          |
+		+-----------------------------------------+
+		| Path                                    |
+		+-[qword aligned]-------------------------+
+		| Sequence of IMAGE_DEBUG_DIRECTORY       |
+		| (at offset DebugDirectoryOffset)        |
+		+-----------------------------------------+
+		| Debug data referred to by debug dirs    |
+		| (offset: see below)                     |
+		+-[JPTRC_CHUNK_ALIGNMENT aligned]---------+
+
+		IMAGE_DEBUG_DIRECTORY::AddressOfRawData is 0.
+		IMAGE_DEBUG_DIRECTORY::PointerToRawData contains
+			offset of debug data, relative to base pointer of
+			own structure.
+--*/
 typedef struct _JPTRC_IMAGE_INFO_CHUNK
 {
 	JPTRC_CHUNK_HEADER Header;
@@ -169,6 +192,11 @@ typedef struct _JPTRC_IMAGE_INFO_CHUNK
 	//
 	USHORT DebugDirectoryOffset;
 	USHORT DebugDirectorySize;
+
+	//
+	// Total size of IMAGE_DEBUG_DIRECTORY and debug data.
+	//
+	USHORT DebugSize;
 
 	//
 	// Module path - in NT format.

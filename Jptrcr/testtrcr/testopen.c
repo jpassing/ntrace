@@ -38,12 +38,12 @@ static void TestOpenTruncatedFile()
 		DATA_DIR L"truncated.jtrc" , &Handle ) );
 }
 
-static void TestOpenSimpleFile()
-{
-	JPTRCRHANDLE Handle;
-	TEST_OK( JptrcrOpenFile( DATA_DIR L"simple.jtrc" , &Handle ) );
-	TEST_OK( JptrcrCloseFile( Handle ) );
-}
+//static void TestOpenSimpleFile()
+//{
+//	JPTRCRHANDLE Handle;
+//	TEST_OK( JptrcrOpenFile( DATA_DIR L"simple.jtrc" , &Handle ) );
+//	TEST_OK( JptrcrCloseFile( Handle ) );
+//}
 
 static void ExpectNtfsModuleCallback(
 	__in PJPTRCR_MODULE Module,
@@ -72,6 +72,8 @@ static void ChildCallsCallback(
 
 	TEST( ! ( ( Call->EntryType == JptrcrSyntheticEntry ) && 
 		      ( Call->ExitType == JptrcrSyntheticExit ) ) );
+
+	//OutputDebugString( Call->Symbol->Name );
 
 	//
 	// Recurse.
@@ -103,6 +105,9 @@ static void TopLevelCallsCallback(
 
 	TEST( ! ( ( Call->EntryType == JptrcrSyntheticEntry ) && 
 		      ( Call->ExitType == JptrcrSyntheticExit ) ) );
+
+	TEST( Call->Symbol != NULL );
+	TEST( Call->Module != NULL );
 
 	if ( Call->EntryType == JptrcrSyntheticEntry )
 	{
@@ -177,6 +182,6 @@ static void TestOpenNtfsFile()
 CFIX_BEGIN_FIXTURE( OpenClose )
 	CFIX_FIXTURE_ENTRY( TestOpenInvalidFile )
 	CFIX_FIXTURE_ENTRY( TestOpenTruncatedFile )
-	CFIX_FIXTURE_ENTRY( TestOpenSimpleFile )
+//	CFIX_FIXTURE_ENTRY( TestOpenSimpleFile )
 	CFIX_FIXTURE_ENTRY( TestOpenNtfsFile )
 CFIX_END_FIXTURE()

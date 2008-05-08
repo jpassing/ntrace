@@ -150,11 +150,11 @@
 #define JPTRCR_E_INVALID_TRANSITION      ((HRESULT)0xC004940BL)
 
 //
-// MessageId: JPTRCR_E_CORRUPT
+// MessageId: JPTRCR_E_MODULE_UNKNOWN
 //
 // MessageText:
 //
-// File corrupt.
+// Unknown module.
 //
-#define JPTRCR_E_CORRUPT                 ((HRESULT)0xC004940CL)
+#define JPTRCR_E_MODULE_UNKNOWN          ((HRESULT)0xC004940CL)
 

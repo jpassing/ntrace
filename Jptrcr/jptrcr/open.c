@@ -71,7 +71,7 @@ static HRESULT JptrcrsLoadModuleForImage(
 		Chunk->LoadAddress,
 		Chunk->Size,
 		&Path,
-		Chunk->DebugDirectorySize,
+		Chunk->DebugSize,
 		( PIMAGE_DEBUG_DIRECTORY ) 
 			( ( PUCHAR ) Chunk + Chunk->DebugDirectoryOffset ),
 		&Module );
