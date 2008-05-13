@@ -26,6 +26,10 @@
 #define JPTRCRCALLTYPE __stdcall
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef PVOID JPTRCRHANDLE;
 
 /*++
@@ -226,3 +230,7 @@ JPTRCRAPI HRESULT JPTRCRCALLTYPE JptrcrEnumChildCalls(
 	__in JPTRCR_ENUM_CALLS_ROUTINE Callback,
 	__in_opt PVOID Context
 	);
+
+#ifdef __cplusplus
+} // extern "C" 
+#endif

@@ -338,6 +338,11 @@ HRESULT JptrcrOpenFile(
 	// File opened and appears to be valid, perform inventory.
 	//
 	Hr = JptrcrsPerformFileInventory( File );
+	if ( FAILED( Hr ) )
+	{
+		goto Cleanup;
+	}
+
 	*Handle = File;
 
 Cleanup:
