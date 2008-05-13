@@ -75,7 +75,7 @@ void CColumnTreeCtrl::OnPaint()
 	dcMem.DeleteDC();
 }
 
-BOOL CColumnTreeCtrl::OnEraseBkgnd(CDC* pDC)
+BOOL CColumnTreeCtrl::OnEraseBkgnd(CDC*)
 {
 	return TRUE;	// do nothing
 }

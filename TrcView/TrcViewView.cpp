@@ -3,6 +3,8 @@
 #include "TrcViewDoc.h"
 #include "TrcViewView.h"
 
+#include <list.h>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -16,28 +18,24 @@ END_MESSAGE_MAP()
 
 /*----------------------------------------------------------------------
  * 
- * Node classes. Instances of these classes are atteched to the tree
+ * Node classes. Instances of these classes are attached to the tree
  * nodes to carry context information.
  *
  */
-class INode
-{
-public:
-	virtual HRESULT Enumerate(
-		__in JPTRCRHANDLE FileHandle,
-		__in JPTRCR_ENUM_CALLS_ROUTINE Callback,
-		__in_opt PVOID Context
-		) PURE;
-};
 
-class ClientNode : public INode
+/*++
+	Class description:
+		Client nodes. Only exist at top level.
+--*/
+class ClientNode : public CallNode
 {
 private:
 	JPTRCR_CLIENT Client;
 
 public:
-	ClientNode( PJPTRCR_CLIENT Client )
+	ClientNode( RootNode& Parent, PJPTRCR_CLIENT Client )
 	{
+		Parent.AddChild( *this );
 		this->Client = *Client;
 	}
 
@@ -55,14 +53,19 @@ public:
 	}
 };
 
-class ChildNode : public INode
+/*++
+	Class description:
+		Child calls.
+--*/
+class ChildNode : public CallNode
 {
 private:
 	JPTRCR_CALL_HANDLE CallerHandle;
 
 public:
-	ChildNode( PJPTRCR_CALL_HANDLE CallerHandle )
+	ChildNode( CallNode& Parent, PJPTRCR_CALL_HANDLE CallerHandle )
 	{
+		Parent.AddChild( *this );
 		this->CallerHandle = *CallerHandle;
 	}
 
@@ -83,12 +86,48 @@ public:
 struct CHILD_CALLBACK_CONTEXT
 {
 	HTREEITEM ParentItem;
+	CallNode *ParentNode;
 	CTrcViewView *View;
 };
 
 /*----------------------------------------------------------------------
  * 
- * Privates.
+ * CallNode implementation.
+ *
+ */
+
+CallNode::CallNode()
+{
+	InitializeListHead( &this->ChildrenListHead );
+}
+
+void CallNode::AddChild( CallNode& Child )
+{
+	InsertTailList( &this->ChildrenListHead, &Child.ListEntry );
+}
+
+CallNode::~CallNode()
+{
+	//
+	// Delete all my children.
+	//
+	PLIST_ENTRY ListEntry = this->ChildrenListHead.Flink;
+	while ( ListEntry != &this->ChildrenListHead )
+	{
+		CallNode* Child = CONTAINING_RECORD(
+			ListEntry,
+			CallNode,
+			ListEntry );
+		ListEntry = ListEntry->Flink;
+
+		delete Child;
+	}
+}
+
+
+/*----------------------------------------------------------------------
+ * 
+ * CTrcViewView implementation.
  *
  */
 
@@ -113,7 +152,8 @@ void __stdcall CTrcViewView::EnumClientsCallback(
 	Node.hInsertAfter = TVI_LAST;
 	Node.item.mask = TVIF_CHILDREN | TVIF_TEXT | TVIF_PARAM;
 	Node.item.pszText = Caption.GetBuffer();
-	Node.item.lParam = ( LONG_PTR ) ( PVOID ) new ClientNode( Client );
+	Node.item.lParam = ( LONG_PTR ) ( PVOID ) 
+		new ClientNode( View->Root, Client );
 	Node.item.cChildren = 1;
 
 	tree.InsertItem( &Node );
@@ -166,7 +206,8 @@ void __stdcall CTrcViewView::EnumCallsCallback(
 	Node.item.mask = TVIF_CHILDREN | TVIF_TEXT | TVIF_PARAM;
 	Node.item.pszText = Caption.GetBuffer();
 	Node.item.cChildren = Call->ChildCalls > 0 ? 1 : 0;
-	Node.item.lParam = ( LONG_PTR ) ( PVOID ) new ChildNode( &Call->CallHandle );
+	Node.item.lParam = ( LONG_PTR ) ( PVOID ) 
+		new ChildNode( *Context->ParentNode, &Call->CallHandle );
 
 	tree.InsertItem( &Node );
 }
@@ -296,12 +337,13 @@ void CTrcViewView::OnExpanding( NMHDR *Hdr, LRESULT *Lresult )
 	LPNMTREEVIEW Notif = ( LPNMTREEVIEW ) Hdr;
 	if ( Notif->action == TVE_EXPAND )
 	{
-		INode* Node = ( INode* ) ( PVOID ) Notif->itemNew.lParam;
+		CallNode* Node = ( CallNode* ) ( PVOID ) Notif->itemNew.lParam;
 		ASSERT( Node );
 
 		CHILD_CALLBACK_CONTEXT Context;
 		Context.View = this;
 		Context.ParentItem = Notif->itemNew.hItem;
+		Context.ParentNode = Node;
 
 		Node->Enumerate( 
 			GetDocument()->GetTraceHandle(),

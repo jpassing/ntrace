@@ -10,11 +10,62 @@
 
 #include "MCTree/ColumnTreeView.h"
 
+/*++
+	Class description:
+		Abstract base class of nodes.
+--*/
+class CallNode
+{
+private:
+	//
+	// List containing children.
+	//
+	LIST_ENTRY ChildrenListHead;
+	
+	//
+	// List entry for children list of parent.
+	//
+	LIST_ENTRY ListEntry;
 
+public:
+	CallNode();
+	~CallNode();
+
+	void AddChild( CallNode& Child );
+
+	virtual HRESULT Enumerate(
+		__in JPTRCRHANDLE FileHandle,
+		__in JPTRCR_ENUM_CALLS_ROUTINE Callback,
+		__in_opt PVOID Context
+		) PURE;
+};
+
+/*++
+	Class description:
+		Pseudo root node. 
+--*/
+class RootNode : public CallNode
+{
+	virtual HRESULT Enumerate(
+		__in JPTRCRHANDLE,
+		__in JPTRCR_ENUM_CALLS_ROUTINE,
+		__in_opt PVOID
+		)
+	{
+		ASSERT( !"Cannot enumeratr RootNode" );
+		return E_NOTIMPL;
+	}
+};
+
+/*++
+	Class description:
+		MFC View.
+--*/
 class CTrcViewView : public CColumnTreeView
 {
 private:
 	BOOL ColumnsCreated;
+	RootNode Root;
 
 	void ReloadClients();
 
