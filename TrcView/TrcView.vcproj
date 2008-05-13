@@ -17,7 +17,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="..\bin\chk\i386"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			UseOfMFC="2"
@@ -44,12 +44,13 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="..\include; ..\..\cfix\include"
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
-				WarningLevel="3"
+				WarningLevel="4"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
 			/>
@@ -67,7 +68,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="jptrcr.lib cdiag.lib"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="$(OutDir); ..\..\cfix\bin\$(OutDir)"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -99,7 +102,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="..\bin\fre\i386"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			UseOfMFC="2"
@@ -126,6 +129,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="..\include; ..\..\cfix\include"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
 				MinimalRebuild="false"
 				RuntimeLibrary="2"
@@ -148,7 +152,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="jptrcr.lib cdiag.lib"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="$(OutDir); ..\..\cfix\bin\$(OutDir)"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -194,6 +200,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\MainFrm.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource.h"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
@@ -214,7 +228,15 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\stdafx.h"
+				>
+			</File>
+			<File
 				RelativePath=".\TrcView.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TrcView.h"
 				>
 			</File>
 			<File
@@ -222,7 +244,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TrcViewDoc.h"
+				>
+			</File>
+			<File
 				RelativePath=".\TrcViewView.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TrcViewView.h"
 				>
 			</File>
 			<Filter
@@ -252,27 +282,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\MainFrm.h"
+				RelativePath="..\..\cfix\include\cdiag.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Resource.h"
-				>
-			</File>
-			<File
-				RelativePath=".\stdafx.h"
-				>
-			</File>
-			<File
-				RelativePath=".\TrcView.h"
-				>
-			</File>
-			<File
-				RelativePath=".\TrcViewDoc.h"
-				>
-			</File>
-			<File
-				RelativePath=".\TrcViewView.h"
+				RelativePath="..\include\jptrcr.h"
 				>
 			</File>
 		</Filter>

@@ -1,38 +1,42 @@
-// TrcViewDoc.h : interface of the CTrcViewDoc class
-//
-
-
 #pragma once
 
+/*----------------------------------------------------------------------
+ * Purpose:
+ *		Document - wrapper for a JPTRCR handle.
+ *
+ * Copyright:
+ *		Johannes Passing (johannes.passing@googlemail.com)
+ */
+
+#include <jptrcr.h>
 
 class CTrcViewDoc : public CDocument
 {
-protected: // create from serialization only
+private:
+	JPTRCRHANDLE Handle;
+
+protected: 
 	CTrcViewDoc();
+
 	DECLARE_DYNCREATE(CTrcViewDoc)
 
-// Attributes
 public:
-
-// Operations
-public:
-
-// Overrides
-public:
+	virtual BOOL OnOpenDocument(
+		LPCTSTR lpszPathName 
+		);
+	
 	virtual BOOL OnNewDocument();
-	virtual void Serialize(CArchive& ar);
 
-// Implementation
-public:
+	BOOL IsLoaded();
+	JPTRCRHANDLE GetTraceHandle();
+
 	virtual ~CTrcViewDoc();
+
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
-protected:
-
-// Generated message map functions
 protected:
 	DECLARE_MESSAGE_MAP()
 };

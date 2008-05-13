@@ -195,6 +195,7 @@ END
 STRINGTABLE 
 BEGIN
     IDR_MAINFRAME           "TrcView\n\nTrcView\n\n\nTrcView.Document\nTrcView.Document"
+    IDS_CLIENT_CAPTION      "Process %d (0x%x), Thread %d (0x%x)"
 END
 
 STRINGTABLE 

@@ -112,6 +112,7 @@ void CColumnTreeView::OnPaint()
 
 BOOL CColumnTreeView::OnEraseBkgnd(CDC* pDC)
 {
+	UNREFERENCED_PARAMETER( pDC );
 	return TRUE;
 }
 
@@ -125,6 +126,8 @@ void CColumnTreeView::OnSize(UINT nType, int cx, int cy)
 
 void CColumnTreeView::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
+	UNREFERENCED_PARAMETER( pScrollBar );
+
 	CRect rcClient;
 	GetClientRect(&rcClient);
 	int cx = rcClient.Width();
@@ -171,6 +174,9 @@ void CColumnTreeView::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 void CColumnTreeView::OnHeaderItemChanged(NMHDR* pNMHDR, LRESULT* pResult)
 {
+	UNREFERENCED_PARAMETER( pResult );
+	UNREFERENCED_PARAMETER( pNMHDR );
+
 	UpdateColumns();
 
 	m_Tree.Invalidate();
@@ -309,8 +315,6 @@ void CColumnTreeView::UpdateScroller()
 	CRect rcClient;
 	GetClientRect(&rcClient);
 	int cx = rcClient.Width();
-
-	int lx = m_xPos;
 
 	if (m_xPos > m_cxTotal - cx)
 		m_xPos = m_cxTotal - cx;

@@ -1,29 +1,35 @@
-// TrcView.h : main header file for the TrcView application
-//
 #pragma once
 
-#ifndef __AFXWIN_H__
-	#error "include 'stdafx.h' before including this file for PCH"
-#endif
+/*----------------------------------------------------------------------
+ * Purpose:
+ *		Main header file for the TrcView application.
+ *
+ * Copyright:
+ *		Johannes Passing (johannes.passing@googlemail.com)
+ */
 
-#include "resource.h"       // main symbols
+#include <cdiag.h>
+#include "resource.h"
 
-
-// CTrcViewApp:
-// See TrcView.cpp for the implementation of this class
-//
 
 class CTrcViewApp : public CWinApp
 {
+private:
+	//
+	// Message resolver for error messages.
+	//
+	PCDIAG_MESSAGE_RESOLVER Resolver;
+
 public:
 	CTrcViewApp();
+	~CTrcViewApp();
 
-
-// Overrides
-public:
 	virtual BOOL InitInstance();
 
-// Implementation
+	int ShowErrorMessage( 
+		__in HRESULT Hr 
+		);
+
 	afx_msg void OnAppAbout();
 	DECLARE_MESSAGE_MAP()
 };

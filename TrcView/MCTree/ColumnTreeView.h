@@ -43,7 +43,10 @@ public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 protected:
 	virtual void OnInitialUpdate();
-	virtual void OnDraw(CDC* pDC) {}
+	virtual void OnDraw(CDC* pDC) 
+	{
+		UNREFERENCED_PARAMETER( pDC );
+	}
 
 protected:
 	void UpdateScroller();

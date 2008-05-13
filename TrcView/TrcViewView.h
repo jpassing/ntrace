@@ -1,31 +1,49 @@
-// TrcViewView.h : interface of the CTrcViewView class
-//
-#include "MCTree/ColumnTreeView.h"
-
 #pragma once
+
+/*----------------------------------------------------------------------
+ * Purpose:
+ *		View.
+ *
+ * Copyright:
+ *		Johannes Passing (johannes.passing@googlemail.com)
+ */
+
+#include "MCTree/ColumnTreeView.h"
 
 
 class CTrcViewView : public CColumnTreeView
 {
-protected: // create from serialization only
+private:
+	BOOL ColumnsCreated;
+
+	void ReloadClients();
+
+	static void __stdcall EnumClientsCallback(
+		__in PJPTRCR_CLIENT Client,
+		__in_opt PVOID Context
+		);
+
+	static void __stdcall EnumCallsCallback(
+		__in PJPTRCR_CALL Call,
+		__in_opt PVOID Context
+		);
+
+protected: 
 	CTrcViewView();
 	DECLARE_DYNCREATE(CTrcViewView)
 
-// Attributes
 public:
 	CTrcViewDoc* GetDocument() const;
 
-// Operations
-public:
-
-// Overrides
-public:
-	virtual void OnDraw(CDC* pDC);  // overridden to draw this view
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual void OnInitialUpdate();
 	virtual void OnExpanding(NMHDR *Hdr, LRESULT *Lresult);
 	virtual void OnGetDispInfo(NMHDR *Hdr, LRESULT *Lresult);
-protected:
+	virtual void OnUpdate(
+		CView* pSender,
+		LPARAM lHint,
+		CObject* pHint 
+		);
 
 // Implementation
 public:
@@ -34,8 +52,6 @@ public:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
-
-protected:
 
 // Generated message map functions
 protected:

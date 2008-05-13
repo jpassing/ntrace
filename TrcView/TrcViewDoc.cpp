@@ -12,12 +12,18 @@ BEGIN_MESSAGE_MAP(CTrcViewDoc, CDocument)
 END_MESSAGE_MAP()
 
 
-CTrcViewDoc::CTrcViewDoc()
+CTrcViewDoc::CTrcViewDoc()  
+		: Handle( NULL )
 {
 }
 
 CTrcViewDoc::~CTrcViewDoc()
 {
+	if ( this->Handle != NULL )
+	{
+		VERIFY( S_OK == JptrcrCloseFile( this->Handle ) );
+		this->Handle = NULL;
+	}
 }
 
 BOOL CTrcViewDoc::OnNewDocument()
@@ -26,10 +32,29 @@ BOOL CTrcViewDoc::OnNewDocument()
 		return FALSE;
 	return TRUE;
 }
-
-void CTrcViewDoc::Serialize(CArchive& ar)
+ 
+BOOL CTrcViewDoc::OnOpenDocument(
+	PCWSTR FilePath 
+	)
 {
-	ASSERT(!"N/A");
+	HRESULT Hr = JptrcrOpenFile( FilePath, &this->Handle );
+	if ( FAILED( Hr ) )
+	{
+		theApp.ShowErrorMessage( Hr );
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+BOOL CTrcViewDoc::IsLoaded()
+{
+	return this->Handle != NULL;
+}
+
+JPTRCRHANDLE CTrcViewDoc::GetTraceHandle()
+{
+	return this->Handle;
 }
 
 #ifdef _DEBUG

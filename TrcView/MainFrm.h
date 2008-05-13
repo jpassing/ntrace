@@ -1,36 +1,29 @@
-// MainFrm.h : interface of the CMainFrame class
-//
-
-
 #pragma once
+
+/*----------------------------------------------------------------------
+ * Purpose:
+ *		Main frame.
+ *
+ * Copyright:
+ *		Johannes Passing (johannes.passing@googlemail.com)
+ */
 
 class CMainFrame : public CFrameWnd
 {
-	
-protected: // create from serialization only
+protected:  // control bar embedded members
+	CStatusBar  m_wndStatusBar;
+
 	CMainFrame();
 	DECLARE_DYNCREATE(CMainFrame)
 
-// Attributes
-public:
-
-// Operations
-public:
-
-// Overrides
 public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
-
-// Implementation
-public:
 	virtual ~CMainFrame();
+
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
-
-protected:  // control bar embedded members
-	CStatusBar  m_wndStatusBar;
 
 // Generated message map functions
 protected:
