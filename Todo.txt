@@ -1,10 +1,13 @@
 TODO
 
 BUGS
+ * TrcView -> tcpip.jtrc
+ 
  * MmIsAddValid-freezes
  * Unpatching routines of a driver that has been unloaded --> bsod
  * suspicious status?
  * premature unloading sometimes bugchecks
+
 
 
 jpfbt

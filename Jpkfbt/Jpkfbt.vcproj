@@ -230,6 +230,10 @@
 				RelativePath="..\include\jpkfbtmsg.h"
 				>
 			</File>
+			<File
+				RelativePath="..\include\jptrcfmt.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

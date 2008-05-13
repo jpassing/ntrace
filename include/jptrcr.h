@@ -110,12 +110,8 @@ typedef struct _JPTRCR_CALL
 	PJPTRCR_MODULE Module;
 
 	ULONGLONG EntryTimestamp;
-
-	//
-	// If the exit transition for this call was missing, this field
-	// is set to JPTRCR_CALL_SYNTETIC_EXIT.
-	//
 	ULONGLONG ExitTimestamp;
+	
 	ULONG CallerIp;
 
 	//

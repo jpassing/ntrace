@@ -326,11 +326,11 @@ JpfbtpFunctionCallThunk proc
 	mov [esp+000h], edi
 	mov [esp+004h], esi
 	mov [esp+008h], ebx
-	push [ebp-08h]			; edx was preserved
+	push [ebp-0Ch]			; edx was preserved
 	pop [esp+00Ch]			; 
-	push [ebp-04h]			; ecx was preserved
+	push [ebp-08h]			; ecx was preserved
 	pop [esp+010h]			;
-	push [ebp+04h]			; eax was preserved
+	push [ebp-04h]			; eax was preserved
 	pop [esp+014h]			;
 	
 	push [ebp]				; ebp was preserved

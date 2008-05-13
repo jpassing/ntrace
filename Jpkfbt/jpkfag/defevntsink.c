@@ -501,7 +501,7 @@ static VOID JpkfagsOnProcedureExitDefEventSink(
 		Event->Type				= JPTRC_PROCEDURE_TRANSITION_EXIT;
 		Event->Timestamp		= __rdtsc();
 		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
-		Event->Info.CallerIp	= Context->Eax;
+		Event->Info.ReturnValue	= Context->Eax;
 #else
 #error Unsupported architecture
 #endif
