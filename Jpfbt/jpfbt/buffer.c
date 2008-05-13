@@ -36,8 +36,6 @@ static PJPFBT_BUFFER JpfbtpsGetBuffer(
 	__in ULONG RequiredSize
 	)
 {
-	BOOLEAN FetchNewBuffer = FALSE;
-
 	ASSERT( RequiredSize <= JpfbtpGlobalState->BufferSize );
 
 	if ( ThreadData->CurrentBuffer == NULL )
@@ -45,17 +43,22 @@ static PJPFBT_BUFFER JpfbtpsGetBuffer(
 		//
 		// No buffer -> get fresh buffer.
 		//
-		FetchNewBuffer = TRUE;
 	}
 	else if ( ThreadData->CurrentBuffer->BufferSize - 
 			  ThreadData->CurrentBuffer->UsedSize < RequiredSize )
 	{
 		//
-		// Get rid of old, dirty buffer.
+		// We have a buffer, but there is to little space left.
+		// Get rid of the old, dirty buffer.
 		//
+		ASSERT( ThreadData->CurrentBuffer->ProcessId != 0xDEADBEEF );
+		ASSERT( ThreadData->CurrentBuffer->ThreadId != 0xDEADBEEF );
+
 		InterlockedPushEntrySList( 
 			&JpfbtpGlobalState->DirtyBuffersList,
 			&ThreadData->CurrentBuffer->ListEntry );
+
+		ThreadData->CurrentBuffer = NULL;
 
 		//
 		// Notify.
@@ -63,23 +66,22 @@ static PJPFBT_BUFFER JpfbtpsGetBuffer(
 		JpfbtpTriggerDirtyBufferCollection();
 
 		//
-		// Get new one.
+		// Now get new one.
 		//
-		FetchNewBuffer = TRUE;
 	}
 
-	if ( FetchNewBuffer )
+	if ( ThreadData->CurrentBuffer == NULL )
 	{
 		//
 		// Get fresh buffer.
 		//
-		ThreadData->CurrentBuffer = ( PJPFBT_BUFFER )
+		PJPFBT_BUFFER NewBuffer = ( PJPFBT_BUFFER )
 			InterlockedPopEntrySList( &JpfbtpGlobalState->FreeBuffersList );
 
-		ASSERT( ( ( ULONG_PTR ) &ThreadData->CurrentBuffer->ListEntry ) % 
+		ASSERT( ( ( ULONG_PTR ) &NewBuffer->ListEntry ) % 
 			MEMORY_ALLOCATION_ALIGNMENT == 0 );
 
-		if ( ThreadData->CurrentBuffer == NULL )
+		if ( NewBuffer == NULL )
 		{
 			//
 			// Oh-oh, free list depleted - we are out of buffers!
@@ -92,12 +94,17 @@ static PJPFBT_BUFFER JpfbtpsGetBuffer(
 			//
 			// Initialize thread & process.
 			//
-			ThreadData->CurrentBuffer->ProcessId	= JpfbtpGetCurrentProcessId();
-			ThreadData->CurrentBuffer->ThreadId		= JpfbtpGetCurrentThreadId();
+			NewBuffer->ProcessId	= JpfbtpGetCurrentProcessId();
+			NewBuffer->ThreadId		= JpfbtpGetCurrentThreadId();
 
-			ASSERT( ThreadData->CurrentBuffer->ProcessId < 0xffff );
-			ASSERT( ThreadData->CurrentBuffer->ThreadId < 0xffff );
+			ThreadData->CurrentBuffer = NewBuffer;
 		}
+	}
+
+	if ( ThreadData->CurrentBuffer != NULL )
+	{
+		ASSERT( ThreadData->CurrentBuffer->ProcessId < 0xffff );
+		ASSERT( ThreadData->CurrentBuffer->ThreadId < 0xffff );
 	}
 
 	return ThreadData->CurrentBuffer;

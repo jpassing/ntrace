@@ -216,7 +216,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 	//
 	// Allocate array to hold PJPFBT_CODE_PATCHes.
 	//
-	PatchArray = ( PJPFBT_CODE_PATCH* ) JpfbtpAllocatePagedMemory( 
+	PatchArray = ( PJPFBT_CODE_PATCH* ) JpfbtpAllocateNonPagedMemory( 
 		ProcedureCount * sizeof( PJPFBT_CODE_PATCH ), 
 		TRUE );
 	if ( ! PatchArray )
@@ -351,7 +351,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 
 	JpfbtpReleasePatchDatabaseLock();
 
-	JpfbtpFreePagedMemory( PatchArray );
+	JpfbtpFreeNonPagedMemory( PatchArray );
 	return Status;
 }
 #pragma optimize( "g", on )
@@ -441,7 +441,7 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 	//
 	// Allocate array to hold affected PJPFBT_CODE_PATCHes.
 	//
-	PatchArray = ( PJPFBT_CODE_PATCH* ) JpfbtpAllocatePagedMemory( 
+	PatchArray = ( PJPFBT_CODE_PATCH* ) JpfbtpAllocateNonPagedMemory( 
 		ProcedureCount * sizeof( PJPFBT_CODE_PATCH ), 
 		TRUE );
 	if ( ! PatchArray )
@@ -488,7 +488,7 @@ Cleanup:
 
 	if ( PatchArray )
 	{
-		JpfbtpFreePagedMemory( PatchArray );
+		JpfbtpFreeNonPagedMemory( PatchArray );
 	}
 
 	return Status;

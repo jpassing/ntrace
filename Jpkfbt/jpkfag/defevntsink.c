@@ -453,7 +453,6 @@ static VOID JpkfagsOnProcedureEntryDefEventSink(
 	PJPKFAGP_DEF_EVENT_SINK Sink = ( PJPKFAGP_DEF_EVENT_SINK ) This;
 
 	ASSERT( Sink );
-	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
 
 	Event = ( PJPTRC_PROCEDURE_TRANSITION32 )
 		JpfbtGetBuffer( sizeof( JPTRC_PROCEDURE_TRANSITION32 ) );
@@ -492,7 +491,6 @@ static VOID JpkfagsOnProcedureExitDefEventSink(
 	PJPKFAGP_DEF_EVENT_SINK Sink = ( PJPKFAGP_DEF_EVENT_SINK ) This;
 
 	ASSERT( Sink );
-	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
 
 	Event = ( PJPTRC_PROCEDURE_TRANSITION32 )
 		JpfbtGetBuffer( sizeof( JPTRC_PROCEDURE_TRANSITION32 ) );
@@ -529,6 +527,8 @@ static VOID JpkfagsOnProcessBufferDefEventSink(
 	PJPKFAGP_DEF_EVENT_SINK Sink = ( PJPKFAGP_DEF_EVENT_SINK ) This;
 	SIZE_T TotalSize;
 	SIZE_T Transitions;
+
+	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
 
 	ASSERT( ( BufferSize % sizeof( JPTRC_PROCEDURE_TRANSITION32 ) ) == 0 );
 	Transitions = BufferSize / sizeof( JPTRC_PROCEDURE_TRANSITION32 );
@@ -572,6 +572,8 @@ static VOID JpkfagsDeleteDefEventSink(
 {
 	PJPKFAGP_DEF_EVENT_SINK Sink = ( PJPKFAGP_DEF_EVENT_SINK ) This;
 	ASSERT( Sink );
+
+	ASSERT( KeGetCurrentIrql() <= DISPATCH_LEVEL );
 
 	//
 	// N.B. Writer thread has already been stopped by now.
