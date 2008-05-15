@@ -52,6 +52,29 @@ VOID JpfbtDbgPrint(
 
 /*----------------------------------------------------------------------
  *
+ * SEH declaration, taken from nti386.h
+ *
+ */
+
+typedef EXCEPTION_DISPOSITION ( * PEXCEPTION_ROUTINE ) (
+    __in PEXCEPTION_RECORD ExceptionRecord,
+    __in PVOID EstablisherFrame,
+    __inout PCONTEXT ContextRecord,
+    __inout PVOID DispatcherContext
+    );
+
+/*++
+	Structure Description:
+		i386 SEH record.
+--*/
+typedef struct _EXCEPTION_REGISTRATION_RECORD 
+{
+    struct _EXCEPTION_REGISTRATION_RECORD *Next;
+    PEXCEPTION_ROUTINE Handler;
+} EXCEPTION_REGISTRATION_RECORD;
+
+/*----------------------------------------------------------------------
+ *
  * Thunk stack
  *
  */
@@ -71,6 +94,13 @@ typedef struct _JPFBT_THUNK_STACK_FRAME
 	// Caller continuation address.
 	//
 	ULONG_PTR ReturnAddress;
+
+	//
+	// SEH record. Normally, these records are stored on the stack,
+	// but as we do not have any stack during the call of the actual
+	// routine, we have to store the record here.
+	//
+	EXCEPTION_REGISTRATION_RECORD SehRecord;
 } JPFBT_THUNK_STACK_FRAME, *PJPFBT_THUNK_STACK_FRAME;
 
 
@@ -84,7 +114,7 @@ typedef struct _JPFBT_THUNK_STACK_FRAME
 typedef struct _JPFBT_THUNK_STACK
 {
 	//
-	// Pointer to next free stack location. I.e. *StackPointer points
+	// Pointer to top stack location. I.e. *StackPointer points
 	// to a valid value unless the stack is empty.
 	//
 	PJPFBT_THUNK_STACK_FRAME StackPointer;

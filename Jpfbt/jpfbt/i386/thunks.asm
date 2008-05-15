@@ -13,12 +13,22 @@ option casemap :none                    ; case sensitive
 extrn JpfbtpGetCurrentThunkStack@0 : proc
 extrn JpfbtpProcedureEntry@8 : proc
 extrn JpfbtpProcedureExit@8 : proc
+extrn JpfbtpThunkExceptionHandler@16 : proc
 
 ifdef JPFBT_TARGET_USERMODE
 extrn RaiseException@16 : proc
 else
 extrn ExRaiseStatus@4 : proc
 endif
+
+;
+; Helper equates for JPFBT_THUNK_STACK_FRAME
+;
+ProcedureOffset		EQU 0
+ReturnAddressOffset	EQU 4
+SehRecordOffset		EQU 8
+
+SizeofStackFrame	EQU 16
 
 .data
 .code
@@ -101,7 +111,7 @@ JpfbtpFunctionEntryThunk proc
 	; The stack overflows if thunkstack->StackPointer would be
 	; overwritten.
 	;
-	lea edx, [ecx-0ch]
+	lea edx, [ecx - SizeofStackFrame]
 	cmp edx, eax
 	jle StackOverflow
 	
@@ -109,19 +119,32 @@ JpfbtpFunctionEntryThunk proc
 	; stash away funcptr on thunkstack.
 	;
 	mov edx, [ebp+8]
-	mov [ecx-8], edx
+	mov [ecx - SizeofStackFrame + ProcedureOffset], edx
 	
 	;
 	; stash away Real RA on thunkstack.
 	;
 	mov edx, [ebp+4]
-	mov [ecx-4], edx
+	mov [ecx - SizeofStackFrame + ReturnAddressOffset], edx
+	
+	;
+	; Setup SEH record.
+	;
+	mov edx, fs:[0]
+	mov [ecx - SizeofStackFrame + SehRecordOffset + 0], edx
+	mov [ecx - SizeofStackFrame + SehRecordOffset + 4], JpfbtpThunkExceptionHandler@16
+	
+	;
+	; Install SEH record.
+	;
+	lea edx, [ecx - SizeofStackFrame + SehRecordOffset]
+	mov fs:[0], edx
 	
 	;
 	; Adjust stack pointer:
 	;   thunkstack->StackPointer--
 	;
-	lea edx, [ecx-8]
+	lea edx, [ecx - SizeofStackFrame]
 	mov [eax], edx			
 	
 	;
@@ -294,19 +317,26 @@ JpfbtpFunctionCallThunk proc
 	;
 	; Restore RA. Use the space reserved earlier.
 	;
-	mov edx, [ecx+4]		; Get RA address.
-	mov [ebp+4], edx		; Write to reserved slot.
+	mov edx, [ecx + ReturnAddressOffset]	; Get RA address.
+	mov [ebp+4], edx						; Write to reserved slot.
+	
+	;
+	; Uninstall SEH record.
+	;
+	mov edx, fs:[0]
+	mov edx, [edx]
+	mov fs:[0], edx
 	
 	;
 	; Retrieve funcptr.
 	;
-	mov edx, [ecx]
+	mov edx, [ecx + ProcedureOffset]
 	
 	;
 	; Adjust stack pointer:
 	;   thunkstack->StackPointer++
 	;
-	lea ecx, [ecx+8]
+	lea ecx, [ecx + SizeofStackFrame]
 	mov [eax], ecx
 	
 	;
