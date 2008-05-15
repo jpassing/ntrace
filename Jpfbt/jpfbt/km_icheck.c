@@ -9,6 +9,18 @@
 #include <jpfbt.h>
 #include "jpfbtp.h"
 
+BOOLEAN JpfbtpIsCodeAddressValid(
+	__in PVOID Address
+	)
+{
+	//
+	// N.B. Checking with MmIsAddressValid is actualy more
+	// restricting than necessary as paged out code must not necessarily
+	// be a bad thing.
+	//
+	return MmIsAddressValid( Address );
+}
+
 NTSTATUS JpfbtCheckProcedureInstrumentability(
 	__in JPFBT_PROCEDURE Procedure,
 	__out PBOOLEAN Instrumentable
@@ -37,13 +49,8 @@ NTSTATUS JpfbtCheckProcedureInstrumentability(
 
 	SizeOfMemToTouch = JPFBT_MIN_PROCEDURE_PADDING_REQUIRED + 2;
 
-	//
-	// N.B. Checking with MmIsAddressValid is actualy more
-	// restructing than necessary as paged code must not necessarily
-	// be problematic.
-	//
-	if ( ! MmIsAddressValid( BasePointer ) ||
-		 ! MmIsAddressValid( ( PUCHAR ) BasePointer + SizeOfMemToTouch ) )
+	if ( ! JpfbtpIsCodeAddressValid( BasePointer ) ||
+		 ! JpfbtpIsCodeAddressValid( ( PUCHAR ) BasePointer + SizeOfMemToTouch ) )
 	{
 		*Instrumentable = FALSE;
 		return STATUS_SUCCESS;

@@ -9,6 +9,12 @@
 #include <jpfbt.h>
 #include "jpfbtp.h"
 
+BOOLEAN JpfbtpIsCodeAddressValid(
+	__in PVOID Address
+	)
+{
+	return IsBadCodePtr( Address ) ? FALSE : TRUE;
+}
 
 NTSTATUS JpfbtCheckProcedureInstrumentability(
 	__in JPFBT_PROCEDURE Procedure,

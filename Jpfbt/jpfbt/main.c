@@ -167,6 +167,9 @@ NTSTATUS JpfbtUninitialize()
 				&JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead,
 				ListEntry );
 
+			TRACE( ( "JPFBT: Thread %p (ThreadData @ %p) still active.\n", 
+				ThreadData->Association.Thread, ThreadData ) );
+
 			return STATUS_FBT_PATCHES_ACTIVE;			
 		}
 

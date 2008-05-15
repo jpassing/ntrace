@@ -795,3 +795,12 @@ PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
 	JpfbtGetFbtDataThread( PsGetCurrentThread() )
 
 #endif
+
+/*++
+	Routine Description:
+		Check whether accessing this address is valid and will not
+		provoke an AV.
+--*/
+BOOLEAN JpfbtpIsCodeAddressValid(
+	__in PVOID Address
+	);

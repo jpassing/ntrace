@@ -229,7 +229,13 @@ HRESULT JptrcrpLoadModule(
 		&File->ModulesTable,
 		&Module->u.HashtableEntry,
 		&OldEntry );
-	ASSERT( OldEntry == NULL );
+	if ( OldEntry == NULL )
+	{
+		//
+		// We already had that one, nevermind.
+		//
+		free( OldEntry );
+	}
 
 	*LoadedModule = Module;
 	Hr = S_OK;
