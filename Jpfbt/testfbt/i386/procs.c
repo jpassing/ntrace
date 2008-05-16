@@ -349,6 +349,24 @@ VOID CallStdcallRecursive()
 	TEST( Edi_ == 0xDEAD0003 );
 }
 
+__declspec(naked)
+VOID Raise()
+{
+	_asm
+	{
+		mov edi, edi;
+		push ebp;
+		mov ebp, esp;
+	}
+
+#ifdef JPFBT_TARGET_USERMODE
+	RaiseException( 'excp', 0, 0, NULL );
+#else
+	ExRaiseStatus( 'excp' );
+#endif
+	TEST( !"Should never make it here" );
+}
+
 //
 // N.B. For profiling, exclude these procs from being instrumented.
 //

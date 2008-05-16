@@ -117,5 +117,5 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 	//
 	// We never handle the exception ourselves.
 	//
-	return EXCEPTION_CONTINUE_SEARCH;
+	return ExceptionContinueSearch;
 }

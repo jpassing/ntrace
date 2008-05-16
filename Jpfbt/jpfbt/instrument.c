@@ -33,7 +33,6 @@ typedef struct _JPFBTP_TABLE_ENUM_CONTEXT
 //
 // Disable warning: Function to PVOID casting
 //
-#pragma warning( push )
 #pragma warning( disable : 4054 )
 
 /*++
@@ -65,7 +64,7 @@ static BOOLEAN JpfbtsIsAlreadyPatched(
 		InstructionVa - VA where the call will be written.
 		TargetVa      - Target procedure
 --*/
-static NTSTATUS JpfbtsAssembleNearCall(
+NTSTATUS JpfbtAssembleNearCall(
 	__in PUCHAR Payload,
 	__in ULONG_PTR InstructionVa,
 	__in ULONG_PTR TargetVa
@@ -121,7 +120,7 @@ static NTSTATUS JpfbtsInitializeFunctionCallThunkTrampoline(
 	//
 	// jmp JpfbtpFunctionCallThunk
 	//
-	return JpfbtsAssembleNearCall(
+	return JpfbtAssembleNearCall(
 		Payload,
 		InstructionVa,
 		( ULONG_PTR ) ( PVOID ) &JpfbtpFunctionCallThunk );
@@ -670,8 +669,6 @@ BOOLEAN JpfbtpIsHotpatchableResidentValidMemory(
 	USHORT MovEdiEdi = 0xFF8B;
 	return ( BOOLEAN ) ( *( PUSHORT ) Procedure.u.Procedure == MovEdiEdi );
 }
-
-#pragma warning( pop ) 
 
 #else
 #error Unsupported target architecture

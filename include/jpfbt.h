@@ -31,9 +31,10 @@
 
 #define JPFBT_MIN_PROCEDURE_PADDING_REQUIRED	5
 
-//
-// Stripped-down context as used by jpfbt.
-//
+/*++
+	Structure Description:
+		Stripped-down context as used by jpfbt.
+--*/
 #ifdef _M_IX86 
 typedef struct _JPFBT_CONTEXT {
     ULONG   Edi;				// 0x0
@@ -51,6 +52,17 @@ typedef struct _JPFBT_CONTEXT {
 #else
 #error Unsupported target architecture
 #endif
+
+/*++
+	Structure Description:
+		Pointers to RTL-internal routines.
+--*/
+typedef struct _JPFBT_RTL_POINTERS
+{
+	PVOID RtlDispatchException;
+	PVOID RtlUnwind;
+	PVOID RtlpGetStackLimits;
+} JPFBT_RTL_POINTERS, *PJPFBT_RTL_POINTERS;
 
 /*++
 	Routine Description:
@@ -123,6 +135,8 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 		EntryEvRt.  - Routine called on entry of hooked function.
 		ExitEvRt.   - Routine called on exit of hooked function.
 		ProcessBufR.- Routine called for dirty buffer collection.
+		RtlPointers - Pointer to a fully initialized JPFBT_RTL_POINTERS 
+					  structure. MUST be provided for SEH to work.
 		UserPointer - Arbitrary user pointer passed to 
 					  ProcessBufferRoutine.
 
@@ -148,6 +162,7 @@ NTSTATUS JpfbtInitializeEx(
 	__in JPFBT_EVENT_ROUTINE EntryEventRoutine,
 	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
+	__in_opt PJPFBT_RTL_POINTERS RtlPointers,
 	__in_opt PVOID UserPointer
 	);
 

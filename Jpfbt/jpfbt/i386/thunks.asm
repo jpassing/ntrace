@@ -22,6 +22,12 @@ extrn ExRaiseStatus@4 : proc
 endif
 
 ;
+; Pit JpfbtpThunkExceptionHandler in the SafeSEH table.
+;
+JpfbtsThunkExceptionHandler proto
+.SAFESEH JpfbtsThunkExceptionHandler
+
+;
 ; Helper equates for JPFBT_THUNK_STACK_FRAME
 ;
 ProcedureOffset		EQU 0
@@ -34,6 +40,16 @@ SizeofStackFrame	EQU 16
 .code
 
 ASSUME FS:NOTHING
+
+;++
+;	Routine Description:
+;		Exception handler. Delegates to JpfbtpThunkExceptionHandler.
+;		We just delcare it here so we can have ML register it as a
+;		SafeSEH handler for us.
+;--
+JpfbtsThunkExceptionHandler proc
+	jmp JpfbtpThunkExceptionHandler@16
+JpfbtsThunkExceptionHandler endp
 
 ;++
 ;	Routine Description:
@@ -132,7 +148,7 @@ JpfbtpFunctionEntryThunk proc
 	;
 	mov edx, fs:[0]
 	mov [ecx - SizeofStackFrame + SehRecordOffset + 0], edx
-	mov [ecx - SizeofStackFrame + SehRecordOffset + 4], JpfbtpThunkExceptionHandler@16
+	mov [ecx - SizeofStackFrame + SehRecordOffset + 4], JpfbtsThunkExceptionHandler
 	
 	;
 	; Install SEH record.

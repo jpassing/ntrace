@@ -279,6 +279,96 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 	__in_opt PVOID Thread
 	);
 
+
+
+/*----------------------------------------------------------------------
+ *
+ * Code patching.
+ *
+ */
+
+#define JPFBT_MAX_CODE_PATCH_SIZE	16
+
+typedef struct _JPFBT_CODE_PATCH
+{
+	//
+	// Hashtable entry and procedure are overlaid s.t. Procedure
+	// is also the hashtable key.
+	//
+	union
+	{
+		//
+		// For being put in global patch list.
+		//
+		JPHT_HASHTABLE_ENTRY HashtableEntry;
+
+		//
+		// [in] Affected proceure.
+		//
+		JPFBT_PROCEDURE Procedure;
+	} u;
+
+	//
+	// [in] Location of code to patch (Virtual Address).
+	//
+	PVOID Target;
+
+	//
+	// [in] Size of patch - smaller than JPFBT_MAX_CODE_PATCH_SIZE.
+	//
+	ULONG CodeSize;
+
+	//
+	// [in] Machine code to be written.
+	//
+	UCHAR NewCode[ JPFBT_MAX_CODE_PATCH_SIZE ];
+
+	//
+	// [out] Replaced machine code.
+	//
+	UCHAR OldCode[ JPFBT_MAX_CODE_PATCH_SIZE ];
+
+	//
+	// Data used during the patching process.
+	//
+#if defined(JPFBT_TARGET_USERMODE)
+	//
+	// Original code protection (only applies to user mode).
+	//
+	ULONG Protection;
+
+#elif defined(JPFBT_TARGET_KERNELMODE)
+	//
+	// MDL used for accessing Target.
+	//
+	PMDL Mdl;
+
+	//
+	// VirtualAddress for buffer described by MDL.
+	// MappedAddress != Target, but both addresses refer to the
+	// same physical memory.
+	//
+	PVOID MappedAddress;
+#endif
+} JPFBT_CODE_PATCH, *PJPFBT_CODE_PATCH;
+
+C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
+		  FIELD_OFFSET( JPFBT_CODE_PATCH, u.HashtableEntry.Key ) );
+
+/*++
+	Routine Description:
+		Prepare, but do not yet apply, patches to the RTL exception
+		handling implementation.
+--*/
+NTSTATUS JpfbtPrepareRtlExceptionHandlingCodePatches(
+	__in PJPFBT_RTL_POINTERS RtlPointers,
+	__out PJPFBT_CODE_PATCH DispatchExceptionPatch,
+	__out PJPFBT_CODE_PATCH UnwindPatch
+	);
+
+
+
+
 /*----------------------------------------------------------------------
  *
  * Global data.
@@ -291,6 +381,8 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 #define JPFBTP_INITIAL_PATCHTABLE_SIZE	127
 #endif
 #define JPFBTP_INITIAL_TLS_TABLE_SIZE	1024
+
+struct _JPFBT_CODE_PATCH;
 
 /*++
 	Structure Description:
@@ -356,6 +448,8 @@ typedef struct _JPFBT_GLOBAL_DATA
 			LIST_ENTRY ListHead;
 		} ThreadData;
 	} PatchDatabase;
+
+	JPFBT_CODE_PATCH RtlExceptionHandlingPatches[ 2 ];
 
 #if defined(JPFBT_TARGET_USERMODE)
 	//
@@ -452,81 +546,6 @@ BOOLEAN JpfbtpIsPatchDatabaseLockHeld();
 
 /*----------------------------------------------------------------------
  *
- * Code patching.
- *
- */
-
-#define JPFBT_MAX_CODE_PATCH_SIZE	16
-
-typedef struct _JPFBT_CODE_PATCH
-{
-	//
-	// Hashtable entry and procedure are overlaid s.t. Procedure
-	// is also the hashtable key.
-	//
-	union
-	{
-		//
-		// For being put in global patch list.
-		//
-		JPHT_HASHTABLE_ENTRY HashtableEntry;
-
-		//
-		// [in] Affected proceure.
-		//
-		JPFBT_PROCEDURE Procedure;
-	} u;
-
-	//
-	// [in] Location of code to patch (Virtual Address).
-	//
-	PVOID Target;
-
-	//
-	// [in] Size of patch - smaller than JPFBT_MAX_CODE_PATCH_SIZE.
-	//
-	ULONG CodeSize;
-
-	//
-	// [in] Machine code to be written.
-	//
-	UCHAR NewCode[ JPFBT_MAX_CODE_PATCH_SIZE ];
-
-	//
-	// [out] Replaced machine code.
-	//
-	UCHAR OldCode[ JPFBT_MAX_CODE_PATCH_SIZE ];
-
-	//
-	// Data used during the patching process.
-	//
-#if defined(JPFBT_TARGET_USERMODE)
-	//
-	// Original code protection (only applies to user mode).
-	//
-	ULONG Protection;
-
-#elif defined(JPFBT_TARGET_KERNELMODE)
-	//
-	// MDL used for accessing Target.
-	//
-	PMDL Mdl;
-
-	//
-	// VirtualAddress for buffer described by MDL.
-	// MappedAddress != Target, but both addresses refer to the
-	// same physical memory.
-	//
-	PVOID MappedAddress;
-#endif
-} JPFBT_CODE_PATCH, *PJPFBT_CODE_PATCH;
-
-C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
-		  FIELD_OFFSET( JPFBT_CODE_PATCH, u.HashtableEntry.Key ) );
-
-
-/*----------------------------------------------------------------------
- *
  * Instrumentability checking.
  *
  */
@@ -555,6 +574,23 @@ BOOLEAN JpfbtpIsPaddingAvailableResidentValidMemory(
 --*/
 BOOLEAN JpfbtpIsHotpatchableResidentValidMemory(
 	__in CONST JPFBT_PROCEDURE Procedure 
+	);
+
+
+/*++
+	Routine Description:
+		Initialize buffer with:
+		  call <Target>
+
+	Parameters:
+		Payload       - Buffer - f bytes of space are required.
+		InstructionVa - VA where the call will be written.
+		TargetVa      - Target procedure
+--*/
+NTSTATUS JpfbtAssembleNearCall(
+	__in PUCHAR Payload,
+	__in ULONG_PTR InstructionVa,
+	__in ULONG_PTR TargetVa
 	);
 
 /*----------------------------------------------------------------------

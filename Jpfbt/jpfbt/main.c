@@ -8,7 +8,60 @@
 
 #include <jpfbt.h>
 #include "jpfbtp.h"
+#include <stdlib.h>
 
+static NTSTATUS JpfbtsApplyRtlExceptionHandlingPatches(
+	__in PJPFBT_RTL_POINTERS RtlPointers
+	)
+{
+	PJPFBT_CODE_PATCH Patches[ 2 ];
+	NTSTATUS Status;
+
+	Status = JpfbtPrepareRtlExceptionHandlingCodePatches(
+		RtlPointers,
+		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 0 ],
+		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ] );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		TRACE( ( "Preparing RTL patches failed,\n" ) );
+		return Status;
+	}
+
+	Patches[ 0 ] = &JpfbtpGlobalState->RtlExceptionHandlingPatches[ 0 ];
+	Patches[ 1 ] = &JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ];
+
+	JpfbtpAcquirePatchDatabaseLock();
+	
+	Status = JpfbtpPatchCode(
+		JpfbtPatch,
+		_countof( Patches ),
+		Patches );
+
+	JpfbtpReleasePatchDatabaseLock();
+
+	return Status;
+}
+
+static NTSTATUS JpfbtsRevokeRtlExceptionHandlingPatches()
+{
+	PJPFBT_CODE_PATCH Patches[ 2 ];
+	NTSTATUS Status;
+	
+	Patches[ 0 ] = &JpfbtpGlobalState->RtlExceptionHandlingPatches[ 0 ];
+	Patches[ 1 ] = &JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ];
+
+	JpfbtpAcquirePatchDatabaseLock();
+	
+	Status = JpfbtpPatchCode(
+		JpfbtUnpatch,
+		_countof( Patches ),
+		Patches );
+
+	JpfbtpReleasePatchDatabaseLock();
+
+	return Status;
+}
+	
 NTSTATUS JpfbtInitialize(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
@@ -27,6 +80,7 @@ NTSTATUS JpfbtInitialize(
 		EntryEventRoutine,
 		ExitEventRoutine,
 		ProcessBufferRoutine,
+		NULL,
 		UserPointer );
 }
 
@@ -38,6 +92,7 @@ NTSTATUS JpfbtInitializeEx(
 	__in JPFBT_EVENT_ROUTINE EntryEventRoutine,
 	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
+	__in PJPFBT_RTL_POINTERS RtlPointers,
 	__in_opt PVOID UserPointer
 	)
 {
@@ -48,7 +103,8 @@ NTSTATUS JpfbtInitializeEx(
 	if ( EntryEventRoutine == NULL ||
 		 ExitEventRoutine == NULL ||
 		 ProcessBufferRoutine == NULL ||
-		 ( Flags != 0 && Flags != JPFBT_FLAG_AUTOCOLLECT ) )
+		 ( Flags != 0 && Flags != JPFBT_FLAG_AUTOCOLLECT ) ||
+		 RtlPointers == NULL )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -68,31 +124,55 @@ NTSTATUS JpfbtInitializeEx(
 		BufferSize,
 		ThreadDataPreallocations,
 		( BOOLEAN ) Flags == JPFBT_FLAG_AUTOCOLLECT );
-
-	if ( NT_SUCCESS( Status ) && JpfbtpGlobalState != NULL )
+	if ( ! NT_SUCCESS( Status ) )
 	{
-		//
-		// Initialize PatchDatabase.
-		//
-		Status = JpfbtpInitializePatchTable();
-		if ( ! NT_SUCCESS( Status ) )
-		{
-			JpfbtpFreeGlobalState();
-			JpfbtpGlobalState = NULL;
-			return STATUS_NO_MEMORY;
-		}
-		
-		InitializeListHead( &JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead );
+		goto Cleanup;
+	}
+
+	if ( JpfbtpGlobalState == NULL )
+	{
+		return STATUS_FBT_INIT_FAILURE;
+	}
+
+	//
+	// Initialize PatchDatabase.
+	//
+	Status = JpfbtpInitializePatchTable();
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		Status = STATUS_NO_MEMORY;
+		goto Cleanup;
+	}
+	
+	InitializeListHead( &JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead );
 
 #if defined(JPFBT_TARGET_KERNELMODE)
-		KeInitializeSpinLock( &JpfbtpGlobalState->PatchDatabase.ThreadData.Lock ); 
+	KeInitializeSpinLock( &JpfbtpGlobalState->PatchDatabase.ThreadData.Lock ); 
 #endif
 
-		JpfbtpGlobalState->UserPointer			  = UserPointer;
+	JpfbtpGlobalState->UserPointer			  = UserPointer;
 
-		JpfbtpGlobalState->Routines.EntryEvent	  = EntryEventRoutine;
-		JpfbtpGlobalState->Routines.ExitEvent	  = ExitEventRoutine;
-		JpfbtpGlobalState->Routines.ProcessBuffer = ProcessBufferRoutine;
+	JpfbtpGlobalState->Routines.EntryEvent	  = EntryEventRoutine;
+	JpfbtpGlobalState->Routines.ExitEvent	  = ExitEventRoutine;
+	JpfbtpGlobalState->Routines.ProcessBuffer = ProcessBufferRoutine;
+
+	//
+	// Apply RTL patches.
+	//
+	Status = JpfbtsApplyRtlExceptionHandlingPatches( RtlPointers );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		Status = STATUS_NO_MEMORY;
+		goto Cleanup;
+	}
+
+	Status = STATUS_SUCCESS;
+
+Cleanup:
+	if ( ! NT_SUCCESS( Status ) && JpfbtpGlobalState != NULL )
+	{
+		JpfbtpFreeGlobalState();
+		JpfbtpGlobalState = NULL;
 	}
 
 	return Status;
@@ -193,6 +273,11 @@ NTSTATUS JpfbtUninitialize()
 
 		ListEntry = NextEntry;
 	}
+
+	//
+	// Revoke RTL patches.
+	//
+	( VOID ) JpfbtsRevokeRtlExceptionHandlingPatches();
 	
 	//
 	// Flush all buffers and shutdown collector

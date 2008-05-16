@@ -115,6 +115,10 @@
 					Name="i386"
 					>
 					<File
+						RelativePath=".\jpfbt\eh.c"
+						>
+					</File>
+					<File
 						RelativePath=".\jpfbt\instrument.c"
 						>
 					</File>
@@ -213,10 +217,14 @@
 				</Filter>
 			</Filter>
 			<Filter
-				Name="testfbt_um"
+				Name="testfbt"
 				>
 				<File
 					RelativePath=".\testfbt\DIRS"
+					>
+				</File>
+				<File
+					RelativePath=".\testfbt\seh.c"
 					>
 				</File>
 				<File

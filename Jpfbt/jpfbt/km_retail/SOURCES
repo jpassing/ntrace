@@ -18,7 +18,7 @@ USER_C_FLAGS=/wd4276 /analyze
 
 USE_LIBCMT=1
 
-ASM_DEFINES=/DJPFBT_TARGET_KERNELMODE
+ASM_DEFINES=/DJPFBT_TARGET_KERNELMODE /safeseh 
 
 TARGETNAME=jpfbt_km_retail
 TARGETPATH=..\..\..\bin\$(DDKBUILDENV)
@@ -30,6 +30,7 @@ PASS0_SOURCEDIR=obj$(BUILD_ALT_DIR)\$(TARGET_DIRECTORY)
 SOURCES=\
 	..\buffer.c \
 	..\instrument.c \
+	..\eh.c \
 	..\main.c \
 	..\thunksup.c \
 	..\patchdb.c \

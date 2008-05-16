@@ -226,7 +226,7 @@ Cleanup:
 	//
 	// Resume all threads.
 	//
-	Status = JpfbtpForEachThread(
+	JpfbtpForEachThread(
 		THREAD_SUSPEND_RESUME,
 		JpfbtsResumeThread,
 		NULL,

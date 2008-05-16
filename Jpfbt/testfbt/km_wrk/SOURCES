@@ -23,7 +23,8 @@ TARGETTYPE=DRIVER
 SOURCES=\
 	..\km_thralloc.c \
 	..\km_patching.c \
-	..\testprocs.c
+	..\testprocs.c \
+	..\seh.c
 
 I386_SOURCES=..\i386\procs.c
 

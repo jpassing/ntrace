@@ -19,6 +19,8 @@ jpfbt
 
  * Exceptions
  
+ make RtlPointers mandatory
+ 
 jpufbt
 ------------------------------------------------------------------------
  * VS_VERSION_INFO jpufag
