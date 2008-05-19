@@ -154,6 +154,7 @@ static HRESULT JptrcrsEnumCalls(
 			return Hr;
 		}
 
+		ASSERT( ( PVOID ) Chunk >= File->CurrentMapping.MappedAddress );
 		ASSERT( Chunk->Header.Type == JPTRC_CHUNK_TYPE_TRACE_BUFFER );
 		if ( Chunk->Header.Type != JPTRC_CHUNK_TYPE_TRACE_BUFFER )
 		{

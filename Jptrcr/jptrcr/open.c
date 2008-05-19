@@ -476,7 +476,8 @@ HRESULT JptrcrpMap(
 		// Map. If we are at the end of the file, we may have to map
 		// less than JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE.
 		//
-		File->CurrentMapping.Offset = MapIndex * 
+		File->CurrentMapping.MapIndex	= MapIndex;
+		File->CurrentMapping.Offset		= MapIndex * 
 			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE );
 		
 		SizeToMap = min( 
@@ -493,7 +494,8 @@ HRESULT JptrcrpMap(
 				SizeToMap );
 		if ( File->CurrentMapping.MappedAddress == NULL )
 		{
-			File->CurrentMapping.Offset = 0;
+			File->CurrentMapping.MapIndex	= 0;
+			File->CurrentMapping.Offset		= 0;
 			return HRESULT_FROM_WIN32( GetLastError() );
 		}
 	}
