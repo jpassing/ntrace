@@ -26,8 +26,8 @@
 	#define ASSERT_IRQL_LTE( Irql )
 #elif defined( JPFBT_TARGET_KERNELMODE )
 	#define INFINITE ( ( ULONG ) -1 )
-	#define TRACE KdPrint
-
+	//#define TRACE KdPrint
+	#define TRACE
 	#define ASSERT_IRQL_LTE( Irql ) ASSERT( KeGetCurrentIrql() <= ( Irql ) )
 #else
 	#error Unknown mode (User/Kernel)
@@ -159,6 +159,11 @@ typedef struct _JPFBT_BUFFER
 	ULONG ProcessId;
 	ULONG ThreadId;
 
+#if defined( JPFBT_TARGET_KERNELMODE ) && defined( DBG )
+	PETHREAD OwningThread;
+	PVOID OwningThreadData;
+#endif
+
 	//
 	// Total size of Buffer array.
 	//
@@ -171,15 +176,19 @@ typedef struct _JPFBT_BUFFER
 
 #if DBG
 	ULONG Guard;		
+#else
+	ULONG Padding1;
 #endif
 
 	UCHAR Buffer[ ANYSIZE_ARRAY ];
 
-//#if DBG
-//	ULONG Guard;
-//#endif
+	//
+	// N.B. Last ULONG (i.e. last 4 UCHARs) of Buffer server as guard
+	// in DBG builds.
+	//
 } JPFBT_BUFFER, *PJPFBT_BUFFER;
 
+C_ASSERT( ( FIELD_OFFSET( JPFBT_BUFFER, Buffer ) % MEMORY_ALLOCATION_ALIGNMENT ) == 0 );
 
 /*----------------------------------------------------------------------
  *
@@ -198,6 +207,11 @@ typedef enum
 	// Part of the preallocation blob.
 	//
 	JpfbtpPreAllocated,
+
+	//
+	// Pseudo allocation. Used to detect reentrance.
+	//
+	JpfbtpPseudoAllocation
 } JPFBTP_THREAD_DATA_ALLOCATION_TYPE;
 
 /*++
@@ -239,6 +253,12 @@ typedef struct _JPFBT_THREAD_DATA
 		//
 		JPHT_HASHTABLE_ENTRY HashtableEntry;
 	} Association;
+
+	//
+	// Used by JpfbtpThunkExceptionHandler to store exception code
+	// between exception handling and unwinding.
+	//
+	ULONG PendingException;
 
 	JPFBT_THUNK_STACK ThunkStack;
 } JPFBT_THREAD_DATA, *PJPFBT_THREAD_DATA;
@@ -511,6 +531,7 @@ typedef struct _JPFBT_GLOBAL_DATA
 	{
 		JPFBT_EVENT_ROUTINE EntryEvent;
 		JPFBT_EVENT_ROUTINE ExitEvent;
+		JPFBT_EXCP_UNWIND_EVENT_ROUTINE ExceptionEvent OPTIONAL;
 		JPFBT_PROCESS_BUFFER_ROUTINE ProcessBuffer;
 	} Routines;
 } JPFBT_GLOBAL_DATA, *PJPFBT_GLOBAL_DATA;
@@ -696,10 +717,15 @@ VOID JpfbtpFreeGlobalState();
 		Callable at any IRQL.
 
 	Return Value:
-		Thread Data or NULL if no thread data allocared yet for this
-		thread..
+		STATUS_FBT_REENTRANT_ALLOCATION if reentrance was detected. Any
+			allocation attempt MUST be forstalled.
+		STATUS_SUCCESS if no reentrance detected.
+			*ThreadData points to an existing structure or is NULL 
+			if no thread data allocared yet for this thread.
 --*/
-PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable();
+NTSTATUS JpfbtpGetCurrentThreadDataIfAvailable(
+	__out PJPFBT_THREAD_DATA *ThreadData
+	);
 
 /*++
 	Routine Description:

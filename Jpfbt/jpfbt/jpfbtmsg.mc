@@ -148,3 +148,11 @@ SymbolicName	= STATUS_FBT_CANNOT_LOCATE_EH_ROUTINES
 Language		= English
 The RTL exception handling routines cannot be located.
 .
+
+MessageId		= 0x9210
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_REENTRANT_ALLOCATION
+Language		= English
+Allocation reentrance detected.
+.

@@ -189,7 +189,7 @@ static void TestServer()
 
 		Msg = UfagSendInitializeTracingMessage( CliPort, FALSE );
 		TEST( Msg->Header.PayloadSize == sizeof( NTSTATUS ) );
-		TEST( Msg->Body.Status == STATUS_INVALID_PARAMETER );
+		TEST( Msg->Body.Status == STATUS_FBT_INVALID_BUFFER_SIZE );
 
 		//
 		// Init tracing.

@@ -10,6 +10,11 @@
 #include "jpfbtp.h"
 #include <stdlib.h>
 
+//
+// Flag indicating whether exceptions should be intercepted.
+//
+BOOLEAN JpfbtpExceptionHandlingUsed = FALSE;
+
 static NTSTATUS JpfbtsApplyRtlExceptionHandlingPatches(
 	__in PJPFBT_RTL_POINTERS RtlPointers
 	)
@@ -23,7 +28,7 @@ static NTSTATUS JpfbtsApplyRtlExceptionHandlingPatches(
 		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ] );
 	if ( ! NT_SUCCESS( Status ) )
 	{
-		TRACE( ( "Preparing RTL patches failed,\n" ) );
+		TRACE( ( "Preparing RTL patches failed: %x\n", Status ) );
 		return Status;
 	}
 
@@ -79,6 +84,7 @@ NTSTATUS JpfbtInitialize(
 		Flags,
 		EntryEventRoutine,
 		ExitEventRoutine,
+		NULL,
 		ProcessBufferRoutine,
 		NULL,
 		UserPointer );
@@ -91,8 +97,9 @@ NTSTATUS JpfbtInitializeEx(
 	__in ULONG Flags,
 	__in JPFBT_EVENT_ROUTINE EntryEventRoutine,
 	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
+	__in_opt JPFBT_EXCP_UNWIND_EVENT_ROUTINE ExceptionEventRoutine,
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in PJPFBT_RTL_POINTERS RtlPointers,
+	__in_opt PJPFBT_RTL_POINTERS RtlPointers,
 	__in_opt PVOID UserPointer
 	)
 {
@@ -104,7 +111,7 @@ NTSTATUS JpfbtInitializeEx(
 		 ExitEventRoutine == NULL ||
 		 ProcessBufferRoutine == NULL ||
 		 ( Flags != 0 && Flags != JPFBT_FLAG_AUTOCOLLECT ) ||
-		 RtlPointers == NULL )
+		 ( ExceptionEventRoutine == NULL ) != ( RtlPointers == NULL ) )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -154,16 +161,22 @@ NTSTATUS JpfbtInitializeEx(
 
 	JpfbtpGlobalState->Routines.EntryEvent	  = EntryEventRoutine;
 	JpfbtpGlobalState->Routines.ExitEvent	  = ExitEventRoutine;
+	JpfbtpGlobalState->Routines.ExceptionEvent= ExceptionEventRoutine;
 	JpfbtpGlobalState->Routines.ProcessBuffer = ProcessBufferRoutine;
 
-	//
-	// Apply RTL patches.
-	//
-	Status = JpfbtsApplyRtlExceptionHandlingPatches( RtlPointers );
-	if ( ! NT_SUCCESS( Status ) )
+	if ( RtlPointers != NULL )
 	{
-		Status = STATUS_NO_MEMORY;
-		goto Cleanup;
+		//
+		// Apply RTL patches.
+		//
+		Status = JpfbtsApplyRtlExceptionHandlingPatches( RtlPointers );
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			Status = STATUS_NO_MEMORY;
+			goto Cleanup;
+		}
+
+		JpfbtpExceptionHandlingUsed = TRUE;
 	}
 
 	Status = STATUS_SUCCESS;
@@ -274,11 +287,14 @@ NTSTATUS JpfbtUninitialize()
 		ListEntry = NextEntry;
 	}
 
-	//
-	// Revoke RTL patches.
-	//
-	( VOID ) JpfbtsRevokeRtlExceptionHandlingPatches();
-	
+	if ( JpfbtpExceptionHandlingUsed )
+	{
+		//
+		// Revoke RTL patches.
+		//
+		( VOID ) JpfbtsRevokeRtlExceptionHandlingPatches();
+	}
+
 	//
 	// Flush all buffers and shutdown collector
 	//

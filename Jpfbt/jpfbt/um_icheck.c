@@ -9,6 +9,11 @@
 #include <jpfbt.h>
 #include "jpfbtp.h"
 
+//
+// Disable function/data pointer conversion warning.
+//
+#pragma warning( disable : 4152 )
+
 BOOLEAN JpfbtpIsCodeAddressValid(
 	__in PVOID Address
 	)

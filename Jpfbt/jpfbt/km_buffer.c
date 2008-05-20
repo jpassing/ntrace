@@ -247,17 +247,69 @@ VOID JpfbtpFreeGlobalState()
  *
  */
 
-PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable()
+NTSTATUS JpfbtpGetCurrentThreadDataIfAvailable(
+	__out PJPFBT_THREAD_DATA *ThreadData
+	)
 {
-	return ( PJPFBT_THREAD_DATA ) JpfbtGetFbtDataCurrentThread();
+	PJPFBT_THREAD_DATA ExistingThreadData = 
+		( PJPFBT_THREAD_DATA ) JpfbtGetFbtDataCurrentThread();
+
+	if ( ExistingThreadData != NULL && 
+		 ExistingThreadData->AllocationType == JpfbtpPseudoAllocation )
+	{
+		//
+		// Reentrance!
+		//
+		*ThreadData = NULL;
+		return STATUS_FBT_REENTRANT_ALLOCATION;
+	}
+	else
+	{
+		*ThreadData = ExistingThreadData;
+		return STATUS_SUCCESS;
+	}
 }
 
 PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 {
+	NTSTATUS Status;
 	PJPFBT_THREAD_DATA ThreadData = NULL;
 
+	//
+	// N.B. This routine is called to lazily allocate a threaddata
+	// structure. In case we do not use memory from the preallocation
+	// to satisfy this request but allocate fresh memory from the pool,
+	// *and* certain routines have been instrumented that will be called
+	// as part of this allocation, reentrace can occur.
+	//
+	
 	if ( KeGetCurrentIrql() <= DISPATCH_LEVEL )
 	{
+		//
+		// Code potentially causing reentrance begins here.
+		//
+		// Assign a pseudo allocation that signals reentrance. To 
+		// avoid excessive stack usage, we use a minimal, cropped
+		// version of a ThreadData structure that is just enough to be
+		// assigned to the thread.
+		//
+		UCHAR PseudoThreadDataBuffer[ 
+			RTL_SIZEOF_THROUGH_FIELD( 
+				JPFBT_THREAD_DATA,
+				Association.HashtableEntry ) ];
+		PJPFBT_THREAD_DATA PseudoThreadData = 
+			( PJPFBT_THREAD_DATA ) &PseudoThreadDataBuffer;
+		PseudoThreadData->AllocationType	 = JpfbtpPseudoAllocation;
+		PseudoThreadData->Association.Thread = PsGetCurrentThread();
+
+		Status = JpfbtSetFbtDataThread( 
+			PseudoThreadData->Association.Thread, 
+			PseudoThreadData );
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			return NULL;
+		}
+
 		//
 		// IRQL is low enough to make an allocation.
 		//
@@ -269,6 +321,13 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 
 			TRACE( ( "JPFBT: ThreadData %p alloc'd from NPP\n", ThreadData ) );
 		}
+
+		//
+		// Code potentially causing ends here.
+		//
+		JpfbtSetFbtDataThread( 
+			PsGetCurrentThread(), 
+			NULL );
 	}
 	else
 	{
@@ -303,8 +362,6 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 	//
 	if ( ThreadData != NULL )
 	{
-		NTSTATUS Status;
-
 		ThreadData->Association.Thread = PsGetCurrentThread();
 		Status = JpfbtSetFbtDataThread( ThreadData->Association.Thread, ThreadData );
 

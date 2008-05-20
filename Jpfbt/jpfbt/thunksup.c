@@ -11,8 +11,15 @@
 
 PJPFBT_THUNK_STACK JpfbtpGetCurrentThunkStack()
 {
-	return &JpfbtpGetCurrentThreadData()->ThunkStack;
-	//return 0;
+	PJPFBT_THREAD_DATA ThreadData = JpfbtpGetCurrentThreadData();
+	if ( ThreadData == NULL )
+	{
+		return NULL;
+	}
+	else
+	{
+		return &ThreadData->ThunkStack;
+	}
 }
 
 /*++
@@ -75,6 +82,8 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
     __inout PVOID DispatcherContext
 	)
 {
+	PJPFBT_THREAD_DATA ThreadData;
+
 	//
 	// Some routine has thrown an exception. 2 situations may now occur:
 	// 1) Some exception handler beneth us will return 
@@ -89,29 +98,55 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 	UNREFERENCED_PARAMETER( ContextRecord );
 	UNREFERENCED_PARAMETER( DispatcherContext );
 	
-	TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
+	//TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
 
 	#define EH_UNWINDING 2
+
+	ThreadData = JpfbtpGetCurrentThreadData();
+	
+	//
+	// N.B. ThreadData should never be NULL as it contains the exception
+	// registration record that brought us here in the first place!
+	//
+	ASSERT( ThreadData != NULL );
+	__assume( ThreadData != NULL );
+
 
 	if ( ExceptionRecord->ExceptionFlags & EH_UNWINDING )
 	{
 		//
 		// Case 2) has occured.
 		//
-		PJPFBT_THUNK_STACK ThunkStack;
 		
-		TRACE( ( "JPFBT: Unwinding for %x\n", ExceptionRecord->ExceptionCode ) );
+		//TRACE( ( "JPFBT: Unwinding for %x\n", ExceptionRecord->ExceptionCode ) );
 
-		ThunkStack = JpfbtpGetCurrentThunkStack();
-		ASSERT( ThunkStack != NULL );
+		//
+		// Report event.
+		//
+		// N.B. ExceptionRecord->ExceptionCode is now STATUS_UNWIND,
+		// therefore use exception code stashed away previously.
+		//
+		if ( JpfbtpGlobalState->Routines.ExceptionEvent != NULL )
+		{
+			( JpfbtpGlobalState->Routines.ExceptionEvent )(
+				ThreadData->PendingException,
+				( PVOID ) ThreadData->ThunkStack.StackPointer->Procedure,
+				JpfbtpGlobalState->UserPointer );
+		}
+
+		ThreadData->PendingException = 0;
 
 		//
 		// Pop top frame. ThunkStack should never be NULL.
 		//
-		if ( ThunkStack != NULL )
-		{
-			ThunkStack->StackPointer++;
-		}
+		ThreadData->ThunkStack.StackPointer++;
+	}
+	else
+	{
+		//
+		// Stash away exception code until unwinding.
+		//
+		ThreadData->PendingException = ExceptionRecord->ExceptionCode;
 	}
 	
 	//

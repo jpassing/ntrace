@@ -364,7 +364,6 @@ VOID Raise()
 #else
 	ExRaiseStatus( 'excp' );
 #endif
-	TEST( !"Should never make it here" );
 }
 
 //

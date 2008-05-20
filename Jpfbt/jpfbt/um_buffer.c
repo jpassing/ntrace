@@ -195,18 +195,24 @@ VOID JpfbtpFreeGlobalState()
  *
  */
 
-PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadDataIfAvailable()
+NTSTATUS JpfbtpGetCurrentThreadDataIfAvailable(
+	__out PJPFBT_THREAD_DATA *ThreadData
+	)
 {
 	if ( JpfbtsThreadDataTlsIndex == TLS_OUT_OF_INDEXES )
 	{
 		//
 		// This may be the case when called by JpfbtCleanupThread.
 		//
-		return NULL;
+		*ThreadData = NULL;
+	}
+	else
+	{
+		*ThreadData = ( PJPFBT_THREAD_DATA ) 
+			TlsGetValue( JpfbtsThreadDataTlsIndex );
 	}
 
-	return ( PJPFBT_THREAD_DATA ) 
-		TlsGetValue( JpfbtsThreadDataTlsIndex );
+	return STATUS_SUCCESS;
 }
 
 PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()

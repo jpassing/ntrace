@@ -15,6 +15,8 @@ extrn JpfbtpProcedureEntry@8 : proc
 extrn JpfbtpProcedureExit@8 : proc
 extrn JpfbtpThunkExceptionHandler@16 : proc
 
+extrn JpfbtpExceptionHandlingUsed : BYTE
+
 ifdef JPFBT_TARGET_USERMODE
 extrn RaiseException@16 : proc
 else
@@ -144,6 +146,13 @@ JpfbtpFunctionEntryThunk proc
 	mov [ecx - SizeofStackFrame + ReturnAddressOffset], edx
 	
 	;
+	; See if we are to install our SEH exception registration record.
+	;
+	movzx edx, [JpfbtpExceptionHandlingUsed]
+	test edx, 1
+	jz SehInstallationEnd
+	
+	;
 	; Setup SEH record.
 	;
 	mov edx, fs:[0]
@@ -156,6 +165,7 @@ JpfbtpFunctionEntryThunk proc
 	lea edx, [ecx - SizeofStackFrame + SehRecordOffset]
 	mov fs:[0], edx
 	
+SehInstallationEnd:
 	;
 	; Adjust stack pointer:
 	;   thunkstack->StackPointer--
@@ -337,12 +347,20 @@ JpfbtpFunctionCallThunk proc
 	mov [ebp+4], edx						; Write to reserved slot.
 	
 	;
+	; See if we are to uninstall our SEH exception registration record.
+	;
+	movzx edx, [JpfbtpExceptionHandlingUsed]
+	test edx, 1
+	jz SehUninstallationEnd
+	
+	;
 	; Uninstall SEH record.
 	;
 	mov edx, fs:[0]
 	mov edx, [edx]
 	mov fs:[0], edx
 	
+SehUninstallationEnd:
 	;
 	; Retrieve funcptr.
 	;

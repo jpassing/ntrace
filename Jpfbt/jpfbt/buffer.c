@@ -94,8 +94,13 @@ static PJPFBT_BUFFER JpfbtpsGetBuffer(
 			//
 			// Initialize thread & process.
 			//
-			NewBuffer->ProcessId	= JpfbtpGetCurrentProcessId();
-			NewBuffer->ThreadId		= JpfbtpGetCurrentThreadId();
+			NewBuffer->ProcessId		= JpfbtpGetCurrentProcessId();
+			NewBuffer->ThreadId			= JpfbtpGetCurrentThreadId();
+
+#if defined( JPFBT_TARGET_KERNELMODE ) && defined( DBG )
+			NewBuffer->OwningThread		= PsGetCurrentThread();
+			NewBuffer->OwningThreadData = ThreadData;
+#endif
 
 			ThreadData->CurrentBuffer = NewBuffer;
 		}
@@ -239,9 +244,19 @@ VOID JpfbtpInitializeBuffersGlobalState(
 
 PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 {
+	NTSTATUS Status;
 	PJPFBT_THREAD_DATA ThreadData;
 
-	ThreadData = JpfbtpGetCurrentThreadDataIfAvailable();
+	Status = JpfbtpGetCurrentThreadDataIfAvailable( &ThreadData );
+	if ( Status == STATUS_FBT_REENTRANT_ALLOCATION )
+	{
+		//
+		// Ok, fail this request.
+		//
+		return NULL;
+	}
+
+	ASSERT( Status == STATUS_SUCCESS );
 	if ( ! ThreadData )
 	{
 		//
@@ -286,16 +301,21 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 
 VOID JpfbtpCheckForBufferOverflow()
 {
-#if DBG
+#if 0
 	if ( JpfbtpGetCurrentThreadData()->CurrentBuffer )
 	{
 		PJPFBT_BUFFER Buffer = JpfbtpGetCurrentThreadData()->CurrentBuffer;
+		ULONG Guard;
+
 		ASSERT( Buffer->Guard == 0xDEADBEEF );
 
-		ASSERT( Buffer->Buffer[ Buffer->UsedSize ] == 0xEF );
-		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 1 ] == 0xBE );
-		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 2 ] == 0xAD );
-		ASSERT( Buffer->Buffer[ Buffer->UsedSize + 3 ] == 0xDE );
+		//
+		// N.B. ASSERT may be traced, so that reentrance may ocuur
+		// if the assertion expressions fail.
+		//
+
+		Guard = *( PULONG ) ( PVOID ) &Buffer->Buffer[ Buffer->UsedSize ];
+		ASSERT( Guard == 0xDEADBEEF );
 	}
 #endif
 }
@@ -312,6 +332,7 @@ PUCHAR JpfbtGetBuffer(
 {
 	PJPFBT_BUFFER Buffer;
 	PUCHAR BufferPtr;
+	PJPFBT_THREAD_DATA CurrentThreadData;
 	ULONG GrossSize = NetSize;
 
 	ASSERT ( JpfbtpGlobalState != NULL );
@@ -328,12 +349,24 @@ PUCHAR JpfbtGetBuffer(
 	}
 
 	//
+	// As this routine is only for use from withing event callbacks,
+	// thread data should always be available.
+	//
+	CurrentThreadData = JpfbtpGetCurrentThreadData();
+	ASSERT( CurrentThreadData != NULL );
+
+	//
 	// Get buffer (may have already been used).
 	//
-	Buffer = JpfbtpsGetBuffer( JpfbtpGetCurrentThreadData(), GrossSize );
+	Buffer = JpfbtpsGetBuffer( CurrentThreadData, GrossSize );
 	if ( Buffer )
 	{
 		ASSERT( Buffer->Guard == 0xDEADBEEF );
+
+#if defined( JPFBT_TARGET_KERNELMODE ) && defined( DBG )
+		ASSERT( Buffer->OwningThread == PsGetCurrentThread() );
+		ASSERT( Buffer->OwningThreadData == CurrentThreadData );
+#endif
 
 		BufferPtr = &Buffer->Buffer[ Buffer->UsedSize ];
 
@@ -466,14 +499,14 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 #if defined( JPFBT_TARGET_USERMODE )
 	UNREFERENCED_PARAMETER( Thread );
 	ASSERT( Thread == NULL );
-	ThreadData = JpfbtpGetCurrentThreadDataIfAvailable();
+	JpfbtpGetCurrentThreadDataIfAvailable( &ThreadData );
 #else
 	ASSERT( Thread != NULL );
 	ThreadData = ( PJPFBT_THREAD_DATA ) 
 		JpfbtGetFbtDataThread( ( PETHREAD ) Thread );
 #endif
 
-	if ( ThreadData != NULL )
+	if ( ThreadData != NULL && ThreadData->AllocationType != JpfbtpPseudoAllocation)
 	{
 		if ( ThreadData->CurrentBuffer )
 		{

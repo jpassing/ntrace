@@ -132,6 +132,8 @@ static VOID JpfbtsPatchRoutine(
 				//
 				// NewCode -> Target
 				//
+				//TRACE( ( "Patching %p\n", Context->Patches[ PatchIndex ]->Target ) );
+
 				memcpy( 
 					Context->Patches[ PatchIndex ]->MappedAddress, 
 					Context->Patches[ PatchIndex ]->NewCode, 

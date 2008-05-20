@@ -2,6 +2,25 @@
 
 static ULONG EntryCalls = 0;
 static ULONG ExitCalls = 0;
+static ULONG ExceptionCalls = 0;
+
+#ifdef JPFBT_TARGET_USERMODE
+static BOOLEAN IsVistaOrNewer()
+{
+	OSVERSIONINFO OsVersion;
+	OsVersion.dwOSVersionInfoSize = sizeof( OSVERSIONINFO );
+	TEST( GetVersionEx( &OsVersion ) );
+	return OsVersion.dwMajorVersion >= 6 ? TRUE : FALSE;
+}
+#else
+static BOOLEAN IsVistaOrNewer()
+{
+	RTL_OSVERSIONINFOW OsVersion;
+	OsVersion.dwOSVersionInfoSize = sizeof( RTL_OSVERSIONINFOW );
+	TEST_SUCCESS( RtlGetVersion( &OsVersion ) );
+	return OsVersion.dwMajorVersion >= 6 ? TRUE : FALSE;
+}
+#endif
 
 static VOID __stdcall SehProcedureEntry( 
 	__in CONST PJPFBT_CONTEXT Context,
@@ -27,6 +46,20 @@ static VOID __stdcall SehProcedureExit(
 	UNREFERENCED_PARAMETER( UserPointer );
 	
 	ExitCalls++;
+}
+
+static VOID __stdcall SehProcedureException( 
+	__in ULONG ExceptionCode,
+	__in PVOID Function,
+	__in_opt PVOID UserPointer
+	)
+{
+	TEST( ExceptionCode == 'excp' );
+	TEST( Function == ( PVOID ) Raise );
+	UNREFERENCED_PARAMETER( UserPointer );
+	
+	CFIX_LOG( L"Exception callback for %x", ExceptionCode );
+	ExceptionCalls++;
 }
 
 static VOID SehProcessBuffer(
@@ -67,24 +100,29 @@ static void TestSehThunkStackCleanup()
 {
 	JPFBT_PROCEDURE Proc;
 	JPFBT_PROCEDURE FailedProc;
-
 	JPFBT_RTL_POINTERS RtlPointers;
 
+	if ( IsVistaOrNewer() )
+	{
+		CFIX_INCONCLUSIVE( L"SEH interception does not work on Vista+" );
+		return;
+	}
+
 	//
-	// CAUTION: These are Vista (UM) and WRK (KM) VAs!
+	// CAUTION: Svr03 SP2 - these VAs may change at any time!
 	//
 #ifdef JPFBT_TARGET_USERMODE
-	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x7764b5b8;
-	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x7764b475;
-	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x776b1cc8;
+	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x7c831536;
+	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x7c831701;
+	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x7c828886;
 #elif JPFBT_WRK
 	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x808646da;
 	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x80864858;
 	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x8088541c;
 #else
-	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0;
-	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0;
-	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0;
+	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x80838f96;
+	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x80838e89;
+	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x8081f912;
 #endif
 
 	TEST_SUCCESS( JpfbtInitializeEx( 
@@ -94,6 +132,7 @@ static void TestSehThunkStackCleanup()
 		JPFBT_FLAG_AUTOCOLLECT,
 		SehProcedureEntry, 
 		SehProcedureExit,
+		SehProcedureException,
 		SehProcessBuffer,
 		&RtlPointers,
 		NULL ) );
@@ -110,6 +149,7 @@ static void TestSehThunkStackCleanup()
 
 	TEST( EntryCalls == 1 );	
 	TEST( ExitCalls == 0 );	
+	TEST( ExceptionCalls == 1 );	
 
 	TEST_SUCCESS( JpfbtInstrumentProcedure( 
 		JpfbtRemoveInstrumentation, 

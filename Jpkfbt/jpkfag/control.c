@@ -394,7 +394,9 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		InitFlags,
 		EventSink->OnProcedureEntry,
 		EventSink->OnProcedureExit,
+		NULL, 
 		EventSink->OnProcessBuffer,
+		NULL,
 		EventSink );
 	if ( NT_SUCCESS( Status ) )
 	{

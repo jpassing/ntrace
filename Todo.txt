@@ -21,6 +21,8 @@ jpfbt
  
  make RtlPointers mandatory
  
+ UM: detect alloc reentrance
+ 
 jpufbt
 ------------------------------------------------------------------------
  * VS_VERSION_INFO jpufag

@@ -84,6 +84,23 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_EVENT_ROUTINE ) (
 	__in_opt PVOID UserPointer
 	);
 
+/*++
+	Routine Description:
+		Routine called if exception unwinding occurs.
+
+		To obtain a buffer, call JpfbtGetBuffer();
+
+	Parameters:
+		ExceptionCode - Code
+		Procedure     - Procedure entered.
+		UserPointer   - Arbitrary user pointer passed to 
+					   JpfbtInitialize.
+--*/
+typedef VOID ( JPFBTCALLTYPE * JPFBT_EXCP_UNWIND_EVENT_ROUTINE ) (
+	__in ULONG ExceptionCode,
+	__in PVOID Function,
+	__in_opt PVOID UserPointer
+	);
 
 /*++
 	Routine Description:
@@ -134,9 +151,13 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 						repeatedly.
 		EntryEvRt.  - Routine called on entry of hooked function.
 		ExitEvRt.   - Routine called on exit of hooked function.
+		ExcepEvRt.  - Routine called when a traced routine is unwound after
+					  an exception has been thrown. Must be NULL iff
+					  RtlPointers is NULL.
 		ProcessBufR.- Routine called for dirty buffer collection.
-		RtlPointers - Pointer to a fully initialized JPFBT_RTL_POINTERS 
-					  structure. MUST be provided for SEH to work.
+		RtlPointers - If exceptions ought to be intercepted, this parameter
+					  must point to a fully initialized JPFBT_RTL_POINTERS 
+					  structure. 
 		UserPointer - Arbitrary user pointer passed to 
 					  ProcessBufferRoutine.
 
@@ -161,6 +182,7 @@ NTSTATUS JpfbtInitializeEx(
 	__in ULONG Flags,
 	__in JPFBT_EVENT_ROUTINE EntryEventRoutine,
 	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
+	__in_opt JPFBT_EXCP_UNWIND_EVENT_ROUTINE ExceptionEventRoutine,
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
 	__in_opt PJPFBT_RTL_POINTERS RtlPointers,
 	__in_opt PVOID UserPointer

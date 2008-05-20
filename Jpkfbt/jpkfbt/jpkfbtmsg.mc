@@ -122,7 +122,7 @@ Instrumentation failed.
 ;// Definitions
 ;//--------------------------------------------------------------------
 
-MessageIdTypedef=HRESULT
+MessageIdTypedef=NTSTATUS
 
 SeverityNames=(
   Success=0x0
@@ -259,5 +259,13 @@ Facility		= Interface
 SymbolicName	= STATUS_FBT_INVALID_BUFFER_SIZE
 Language		= English
 Invalid buffer size - must be a multple of 8.
+.
+
+MessageId		= 0x920f
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_CANNOT_LOCATE_EH_ROUTINES
+Language		= English
+The RTL exception handling routines cannot be located.
 .
 
