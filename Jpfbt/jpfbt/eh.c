@@ -89,6 +89,23 @@ static PVOID JpfbtsFindFirstNearCallWithinRoutine(
 	return NULL;
 }
 
+static BOOLEAN JpfbtsIsVistaOrNewer()
+{
+#ifdef JPFBT_TARGET_USERMODE
+	OSVERSIONINFO OsVersion;
+	OsVersion.dwOSVersionInfoSize = sizeof( OSVERSIONINFO );
+
+	( VOID ) GetVersionEx( &OsVersion );
+#else
+	RTL_OSVERSIONINFOW OsVersion;
+	OsVersion.dwOSVersionInfoSize = sizeof( RTL_OSVERSIONINFOW );
+	
+	( VOID ) RtlGetVersion( &OsVersion );
+#endif
+
+	return OsVersion.dwMajorVersion >= 6 ? TRUE : FALSE;
+}
+
 /*----------------------------------------------------------------------
  *
  * RTL Exception Handling.
@@ -99,13 +116,29 @@ static PVOID JpfbtsFindFirstNearCallWithinRoutine(
 	Routine Description:
 		Fake reimplementation of RtlpGetStackLimit that indicates
 		the entire virtual address space to be occupied by the stack.
+
+		This signature is valid for Svr03.
 --*/
-static VOID JpfbtsFakeRtlpGetStackLimits(
+static VOID JpfbtsFakeRtlpGetStackLimitsPreVista(
     __out PULONG LowLimit,
     __out PULONG HighLimit
     )
 {
 	*LowLimit	= 0;
+	*HighLimit	= ( ULONG ) -1;
+}
+
+/*++
+	Routine Description:
+		Fake reimplementation of RtlpGetStackLimit that indicates
+		the entire virtual address space to be occupied by the stack.
+
+		This signature is valid for Vista.
+--*/
+static VOID JpfbtsFakeRtlpGetStackLimitsPostVista(
+    __out PULONG HighLimit
+    )
+{
 	*HighLimit	= ( ULONG ) -1;
 }
 
@@ -121,7 +154,17 @@ static NTSTATUS JpfbtsPrepareCodePatch(
 	)
 {
 	PVOID CallInstruction;
+	PVOID NewImplementation;
 	NTSTATUS Status;
+
+	if ( JpfbtsIsVistaOrNewer() )
+	{
+		NewImplementation = ( PVOID ) JpfbtsFakeRtlpGetStackLimitsPostVista;
+	}
+	else
+	{
+		NewImplementation = ( PVOID ) JpfbtsFakeRtlpGetStackLimitsPreVista;
+	}
 
 	CallInstruction = JpfbtsFindFirstNearCallWithinRoutine(
 		Routine,
@@ -141,7 +184,7 @@ static NTSTATUS JpfbtsPrepareCodePatch(
 	Status = JpfbtAssembleNearCall( 
 		Patch->NewCode,
 		( ULONG_PTR ) CallInstruction,
-		( ULONG_PTR ) JpfbtsFakeRtlpGetStackLimits );
+		( ULONG_PTR ) NewImplementation );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		return Status;

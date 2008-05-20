@@ -102,11 +102,11 @@ static void TestSehThunkStackCleanup()
 	JPFBT_PROCEDURE FailedProc;
 	JPFBT_RTL_POINTERS RtlPointers;
 
-	if ( IsVistaOrNewer() )
-	{
-		CFIX_INCONCLUSIVE( L"SEH interception does not work on Vista+" );
-		return;
-	}
+	//if ( IsVistaOrNewer() )
+	//{
+	//	CFIX_INCONCLUSIVE( L"SEH interception does not work on Vista+" );
+	//	return;
+	//}
 
 	//
 	// CAUTION: Svr03 SP2 - these VAs may change at any time!
@@ -120,9 +120,12 @@ static void TestSehThunkStackCleanup()
 	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x80864858;
 	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x8088541c;
 #else
-	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x80838f96;
-	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x80838e89;
-	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x8081f912;
+	//RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x80838f96;
+	//RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x80838e89;
+	//RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x8081f912;
+	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x8188c7d7;
+	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x8188ca0b;
+	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x81881cdd;
 #endif
 
 	TEST_SUCCESS( JpfbtInitializeEx( 
