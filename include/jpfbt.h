@@ -55,14 +55,33 @@ typedef struct _JPFBT_CONTEXT {
 
 /*++
 	Structure Description:
-		Pointers to RTL-internal routines.
+		Pointers tospecific symbols.
 --*/
-typedef struct _JPFBT_RTL_POINTERS
+typedef struct _JPFBT_SYMBOL_POINTERS
 {
-	PVOID RtlDispatchException;
-	PVOID RtlUnwind;
-	PVOID RtlpGetStackLimits;
-} JPFBT_RTL_POINTERS, *PJPFBT_RTL_POINTERS;
+#if defined(JPFBT_TARGET_KERNELMODE)
+	//
+	// Offsets within ETHREAD.
+	//
+	struct
+	{
+		ULONG SameThreadPassiveFlagsOffset;
+		ULONG SameThreadApcFlagsOffset;	
+	} Ethread;
+
+	//
+	// Absolute VAs.
+	//
+	struct
+	{
+		PVOID RtlDispatchException;
+		PVOID RtlUnwind;
+		PVOID RtlpGetStackLimits;
+	} ExceptionHandling;
+#else
+	PVOID Unused;
+#endif
+} JPFBT_SYMBOL_POINTERS, *PJPFBT_SYMBOL_POINTERS;
 
 /*++
 	Routine Description:
@@ -123,7 +142,15 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 	__in_opt PVOID UserPointer
 	);
 
-#define JPFBT_FLAG_AUTOCOLLECT	1
+//
+// Auto-colect buffers.
+//
+#define JPFBT_FLAG_AUTOCOLLECT			1
+
+//
+// Enable exception interception (KM only).
+//
+#define JPFBT_FLAG_INTERCEPT_EXCEPTIONS	2
 
 /*++
 	Routine Description:
@@ -149,15 +176,15 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 						only called during shutdown to flush buffers.
 						JpfbtProcessBuffer must be called 
 						repeatedly.
+					  JPFBT_FLAG_INTERCEPT_EXCEPTIONS
 		EntryEvRt.  - Routine called on entry of hooked function.
 		ExitEvRt.   - Routine called on exit of hooked function.
 		ExcepEvRt.  - Routine called when a traced routine is unwound after
 					  an exception has been thrown. Must be NULL iff
-					  RtlPointers is NULL.
+					  JPFBT_FLAG_INTERCEPT_EXCEPTIONS not set.
 		ProcessBufR.- Routine called for dirty buffer collection.
-		RtlPointers - If exceptions ought to be intercepted, this parameter
-					  must point to a fully initialized JPFBT_RTL_POINTERS 
-					  structure. 
+		SymPointers - Must be specifie din kernel mode, may be NULL in
+					  user mode.
 		UserPointer - Arbitrary user pointer passed to 
 					  ProcessBufferRoutine.
 
@@ -165,6 +192,8 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 		STATUS_SUCCESS on success.
 		(any NTSTATUS) on failure.
 --*/
+
+#if defined(JPFBT_TARGET_USERMODE)
 NTSTATUS JPFBTCALLTYPE JpfbtInitialize(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
@@ -174,6 +203,7 @@ NTSTATUS JPFBTCALLTYPE JpfbtInitialize(
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
 	__in_opt PVOID UserPointer
 	);
+#endif
 
 NTSTATUS JpfbtInitializeEx(
 	__in ULONG BufferCount,
@@ -184,7 +214,7 @@ NTSTATUS JpfbtInitializeEx(
 	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
 	__in_opt JPFBT_EXCP_UNWIND_EVENT_ROUTINE ExceptionEventRoutine,
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in_opt PJPFBT_RTL_POINTERS RtlPointers,
+	__in_opt PJPFBT_SYMBOL_POINTERS SymbolPointers,
 	__in_opt PVOID UserPointer
 	);
 

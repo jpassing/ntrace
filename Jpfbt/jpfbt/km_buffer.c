@@ -81,6 +81,7 @@ static VOID JpfbtsFreePreallocatedThreadData(
  */
 
 NTSTATUS JpfbtpCreateGlobalState(
+	__in_opt PJPFBT_SYMBOL_POINTERS Pointers,
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
@@ -97,7 +98,8 @@ NTSTATUS JpfbtpCreateGlobalState(
 
 	UNREFERENCED_PARAMETER( ThreadDataPreallocations );
 
-	if ( ThreadDataPreallocations > 1024 ||
+	if ( Pointers == NULL ||
+		 ThreadDataPreallocations > 1024 ||
 		 BufferSize > JPFBT_MAX_BUFFER_SIZE ||
 		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 )
 	{
@@ -116,7 +118,9 @@ NTSTATUS JpfbtpCreateGlobalState(
 		return Status;
 	}
 
-	Status = JpfbtpInitializeKernelTls();
+	Status = JpfbtpInitializeKernelTls(
+		Pointers->Ethread.SameThreadPassiveFlagsOffset,
+		Pointers->Ethread.SameThreadApcFlagsOffset );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		goto Cleanup;
@@ -299,6 +303,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 				Association.HashtableEntry ) ];
 		PJPFBT_THREAD_DATA PseudoThreadData = 
 			( PJPFBT_THREAD_DATA ) &PseudoThreadDataBuffer;
+		PseudoThreadData->Signature			 = JPFBT_THREAD_DATA_SIGNATURE;
 		PseudoThreadData->AllocationType	 = JpfbtpPseudoAllocation;
 		PseudoThreadData->Association.Thread = PsGetCurrentThread();
 
@@ -362,6 +367,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 	//
 	if ( ThreadData != NULL )
 	{
+		ThreadData->Signature = JPFBT_THREAD_DATA_SIGNATURE;
 		ThreadData->Association.Thread = PsGetCurrentThread();
 		Status = JpfbtSetFbtDataThread( ThreadData->Association.Thread, ThreadData );
 

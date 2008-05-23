@@ -505,9 +505,11 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 	ThreadData = ( PJPFBT_THREAD_DATA ) 
 		JpfbtGetFbtDataThread( ( PETHREAD ) Thread );
 #endif
-
-	if ( ThreadData != NULL && ThreadData->AllocationType != JpfbtpPseudoAllocation)
+	
+	if ( ThreadData != NULL && ThreadData->AllocationType != JpfbtpPseudoAllocation )
 	{
+		ASSERT( ThreadData->Signature == JPFBT_THREAD_DATA_SIGNATURE );
+
 		if ( ThreadData->CurrentBuffer )
 		{
 			//

@@ -26,7 +26,7 @@ TARGETPATH=..\..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DYNLINK
 SOURCES=\
 	..\testprocs.c \
-	..\seh.c
+	..\symptrs.c
 
 I386_SOURCES=..\i386\procs.c
 

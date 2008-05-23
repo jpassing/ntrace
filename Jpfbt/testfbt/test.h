@@ -5,7 +5,8 @@
 #include <cfix.h>
 
 #define TEST CFIX_ASSERT
-#define TEST_SUCCESS( expr ) CFIX_ASSERT_EQUALS_DWORD( 0, ( expr ) )
+#define TEST_STATUS( status, expr ) CFIX_ASSERT_EQUALS_DWORD( ( ULONG ) status, ( expr ) )
+#define TEST_SUCCESS( expr ) TEST_STATUS( 0, ( expr ) )
 
 /*----------------------------------------------------------------------
  *
@@ -34,3 +35,7 @@ typedef struct _SAMPLE_PROC_SET
 
 PSAMPLE_PROC_SET GetSampleProcs();
 VOID Raise();
+
+void GetSymbolPointers( 
+	__out PJPFBT_SYMBOL_POINTERS Pointers 
+	);

@@ -4,13 +4,18 @@
 
 void CreateGlobalState()
 {
+	JPFBT_SYMBOL_POINTERS SymPointers;
+	GetSymbolPointers( &SymPointers );
+	
 	TEST_SUCCESS( JpfbtpCreateGlobalState(
+		&SymPointers, 
 		1,
 		8,
 		0,
 		FALSE ) );
 	JpfbtpFreeGlobalState();
 	TEST_SUCCESS( JpfbtpCreateGlobalState(
+		&SymPointers,
 		1,
 		8,
 		32,
@@ -21,9 +26,12 @@ void CreateGlobalState()
 void AllocateThreadDataAtApcLevel()
 {
 	PJPFBT_THREAD_DATA ThreadData;
+	JPFBT_SYMBOL_POINTERS SymPointers;
+	GetSymbolPointers( &SymPointers );
 
 	CFIX_ASSERT( KeGetCurrentIrql() <= APC_LEVEL );
 	TEST_SUCCESS( JpfbtpCreateGlobalState(
+		&SymPointers,
 		1,
 		8,
 		1,		// 1 preallocated struct
@@ -45,9 +53,12 @@ void AllocateThreadDataAtDirql()
 {
 	KIRQL OldIrql;
 	PJPFBT_THREAD_DATA ThreadData;
+	JPFBT_SYMBOL_POINTERS SymPointers;
+	GetSymbolPointers( &SymPointers );
 
 	CFIX_ASSERT( KeGetCurrentIrql() <= APC_LEVEL );
 	TEST_SUCCESS( JpfbtpCreateGlobalState(
+		&SymPointers,
 		1,
 		8,
 		1,		// 1 preallocated struct
@@ -80,9 +91,12 @@ void AllocateThreadDataAtApcAndFreeAtDirql()
 {
 	KIRQL OldIrql;
 	PJPFBT_THREAD_DATA ThreadData;
+	JPFBT_SYMBOL_POINTERS SymPointers;
+	GetSymbolPointers( &SymPointers );
 
 	CFIX_ASSERT( KeGetCurrentIrql() <= APC_LEVEL );
 	TEST_SUCCESS( JpfbtpCreateGlobalState(
+		&SymPointers,
 		1,
 		8,
 		1,		// 1 preallocated struct

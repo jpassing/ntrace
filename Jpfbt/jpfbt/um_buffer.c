@@ -23,6 +23,7 @@ static ULONG CALLBACK JpfbtsBufferCollectorThreadProc( __in PVOID Unused );
 static ULONG JpfbtsThreadDataTlsIndex = TLS_OUT_OF_INDEXES;
 
 NTSTATUS JpfbtpCreateGlobalState(
+	__in_opt PJPFBT_SYMBOL_POINTERS Pointers,
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
@@ -33,6 +34,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	NTSTATUS Status;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
 
+	UNREFERENCED_PARAMETER( Pointers );
 	UNREFERENCED_PARAMETER( ThreadDataPreallocations );
 
 	if ( BufferCount == 0 || 
@@ -228,6 +230,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 
 	if ( ThreadData )
 	{
+		ThreadData->Signature = JPFBT_THREAD_DATA_SIGNATURE;
 		TlsSetValue( JpfbtsThreadDataTlsIndex, ThreadData );
 
 		ThreadData->AllocationType = JpfbtpPoolAllocated;

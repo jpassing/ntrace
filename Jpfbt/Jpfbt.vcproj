@@ -228,6 +228,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\testfbt\symptrs.c"
+					>
+				</File>
+				<File
 					RelativePath=".\testfbt\test.h"
 					>
 				</File>

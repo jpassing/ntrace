@@ -4,24 +4,6 @@ static ULONG EntryCalls = 0;
 static ULONG ExitCalls = 0;
 static ULONG ExceptionCalls = 0;
 
-#ifdef JPFBT_TARGET_USERMODE
-static BOOLEAN IsVistaOrNewer()
-{
-	OSVERSIONINFO OsVersion;
-	OsVersion.dwOSVersionInfoSize = sizeof( OSVERSIONINFO );
-	TEST( GetVersionEx( &OsVersion ) );
-	return OsVersion.dwMajorVersion >= 6 ? TRUE : FALSE;
-}
-#else
-static BOOLEAN IsVistaOrNewer()
-{
-	RTL_OSVERSIONINFOW OsVersion;
-	OsVersion.dwOSVersionInfoSize = sizeof( RTL_OSVERSIONINFOW );
-	TEST_SUCCESS( RtlGetVersion( &OsVersion ) );
-	return OsVersion.dwMajorVersion >= 6 ? TRUE : FALSE;
-}
-#endif
-
 static VOID __stdcall SehProcedureEntry( 
 	__in CONST PJPFBT_CONTEXT Context,
 	__in PVOID Function,
@@ -100,44 +82,32 @@ static void TestSehThunkStackCleanup()
 {
 	JPFBT_PROCEDURE Proc;
 	JPFBT_PROCEDURE FailedProc;
-	JPFBT_RTL_POINTERS RtlPointers;
+	JPFBT_SYMBOL_POINTERS SymPointers;
 
-	//if ( IsVistaOrNewer() )
-	//{
-	//	CFIX_INCONCLUSIVE( L"SEH interception does not work on Vista+" );
-	//	return;
-	//}
+	GetSymbolPointers( &SymPointers );
 
-	//
-	// CAUTION: Svr03 SP2 - these VAs may change at any time!
-	//
-#ifdef JPFBT_TARGET_USERMODE
-	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x7c831536;
-	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x7c831701;
-	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x7c828886;
-#elif JPFBT_WRK
-	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x808646da;
-	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x80864858;
-	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x8088541c;
-#else
-	//RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x80838f96;
-	//RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x80838e89;
-	//RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x8081f912;
-	RtlPointers.RtlDispatchException	= ( PVOID ) ( ULONG_PTR ) 0x8188c7d7;
-	RtlPointers.RtlUnwind				= ( PVOID ) ( ULONG_PTR ) 0x8188ca0b;
-	RtlPointers.RtlpGetStackLimits		= ( PVOID ) ( ULONG_PTR ) 0x81881cdd;
-#endif
+	TEST_STATUS( STATUS_INVALID_PARAMETER, JpfbtInitializeEx( 
+		10,
+		8,
+		0,
+		JPFBT_FLAG_AUTOCOLLECT, // Missing JPFBT_FLAG_INTERCEPT_EXCEPTIONS.
+		SehProcedureEntry, 
+		SehProcedureExit,
+		SehProcedureException,
+		SehProcessBuffer,
+		&SymPointers,
+		NULL ) );
 
 	TEST_SUCCESS( JpfbtInitializeEx( 
 		10,
 		8,
 		0,
-		JPFBT_FLAG_AUTOCOLLECT,
+		JPFBT_FLAG_AUTOCOLLECT | JPFBT_FLAG_INTERCEPT_EXCEPTIONS,
 		SehProcedureEntry, 
 		SehProcedureExit,
 		SehProcedureException,
 		SehProcessBuffer,
-		&RtlPointers,
+		&SymPointers,
 		NULL ) );
 
 	Proc.u.Procedure = ( PVOID ) Raise;

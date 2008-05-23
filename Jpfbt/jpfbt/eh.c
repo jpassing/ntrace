@@ -134,11 +134,14 @@ static VOID JpfbtsFakeRtlpGetStackLimitsPreVista(
 		the entire virtual address space to be occupied by the stack.
 
 		This signature is valid for Vista.
+
+		N.B. LowLimit is passed in esi.
 --*/
 static VOID JpfbtsFakeRtlpGetStackLimitsPostVista(
     __out PULONG HighLimit
     )
 {
+	_asm mov dword ptr [esi], 0;	// LowLimit
 	*HighLimit	= ( ULONG ) -1;
 }
 
@@ -193,8 +196,8 @@ static NTSTATUS JpfbtsPrepareCodePatch(
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS JpfbtPrepareRtlExceptionHandlingCodePatches(
-	__in PJPFBT_RTL_POINTERS RtlPointers,
+NTSTATUS JpfbtpPrepareRtlExceptionHandlingCodePatches(
+	__in PJPFBT_SYMBOL_POINTERS Pointers,
 	__out PJPFBT_CODE_PATCH DispatchExceptionPatch,
 	__out PJPFBT_CODE_PATCH UnwindPatch
 	)
@@ -202,8 +205,8 @@ NTSTATUS JpfbtPrepareRtlExceptionHandlingCodePatches(
 	NTSTATUS Status;
 
 	Status = JpfbtsPrepareCodePatch(
-		RtlPointers->RtlDispatchException,
-		RtlPointers->RtlpGetStackLimits,
+		Pointers->ExceptionHandling.RtlDispatchException,
+		Pointers->ExceptionHandling.RtlpGetStackLimits,
 		DispatchExceptionPatch );
 	if ( ! NT_SUCCESS( Status ) )
 	{
@@ -211,8 +214,8 @@ NTSTATUS JpfbtPrepareRtlExceptionHandlingCodePatches(
 	}
 
 	Status = JpfbtsPrepareCodePatch(
-		RtlPointers->RtlUnwind,
-		RtlPointers->RtlpGetStackLimits,
+		Pointers->ExceptionHandling.RtlUnwind,
+		Pointers->ExceptionHandling.RtlpGetStackLimits,
 		UnwindPatch );
 	if ( ! NT_SUCCESS( Status ) )
 	{

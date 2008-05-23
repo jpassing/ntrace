@@ -26,8 +26,8 @@
 	#define ASSERT_IRQL_LTE( Irql )
 #elif defined( JPFBT_TARGET_KERNELMODE )
 	#define INFINITE ( ( ULONG ) -1 )
-	//#define TRACE KdPrint
-	#define TRACE
+	#define TRACE KdPrint
+	//#define TRACE
 	#define ASSERT_IRQL_LTE( Irql ) ASSERT( KeGetCurrentIrql() <= ( Irql ) )
 #else
 	#error Unknown mode (User/Kernel)
@@ -114,13 +114,13 @@ typedef struct _JPFBT_THUNK_STACK_FRAME
 typedef struct _JPFBT_THUNK_STACK
 {
 	//
-	// Pointer to top stack location. I.e. *StackPointer points
-	// to a valid value unless the stack is empty.
+	// Pointer to top stack location. I.e. *StackPointer contains
+	// valid values unless the stack is empty.
 	//
 	PJPFBT_THUNK_STACK_FRAME StackPointer;
 
 	//
-	// Stack values. Note that the stack grows in reverse direction,
+	// Stack frames. Note that the stack grows in reverse direction,
 	// i.e. the bottom of the stack is at 
 	// Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ].
 	//
@@ -214,12 +214,16 @@ typedef enum
 	JpfbtpPseudoAllocation
 } JPFBTP_THREAD_DATA_ALLOCATION_TYPE;
 
+#define JPFBT_THREAD_DATA_SIGNATURE 'RHTJ'
+
 /*++
 	Structure Description:
 		Per-thread data.
 --*/
 typedef struct _JPFBT_THREAD_DATA
 {
+	ULONG Signature;
+
 	union
 	{
 		//
@@ -374,20 +378,6 @@ typedef struct _JPFBT_CODE_PATCH
 
 C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
 		  FIELD_OFFSET( JPFBT_CODE_PATCH, u.HashtableEntry.Key ) );
-
-/*++
-	Routine Description:
-		Prepare, but do not yet apply, patches to the RTL exception
-		handling implementation.
---*/
-NTSTATUS JpfbtPrepareRtlExceptionHandlingCodePatches(
-	__in PJPFBT_RTL_POINTERS RtlPointers,
-	__out PJPFBT_CODE_PATCH DispatchExceptionPatch,
-	__out PJPFBT_CODE_PATCH UnwindPatch
-	);
-
-
-
 
 /*----------------------------------------------------------------------
  *
@@ -689,6 +679,7 @@ VOID JpfbtpInitializeBuffersGlobalState(
 		Callable at IRQL <= DISPATCH_LEVEL.
 
 	Parameters:
+		Pointers					- (Kernel mode only)
 		BufferCount  				- # of buffer to allocate.
 		BufferSize   				- size of each buffer in bytes.
 		ThreadDataPreallocations	- # of ThreadData sructures to be 
@@ -696,6 +687,7 @@ VOID JpfbtpInitializeBuffersGlobalState(
 									  allocations)
 --*/
 NTSTATUS JpfbtpCreateGlobalState(
+	__in_opt PJPFBT_SYMBOL_POINTERS Pointers,
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
@@ -834,8 +826,20 @@ VOID JpfbtpFreeNonPagedMemory(
 
 
 #if defined( JPFBT_TARGET_KERNELMODE )
+
+/*++
+	Routine Description:
+		Prepare, but do not yet apply, patches to the RTL exception
+		handling implementation.
+--*/
+NTSTATUS JpfbtpPrepareRtlExceptionHandlingCodePatches(
+	__in PJPFBT_SYMBOL_POINTERS RtlPointers,
+	__out PJPFBT_CODE_PATCH DispatchExceptionPatch,
+	__out PJPFBT_CODE_PATCH UnwindPatch
+	);
+
 #if defined( JPFBT_WRK )
-	#define JpfbtpInitializeKernelTls() STATUS_SUCCESS
+	#define JpfbtpInitializeKernelTls( x, y ) STATUS_SUCCESS
 	#define JpfbtpDeleteKernelTls()
 #else
 
@@ -846,9 +850,14 @@ VOID JpfbtpFreeNonPagedMemory(
 		Only applies to retail kernel build.
 
 		Callable at IRQL < DISPATCH_LEVEL
+	Parameters:
+		SameThreadPassiveFlagsOffset	- Offset within ETHREAD.
+		SameThreadApcFlagsOffset		- Offset within ETHREAD.
 --*/
-NTSTATUS JpfbtpInitializeKernelTls();
-
+NTSTATUS JpfbtpInitializeKernelTls(
+	__in ULONG SameThreadPassiveFlagsOffset,
+	__in ULONG SameThreadApcFlagsOffset
+	);
 
 /*++
 	Routine Description:

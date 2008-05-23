@@ -24,7 +24,8 @@ SOURCES=\
 	..\km_thralloc.c \
 	..\km_patching.c \
 	..\testprocs.c \
-	..\seh.c
+	..\seh.c \
+	..\symptrs.c
 
 I386_SOURCES=..\i386\procs.c
 

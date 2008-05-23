@@ -1,3 +1,4 @@
+
 /*----------------------------------------------------------------------
  * Purpose:
  *		Support routines used by thunk.
@@ -98,7 +99,7 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 	UNREFERENCED_PARAMETER( ContextRecord );
 	UNREFERENCED_PARAMETER( DispatcherContext );
 	
-	//TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
+	TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
 
 	#define EH_UNWINDING 2
 
@@ -118,7 +119,7 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 		// Case 2) has occured.
 		//
 		
-		//TRACE( ( "JPFBT: Unwinding for %x\n", ExceptionRecord->ExceptionCode ) );
+		TRACE( ( "JPFBT: About to unwind for %x\n", ExceptionRecord->ExceptionCode ) );
 
 		//
 		// Report event.
@@ -140,6 +141,8 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 		// Pop top frame. ThunkStack should never be NULL.
 		//
 		ThreadData->ThunkStack.StackPointer++;
+
+		TRACE( ( "JPFBT: Unwinding completed\n" ) );
 	}
 	else
 	{

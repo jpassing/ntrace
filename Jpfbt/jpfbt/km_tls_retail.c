@@ -1,9 +1,7 @@
 /*----------------------------------------------------------------------
  * Purpose:
- *		Simple TLS implementation based on a global hashtable.
- *
- *		N.B. The locking scheme should be replaced by a bucket-level 
- *		locking scheme for MP systems.
+ *		Short of a TLS mechanism, we use some spare bytes in the
+ *		thread's ETHREAD to store data.
  *
  * Copyright:
  *		Johannes Passing (johannes.passing@googlemail.com)
@@ -11,125 +9,35 @@
 #include "jpfbtp.h"
 
 //
-// Not defined in wdm.h, but holds for i386 and amd64.
+// Offset of ETHREAD fields - vary among releases.
+// We use the top JPFBTP_SPARE_BITS bits of each.
 //
-#define SYNCH_LEVEL (IPI_LEVEL-2)
-
-static struct
-{
-	KSPIN_LOCK Lock;
-	JPHT_HASHTABLE Table;
-} JpfbtsTls;
-
-/*----------------------------------------------------------------------
- *
- * Locking.
- *
- */
-static VOID JpfbtsAcquireTlsLock( 
-	__out PKLOCK_QUEUE_HANDLE LockHandle	
-	)
-{
-	KeRaiseIrql( SYNCH_LEVEL, &LockHandle->OldIrql );
-	KeAcquireInStackQueuedSpinLockAtDpcLevel( 
-		&JpfbtsTls.Lock, LockHandle );
-}
-
-static VOID JpfbtsReleaseTlsLock( 
-	__in PKLOCK_QUEUE_HANDLE LockHandle
-	)
-{
-	KeReleaseInStackQueuedSpinLockFromDpcLevel( LockHandle );
-	KeLowerIrql( LockHandle->OldIrql );
-}
-
-/*----------------------------------------------------------------------
- *
- * Hashtable callbacks.
- *
- */
-static PVOID JpfbtsAllocateTlsHashtableMemory(
-	__in SIZE_T Size 
-	)
-{
-	//
-	// It is well possible that we are called above DISPATCH_LEVEL -
-	// in this case we have to fail the allocation.
-	//
-	if ( KeGetCurrentIrql() <= DISPATCH_LEVEL )
-	{
-		return JpfbtpAllocateNonPagedMemory( Size, FALSE );
-	}
-	else
-	{
-		InterlockedIncrement( 
-			&JpfbtpGlobalState->Counters.FailedDirqlTlsAllocations );
-
-		return NULL;
-	}
-}
-
-static VOID JpfbtsFreeTlsHashtableMemory(
-	__in PVOID Ptr
-	)
-{
-	ASSERT_IRQL_LTE( DISPATCH_LEVEL );
-
-	JpfbtpFreeNonPagedMemory( Ptr );
-}
-
-static ULONG JpfbtsHashTlsHashtableEntry(
-	__in ULONG_PTR Key
-	)
-{
-	//
-	// Key is of type PETHREAD - we just truncate the pointer.
-	//
-	return ( ULONG ) Key;
-}
-
-static BOOLEAN JpfbtsEqualsTlsHashtableEntry(
-	__in ULONG_PTR KeyLhs,
-	__in ULONG_PTR KeyRhs
-	)
-{
-	//
-	// Keys are of type PETHREAD.
-	//
-	return ( BOOLEAN ) ( KeyLhs == KeyRhs );
-}
+// Both SameThreadPassiveFlags and SameThreadApcFlags are
+// for use by the same thread only and are thus safe to use w/o
+// synchronization.
+//
+static JpfbtsSameThreadPassiveFlagsOffset	= 0;
+static JpfbtsSameThreadApcFlagsOffset		= 0;
 
 /*----------------------------------------------------------------------
  *
  * Internals.
  *
  */
-NTSTATUS JpfbtpInitializeKernelTls()
+NTSTATUS JpfbtpInitializeKernelTls(
+	__in ULONG SameThreadPassiveFlagsOffset,
+	__in ULONG SameThreadApcFlagsOffset
+	)
 {
-	ASSERT( KeGetCurrentIrql() < DISPATCH_LEVEL );
-
-	if ( JphtInitializeHashtable(
-		&JpfbtsTls.Table,
-		JpfbtsAllocateTlsHashtableMemory,
-		JpfbtsFreeTlsHashtableMemory,
-		JpfbtsHashTlsHashtableEntry,
-		JpfbtsEqualsTlsHashtableEntry,
-		JPFBTP_INITIAL_TLS_TABLE_SIZE ) )
-	{
-		return STATUS_SUCCESS;
-	}
-	else
-	{
-		return STATUS_NO_MEMORY;
-	}
+	JpfbtsSameThreadPassiveFlagsOffset	= SameThreadPassiveFlagsOffset;
+	JpfbtsSameThreadApcFlagsOffset		= SameThreadApcFlagsOffset;
+	return STATUS_SUCCESS;
 }
 
 
 VOID JpfbtpDeleteKernelTls()
 {
-	ASSERT( KeGetCurrentIrql() < DISPATCH_LEVEL );
-
-	JphtDeleteHashtable( &JpfbtsTls.Table );
+	ASSERT( JpfbtsSameThreadPassiveFlagsOffset != 0);
 }
 
 NTSTATUS JpfbtSetFbtDataThread(
@@ -137,39 +45,29 @@ NTSTATUS JpfbtSetFbtDataThread(
 	__in PJPFBT_THREAD_DATA Data 
 	)
 {
-	KLOCK_QUEUE_HANDLE LockHandle;
-	PJPHT_HASHTABLE_ENTRY OldEntry = NULL;
+	PUCHAR ThreadPtr = ( PUCHAR ) Thread;
+	ULONG DataVa = ( ULONG ) ( ULONG_PTR ) Data;
+	ULONG DataVaMaskHi = DataVa & 0xFFFF0000;
+	ULONG DataVaMaskLo = DataVa << 16;
+	PULONG SameThreadPassiveFlags;
+	PULONG SameThreadApcFlags;
+	
+#if DBG
+	PJPFBT_THREAD_DATA ThreadData;
 
-	JpfbtsAcquireTlsLock( &LockHandle );
+	ThreadData = JpfbtGetFbtDataThread( Thread );
+	ASSERT( ThreadData == NULL || 
+			ThreadData->Signature == JPFBT_THREAD_DATA_SIGNATURE );
+#endif
 
-	if ( Data == NULL )
-	{
-		//
-		// Delete.
-		//
-		JphtRemoveEntryHashtable( 
-			&JpfbtsTls.Table, 
-			( ULONG_PTR ) Thread, 
-			&OldEntry );
-	}
-	else
-	{
-		//
-		// Add/Modify. Key should have already been set.
-		//
-		ASSERT( Data->Association.Thread == Thread );
-
-		JphtPutEntryHashtable( 
-			&JpfbtsTls.Table, 
-			&Data->Association.HashtableEntry, 
-			&OldEntry );
-	}
-
-	JpfbtsReleaseTlsLock( &LockHandle );
+	SameThreadPassiveFlags	= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadPassiveFlagsOffset );
+	SameThreadApcFlags		= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadApcFlagsOffset );
 
 	//
-	// N.B. We are not in charge of deleting the old entry.
+	// Save: overwrite high words while keeping low words intact.
 	//
+	*SameThreadPassiveFlags = DataVaMaskHi | ( *SameThreadPassiveFlags & 0xFFFF );
+	*SameThreadApcFlags		= DataVaMaskLo | ( *SameThreadApcFlags     & 0xFFFF );
 
 	return STATUS_SUCCESS;
 }
@@ -178,23 +76,26 @@ PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
 	__in PETHREAD Thread
 	)
 {
-	PJPHT_HASHTABLE_ENTRY Entry;
-	KLOCK_QUEUE_HANDLE LockHandle;
+	PJPFBT_THREAD_DATA ThreadData;
+	PUCHAR ThreadPtr = ( PUCHAR ) Thread;
+	ULONG DataVa;
+	ULONG DataVaLo;
+	ULONG DataVaHi;
+	PULONG SameThreadPassiveFlags;
+	PULONG SameThreadApcFlags;
+	
+	SameThreadPassiveFlags	= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadPassiveFlagsOffset );
+	SameThreadApcFlags		= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadApcFlagsOffset );
 
-	JpfbtsAcquireTlsLock( &LockHandle );
-	Entry = JphtGetEntryHashtable( &JpfbtsTls.Table, ( ULONG_PTR ) Thread );
-	JpfbtsReleaseTlsLock( &LockHandle );
+	DataVaHi = *SameThreadPassiveFlags	& 0xFFFF0000;
+	DataVaLo = *SameThreadApcFlags		& 0xFFFF0000;
+		
+	DataVa = DataVaHi | ( ( DataVaLo >> 16 ) & 0xFFFF );
 
-	if ( Entry == NULL )
-	{
-		return NULL;
-	}
-	else
-	{
-		return CONTAINING_RECORD(
-			Entry,
-			JPFBT_THREAD_DATA,
-			Association.HashtableEntry );
-	}
+	ThreadData = ( PJPFBT_THREAD_DATA ) ( PVOID ) ( ULONG_PTR ) DataVa;
+
+	ASSERT( ThreadData == NULL ||
+			ThreadData->Signature == JPFBT_THREAD_DATA_SIGNATURE );
+	return ThreadData;
 }
 
