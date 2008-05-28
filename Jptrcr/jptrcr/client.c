@@ -107,12 +107,17 @@ static HRESULT JptrcrsEnumCalls(
 	__in_opt PVOID Context
 	)
 {
-	PLIST_ENTRY ListEntry;
 	PJPTRCRP_CHUNK_REF ChunkRef;
 	JPTRCR_CALL Call;
 	PJPTRCRP_CLIENT Client;
 	ULONG CurrentIndex;
 	LONG Depth = 0;
+	PLIST_ENTRY ListEntry;
+	
+#if DBG
+	ULONGLONG LastTimestamp = 0;
+	ULONG ThreadId = 0;
+#endif
 
 	ASSERT( File );
 	ASSERT( CallerHandle );
@@ -160,6 +165,18 @@ static HRESULT JptrcrsEnumCalls(
 		{
 			return JPTRCR_E_INVALID_CALL_HANDLE;
 		}
+
+#if DBG
+		if ( ThreadId == 0 )
+		{
+			ThreadId = Chunk->Client.ThreadId;
+		}
+		else
+		{
+			ASSERT( ThreadId == CurrentChunkRef->Client->Information.ThreadId );
+			ASSERT( ThreadId == Chunk->Client.ThreadId );
+		}
+#endif
 
 		//
 		// See how many tranitions this chunk holds.
@@ -223,6 +240,11 @@ static HRESULT JptrcrsEnumCalls(
 			default:
 				return JPTRCR_E_INVALID_TRANSITION;
 			}
+
+#if DBG
+			ASSERT( Transition->Timestamp >= LastTimestamp );
+			LastTimestamp = Transition->Timestamp;
+#endif
 
 			if ( Depth < 0 )
 			{
@@ -306,6 +328,8 @@ static HRESULT JptrcrsEnumCalls(
 						Call.Result.ReturnValue	= 0;
 						Call.ExitType			= JptrcrSyntheticExit;
 
+						ASSERT( Call.ExitTimestamp > Call.EntryTimestamp );
+
 						JptrcrsResolveSymbolAndDeliverCallback(
 							File,
 							&Call,
@@ -344,6 +368,8 @@ static HRESULT JptrcrsEnumCalls(
 						Call.ExitType			= JptrcrException;
 						Call.Result.ExceptionCode = Transition->Info.Exception.Code;
 					}
+
+					ASSERT( Call.ExitTimestamp > Call.EntryTimestamp );
 
 					JptrcrsResolveSymbolAndDeliverCallback(
 						File,

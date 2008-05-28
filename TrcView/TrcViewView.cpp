@@ -214,6 +214,12 @@ void __stdcall CTrcViewView::EnumCallsCallback(
 
 void CTrcViewView::ReloadClients()
 {
+	//
+	// Clear and reload.
+	//
+	CTreeCtrl& tree = GetTreeCtrl();
+	tree.DeleteAllItems();
+
 	HRESULT Hr = JptrcrEnumClients(
 		GetDocument()->GetTraceHandle(),
 		EnumClientsCallback,
