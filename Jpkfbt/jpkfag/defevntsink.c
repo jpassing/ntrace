@@ -31,6 +31,9 @@ typedef struct _JPKFAGP_DEF_EVENT_SINK
 	// Queue of JPKFAGP_IMAGE_INFO_EVENT that need to be written
 	// the next time the ProcessBuffersCallback is called.
 	//
+	// N.B.: This queue is LIFO. As it is always flushed entirely,
+	// this does not affect correctness of the trace file, however.
+	//
 	SLIST_HEADER ImageInfoEventQueue;
 
 	//

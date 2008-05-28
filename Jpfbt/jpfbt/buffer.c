@@ -6,7 +6,6 @@
  *		Johannes Passing (johannes.passing@googlemail.com)
  */
 
-#include <jpfbt.h>
 #include "jpfbtp.h"
 
 PJPFBT_GLOBAL_DATA JpfbtpGlobalState = NULL;
@@ -16,6 +15,26 @@ PJPFBT_GLOBAL_DATA JpfbtpGlobalState = NULL;
  * Helpers.
  *
  */
+
+static PSLIST_ENTRY JpfbtsReverseSlist(
+	__in PSLIST_ENTRY List
+	)
+{
+	PSLIST_ENTRY Current = List;
+	PSLIST_ENTRY Next;
+	PSLIST_ENTRY Prev = NULL;
+
+	while ( Current != NULL )
+	{
+		Next = Current->Next;
+		Current->Next = Prev;
+
+		Prev = Current;
+		Current = Next;
+	}
+
+	return Prev;
+}
 
 /*++
 	Routine Description:
@@ -395,14 +414,14 @@ PUCHAR JpfbtGetBuffer(
 	}
 }
 
-NTSTATUS JpfbtProcessBuffer(
+NTSTATUS JpfbtProcessBuffers(
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
 	__in ULONG Timeout,
 	__in_opt PVOID UserPointer
 	)
 {
+	PSLIST_ENTRY DirtyList;
 	PSLIST_ENTRY ListEntry;
-	PJPFBT_BUFFER Buffer;
 
 	if ( ! ProcessBufferRoutine )
 	{
@@ -414,8 +433,8 @@ NTSTATUS JpfbtProcessBuffer(
 		return STATUS_FBT_NOT_INITIALIZED;
 	}
 
-	ListEntry = InterlockedPopEntrySList( &JpfbtpGlobalState->DirtyBuffersList );
-	while ( ! ListEntry && ! JpfbtpGlobalState->StopBufferCollector )
+	DirtyList = InterlockedFlushSList( &JpfbtpGlobalState->DirtyBuffersList );
+	while ( ! DirtyList && ! JpfbtpGlobalState->StopBufferCollector )
 	{
 		//
 		// List is empty, block.
@@ -444,10 +463,10 @@ NTSTATUS JpfbtProcessBuffer(
 		}
 #endif
 
-		ListEntry = InterlockedPopEntrySList( &JpfbtpGlobalState->DirtyBuffersList );
+		DirtyList = InterlockedFlushSList( &JpfbtpGlobalState->DirtyBuffersList );
 	}
 
-	if ( ! ListEntry )
+	if ( ! DirtyList )
 	{
 		//
 		// BufferCollectorEvent must have been signalled due to
@@ -458,32 +477,50 @@ NTSTATUS JpfbtProcessBuffer(
 		return STATUS_UNSUCCESSFUL;
 	}
 
-	Buffer = CONTAINING_RECORD( ListEntry, JPFBT_BUFFER, ListEntry );
-
-	ASSERT( Buffer->ProcessId < 0xffff );
-	ASSERT( Buffer->ThreadId < 0xffff );
-
-	( ProcessBufferRoutine )(
-		Buffer->UsedSize,
-		Buffer->Buffer,
-		Buffer->ProcessId,
-		Buffer->ThreadId,
-		UserPointer );
+	//
+	// Now we have a DirtyList. As the list is LIFO but we have to process
+	// buffers FIFO, we have to reverse this list first.
+	//
+	DirtyList = JpfbtsReverseSlist( DirtyList );
 
 	//
-	// Reuse buffer.
+	// Process all entries. We own the DirytList, thus, there is no
+	// need to use interlocked operations any more.
 	//
-	Buffer->UsedSize = 0;
-#if DBG
-	Buffer->ProcessId = 0xDEADBEEF;
-	Buffer->ThreadId = 0xDEADBEEF;
-#endif
+	ListEntry = PopEntryList( DirtyList );
+	while ( ListEntry != NULL )
+	{
+		PJPFBT_BUFFER Buffer;
+	
+		Buffer = CONTAINING_RECORD( ListEntry, JPFBT_BUFFER, ListEntry );
 
-	InterlockedPushEntrySList(
-		 &JpfbtpGlobalState->FreeBuffersList,
-		 &Buffer->ListEntry );
+		ASSERT( Buffer->ProcessId < 0xffff );
+		ASSERT( Buffer->ThreadId < 0xffff );
 
-	InterlockedIncrement( &JpfbtpGlobalState->Counters.NumberOfBuffersCollected );
+		( ProcessBufferRoutine )(
+			Buffer->UsedSize,
+			Buffer->Buffer,
+			Buffer->ProcessId,
+			Buffer->ThreadId,
+			UserPointer );
+
+		//
+		// Reuse buffer.
+		//
+		Buffer->UsedSize = 0;
+	#if DBG
+		Buffer->ProcessId = 0xDEADBEEF;
+		Buffer->ThreadId = 0xDEADBEEF;
+	#endif
+
+		InterlockedPushEntrySList(
+			 &JpfbtpGlobalState->FreeBuffersList,
+			 &Buffer->ListEntry );
+
+		InterlockedIncrement( &JpfbtpGlobalState->Counters.NumberOfBuffersCollected );
+
+		ListEntry = PopEntryList( DirtyList );
+	}
 
 	return STATUS_SUCCESS;
 }

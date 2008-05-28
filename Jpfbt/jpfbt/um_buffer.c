@@ -261,7 +261,7 @@ static ULONG CALLBACK JpfbtsBufferCollectorThreadProc( __in PVOID Unused )
 
 	while ( ! JpfbtpGlobalState->StopBufferCollector )
 	{
-		JpfbtProcessBuffer( 
+		JpfbtProcessBuffers( 
 			JpfbtpGlobalState->Routines.ProcessBuffer,
 			INFINITE,
 			JpfbtpGlobalState->UserPointer );
@@ -286,7 +286,7 @@ VOID JpfbtpShutdownDirtyBufferCollector()
 	// Drain remaining buffers.
 	//
 	while ( STATUS_TIMEOUT != 
-		JpfbtProcessBuffer( 
+		JpfbtProcessBuffers( 
 			JpfbtpGlobalState->Routines.ProcessBuffer, 
 			0,
 			JpfbtpGlobalState->UserPointer ) )

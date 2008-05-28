@@ -15,7 +15,7 @@
 
 #if defined( JPFBT_TARGET_USERMODE )
 	#include <jpfbtdef.h>
-	#include <list.h>
+	#include "list.h"
 
 	#if DBG
 		#define TRACE( Args ) JpfbtDbgPrint##Args
@@ -408,6 +408,11 @@ typedef struct _JPFBT_GLOBAL_DATA
 	//
 	// List of JPFBT_BUFFER that contain data which has yet to be
 	// processed.
+	//
+	// N.B. This is a LIFO although only a FIFO would be semantically 
+	// correct to retain timed order. This stems from the fact that
+	// interlocked Slist-LIFOs are dirt cheap while a FIFO would require a 
+	// doubly linked list, which is not nearly as cheap to interlock.
 	//
 	SLIST_HEADER DirtyBuffersList;
 

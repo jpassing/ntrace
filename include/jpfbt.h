@@ -238,7 +238,7 @@ NTSTATUS JPFBTCALLTYPE JpfbtUninitialize();
 
 /*++
 	Routine Description:
-		Process the next buffer by calling the specified callback
+		Process the next buffers by calling the specified callback
 		routine. After return from the callback routine, the 
 		buffer memory is considered free and must not be touched 
 		again.
@@ -261,7 +261,7 @@ NTSTATUS JPFBTCALLTYPE JpfbtUninitialize();
 		STATUS_TIMEOUT if timeout elapsed and no buffer was processed.
 		(any NTSTATUS) oon failure.
 --*/
-NTSTATUS JpfbtProcessBuffer(
+NTSTATUS JpfbtProcessBuffers(
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
 	__in ULONG Timeout,
 	__in_opt PVOID UserPointer
