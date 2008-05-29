@@ -278,9 +278,6 @@ static VOID UnpatchAll()
 
 static VOID PatchAndUnpatchAll()
 {
-	JPFBT_SYMBOL_POINTERS SymPointers;
-	GetSymbolPointers( &SymPointers );
-
 	TEST_SUCCESS( JpfbtInitializeEx( 
 		2,								// deliberately too small
 		8,
@@ -290,7 +287,6 @@ static VOID PatchAndUnpatchAll()
 		ProcedureExit,
 		NULL,
 		ProcessBuffer,
-		&SymPointers,
 		NULL) );
 
 	TEST( PatchAll() );
@@ -307,8 +303,6 @@ static VOID PatchAndTestAllProcsSinglethreaded()
 
 	ULONG Index;
 	PSAMPLE_PROC_SET ProcSet = GetSampleProcs();
-	JPFBT_SYMBOL_POINTERS SymPointers;
-	GetSymbolPointers( &SymPointers );
 
 	ExpectBufferDepletion = TRUE;
 
@@ -321,7 +315,6 @@ static VOID PatchAndTestAllProcsSinglethreaded()
 		ProcedureExit,
 		NULL,
 		ProcessBuffer,
-		&SymPointers,
 		NULL ) );
 
 	//

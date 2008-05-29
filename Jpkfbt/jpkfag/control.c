@@ -9,6 +9,7 @@
  */
 #include <ntddk.h>
 #include <aux_klib.h>
+#include <stdlib.h>
 #include "jpkfagp.h"
 
 /*++
@@ -95,10 +96,18 @@ static BOOLEAN JpkfagsIsValidCodePointer(
 	return FALSE;
 }
 
+/*++
+	Routine Description:
+		Check whether the given procedures fall into the memory 
+		ranges of loaded modules.
+
+	Parameters;
+		EventSink	- is non-NULL, OnImageInvolved callbacks will be invoked.
+--*/
 static NTSTATUS JpkfagsCheckProcedurePointers(
 	__in ULONG ProcedureCount,
 	__in_ecount( ProcedureCount ) PJPFBT_PROCEDURE Procedures,
-	__in PJPKFAGP_EVENT_SINK EventSink,
+	__in_opt PJPKFAGP_EVENT_SINK EventSink,
 	__out PJPFBT_PROCEDURE FailedProcedure
 	)
 {
@@ -336,6 +345,9 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 	Request = ( PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST ) Buffer;
 	*BytesWritten = 0;
 
+	//
+	// Create Event sink - differs depending on tracing type.
+	//
 	switch ( Request->Type )
 	{
 	case JpkfbtTracingTypeDefault:
@@ -361,6 +373,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 			&LogFilePath, 
 			&DevExtension->Statistics,
 			&EventSink );
+		
 		break;
 
 #ifdef JPFBT_WMK
@@ -383,7 +396,7 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		return Status;
-	}
+	}	
 
 	ASSERT( EventSink != NULL );
 
@@ -396,7 +409,6 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		EventSink->OnProcedureExit,
 		NULL, 
 		EventSink->OnProcessBuffer,
-		NULL,
 		EventSink );
 	if ( NT_SUCCESS( Status ) )
 	{

@@ -16,15 +16,20 @@
 BOOLEAN JpfbtpExceptionHandlingUsed = FALSE;
 
 #if defined( JPFBT_TARGET_KERNELMODE )
-static NTSTATUS JpfbtsApplyRtlExceptionHandlingPatches(
-	__in PJPFBT_SYMBOL_POINTERS Pointers
-	)
+static NTSTATUS JpfbtsApplyRtlExceptionHandlingPatches()
 {
 	PJPFBT_CODE_PATCH Patches[ 2 ];
 	NTSTATUS Status;
+	PJPFBTP_SYMBOL_POINTERS SymbolPointers;
+
+	Status = JpfbtpGetSymbolPointers( &SymbolPointers );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
 
 	Status = JpfbtpPrepareRtlExceptionHandlingCodePatches(
-		Pointers,
+		SymbolPointers,
 		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 0 ],
 		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ] );
 	if ( ! NT_SUCCESS( Status ) )
@@ -91,7 +96,6 @@ NTSTATUS JpfbtInitialize(
 		ExitEventRoutine,
 		NULL,
 		ProcessBufferRoutine,
-		NULL,
 		UserPointer );
 }
 
@@ -104,7 +108,6 @@ NTSTATUS JpfbtInitializeEx(
 	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
 	__in_opt JPFBT_EXCP_UNWIND_EVENT_ROUTINE ExceptionEventRoutine,
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in_opt PJPFBT_SYMBOL_POINTERS SymbolPointers,
 	__in_opt PVOID UserPointer
 	)
 {
@@ -122,8 +125,7 @@ NTSTATUS JpfbtInitializeEx(
 	}
 
 #if defined(JPFBT_TARGET_KERNELMODE)
-	if ( SymbolPointers == NULL ||
-		 Flags > ( JPFBT_FLAG_AUTOCOLLECT | JPFBT_FLAG_INTERCEPT_EXCEPTIONS ) )
+	if ( Flags > ( JPFBT_FLAG_AUTOCOLLECT | JPFBT_FLAG_INTERCEPT_EXCEPTIONS ) )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -145,7 +147,6 @@ NTSTATUS JpfbtInitializeEx(
 	}
 
 	Status = JpfbtpCreateGlobalState(
-		SymbolPointers,
 		BufferCount, 
 		BufferSize,
 		ThreadDataPreallocations,
@@ -189,7 +190,7 @@ NTSTATUS JpfbtInitializeEx(
 		//
 		// Apply RTL patches.
 		//
-		Status = JpfbtsApplyRtlExceptionHandlingPatches( SymbolPointers );
+		Status = JpfbtsApplyRtlExceptionHandlingPatches();
 		if ( ! NT_SUCCESS( Status ) )
 		{
 			Status = STATUS_NO_MEMORY;

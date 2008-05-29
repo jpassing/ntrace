@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include "jpkfbtp.h"
 #include "nativeapi.h"
-#include <jpkfagio.h>
 
 #pragma warning( push )
 #pragma warning( disable: 6011; disable: 6387 )
@@ -271,7 +270,7 @@ NTSTATUS JpkfbtInitializeTracing(
 	}
 
 	//
-	// Issue IOCTL.
+	// Prepare IOCTL.
 	//
 	Request = ( PJPKFAG_IOCTL_INITIALIZE_TRACING_REQUEST ) 
 		malloc( RequestSize );

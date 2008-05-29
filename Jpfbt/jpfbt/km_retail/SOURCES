@@ -40,6 +40,7 @@ SOURCES=\
 	..\km_patchdb.c \
 	..\km_icheck.c \
 	..\km_tls_retail.c \
+	..\km_symptrs.c \
 	..\jpfbtmsg.mc
 
 I386_SOURCES=..\i386\thunks.asm

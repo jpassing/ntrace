@@ -156,3 +156,12 @@ SymbolicName	= STATUS_FBT_REENTRANT_ALLOCATION
 Language		= English
 Allocation reentrance detected.
 .
+
+MessageId		= 0x9211
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_UNSUPPORTED_KERNEL_BUILD
+Language		= English
+Unsupported kernel build.
+.
+

@@ -54,36 +54,6 @@ typedef struct _JPFBT_CONTEXT {
 #endif
 
 /*++
-	Structure Description:
-		Pointers tospecific symbols.
---*/
-typedef struct _JPFBT_SYMBOL_POINTERS
-{
-#if defined(JPFBT_TARGET_KERNELMODE)
-	//
-	// Offsets within ETHREAD.
-	//
-	struct
-	{
-		ULONG SameThreadPassiveFlagsOffset;
-		ULONG SameThreadApcFlagsOffset;	
-	} Ethread;
-
-	//
-	// Absolute VAs.
-	//
-	struct
-	{
-		PVOID RtlDispatchException;
-		PVOID RtlUnwind;
-		PVOID RtlpGetStackLimits;
-	} ExceptionHandling;
-#else
-	PVOID Unused;
-#endif
-} JPFBT_SYMBOL_POINTERS, *PJPFBT_SYMBOL_POINTERS;
-
-/*++
 	Routine Description:
 		Routine called at procedure event/exit.
 
@@ -183,8 +153,6 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 					  an exception has been thrown. Must be NULL iff
 					  JPFBT_FLAG_INTERCEPT_EXCEPTIONS not set.
 		ProcessBufR.- Routine called for dirty buffer collection.
-		SymPointers - Must be specifie din kernel mode, may be NULL in
-					  user mode.
 		UserPointer - Arbitrary user pointer passed to 
 					  ProcessBufferRoutine.
 
@@ -214,7 +182,6 @@ NTSTATUS JpfbtInitializeEx(
 	__in JPFBT_EVENT_ROUTINE ExitEventRoutine,
 	__in_opt JPFBT_EXCP_UNWIND_EVENT_ROUTINE ExceptionEventRoutine,
 	__in JPFBT_PROCESS_BUFFER_ROUTINE ProcessBufferRoutine,
-	__in_opt PJPFBT_SYMBOL_POINTERS SymbolPointers,
 	__in_opt PVOID UserPointer
 	);
 

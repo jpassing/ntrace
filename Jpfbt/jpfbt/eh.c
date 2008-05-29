@@ -197,7 +197,7 @@ static NTSTATUS JpfbtsPrepareCodePatch(
 }
 
 NTSTATUS JpfbtpPrepareRtlExceptionHandlingCodePatches(
-	__in PJPFBT_SYMBOL_POINTERS Pointers,
+	__in PJPFBTP_SYMBOL_POINTERS Pointers,
 	__out PJPFBT_CODE_PATCH DispatchExceptionPatch,
 	__out PJPFBT_CODE_PATCH UnwindPatch
 	)

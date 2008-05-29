@@ -157,6 +157,7 @@ void TestInitShutdownTracing()
 				BufCount,
 				BufSize,
 				LogFile );
+			CFIX_LOG( L"Status=%x", Status );
 			TEST( NT_SUCCESS( Status ) ||
 				  STATUS_KFBT_TRCTYPE_NOT_SUPPORTED == Status );
 

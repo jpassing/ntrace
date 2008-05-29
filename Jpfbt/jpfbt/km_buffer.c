@@ -81,7 +81,6 @@ static VOID JpfbtsFreePreallocatedThreadData(
  */
 
 NTSTATUS JpfbtpCreateGlobalState(
-	__in_opt PJPFBT_SYMBOL_POINTERS Pointers,
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
@@ -91,6 +90,7 @@ NTSTATUS JpfbtpCreateGlobalState(
 	HANDLE CollectorThread;
 	OBJECT_ATTRIBUTES ObjectAttributes;
 	NTSTATUS Status;
+	PJPFBTP_SYMBOL_POINTERS SymbolPointers;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
 	BOOLEAN TlsInitialized = FALSE;
 	
@@ -98,12 +98,17 @@ NTSTATUS JpfbtpCreateGlobalState(
 
 	UNREFERENCED_PARAMETER( ThreadDataPreallocations );
 
-	if ( Pointers == NULL ||
-		 ThreadDataPreallocations > 1024 ||
+	if ( ThreadDataPreallocations > 1024 ||
 		 BufferSize > JPFBT_MAX_BUFFER_SIZE ||
 		 BufferSize % MEMORY_ALLOCATION_ALIGNMENT != 0 )
 	{
 		return STATUS_INVALID_PARAMETER;
+	}
+
+	Status = JpfbtpGetSymbolPointers( &SymbolPointers );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
 	}
 
 	//
@@ -119,8 +124,8 @@ NTSTATUS JpfbtpCreateGlobalState(
 	}
 
 	Status = JpfbtpInitializeKernelTls(
-		Pointers->Ethread.SameThreadPassiveFlagsOffset,
-		Pointers->Ethread.SameThreadApcFlagsOffset );
+		SymbolPointers->Ethread.SameThreadPassiveFlagsOffset,
+		SymbolPointers->Ethread.SameThreadApcFlagsOffset );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		goto Cleanup;

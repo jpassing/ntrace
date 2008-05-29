@@ -24,3 +24,25 @@ typedef enum _JPKFBT_TRACING_TYPE
 	JpkfbtTracingTypeWmk = 1,
 	JpkfbtTracingTypeMax = 1
 } JPKFBT_TRACING_TYPE;
+
+typedef struct _JPKFBT_SYMBOL_POINTERS
+{
+	//
+	// Offsets within ETHREAD.
+	//
+	struct
+	{
+		ULONG SameThreadPassiveFlagsOffset;
+		ULONG SameThreadApcFlagsOffset;	
+	} Ethread;
+
+	//
+	// Absolute VAs.
+	//
+	struct
+	{
+		ULONGLONG RtlDispatchException;
+		ULONGLONG RtlUnwind;
+		ULONGLONG RtlpGetStackLimits;
+	} ExceptionHandling;
+} JPKFBT_SYMBOL_POINTERS, *PJPKFBT_SYMBOL_POINTERS;

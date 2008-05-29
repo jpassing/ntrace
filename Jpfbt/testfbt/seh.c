@@ -82,9 +82,6 @@ static void TestSehThunkStackCleanup()
 {
 	JPFBT_PROCEDURE Proc;
 	JPFBT_PROCEDURE FailedProc;
-	JPFBT_SYMBOL_POINTERS SymPointers;
-
-	GetSymbolPointers( &SymPointers );
 
 	TEST_STATUS( STATUS_INVALID_PARAMETER, JpfbtInitializeEx( 
 		10,
@@ -95,7 +92,6 @@ static void TestSehThunkStackCleanup()
 		SehProcedureExit,
 		SehProcedureException,
 		SehProcessBuffer,
-		&SymPointers,
 		NULL ) );
 
 	TEST_SUCCESS( JpfbtInitializeEx( 
@@ -107,7 +103,6 @@ static void TestSehThunkStackCleanup()
 		SehProcedureExit,
 		SehProcedureException,
 		SehProcessBuffer,
-		&SymPointers,
 		NULL ) );
 
 	Proc.u.Procedure = ( PVOID ) Raise;

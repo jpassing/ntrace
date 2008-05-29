@@ -692,7 +692,6 @@ VOID JpfbtpInitializeBuffersGlobalState(
 									  allocations)
 --*/
 NTSTATUS JpfbtpCreateGlobalState(
-	__in_opt PJPFBT_SYMBOL_POINTERS Pointers,
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
@@ -833,12 +832,46 @@ VOID JpfbtpFreeNonPagedMemory(
 #if defined( JPFBT_TARGET_KERNELMODE )
 
 /*++
+	Structure Description:
+		Pointers tospecific symbols.
+--*/
+typedef struct _JPFBTP_SYMBOL_POINTERS
+{
+	//
+	// Offsets within ETHREAD.
+	//
+	struct
+	{
+		ULONG SameThreadPassiveFlagsOffset;
+		ULONG SameThreadApcFlagsOffset;	
+	} Ethread;
+
+	//
+	// Absolute VAs.
+	//
+	struct
+	{
+		PVOID RtlDispatchException;
+		PVOID RtlUnwind;
+		PVOID RtlpGetStackLimits;
+	} ExceptionHandling;
+} JPFBTP_SYMBOL_POINTERS, *PJPFBTP_SYMBOL_POINTERS;
+
+/*++
+	Routine Description:
+		Obtain symbol pointers matching the current kernel build.
+--*/
+NTSTATUS JpfbtpGetSymbolPointers( 
+	__out PJPFBTP_SYMBOL_POINTERS *SymbolPointers 
+	);
+
+/*++
 	Routine Description:
 		Prepare, but do not yet apply, patches to the RTL exception
 		handling implementation.
 --*/
 NTSTATUS JpfbtpPrepareRtlExceptionHandlingCodePatches(
-	__in PJPFBT_SYMBOL_POINTERS RtlPointers,
+	__in PJPFBTP_SYMBOL_POINTERS RtlPointers,
 	__out PJPFBT_CODE_PATCH DispatchExceptionPatch,
 	__out PJPFBT_CODE_PATCH UnwindPatch
 	);

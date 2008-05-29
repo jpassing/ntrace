@@ -109,6 +109,14 @@ Language		= English
 The specified tracing type is not supported by this library.
 .
 
+MessageId		= 0x930b
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_KFBT_INVALID_SYMPOINTERS
+Language		= English
+The symbol pointer addresses are invalid.
+.
+
 ;//--------------------------------------------------------------------
 ;// Warnings
 ;//--------------------------------------------------------------------
@@ -267,5 +275,13 @@ Facility		= Interface
 SymbolicName	= STATUS_FBT_CANNOT_LOCATE_EH_ROUTINES
 Language		= English
 The RTL exception handling routines cannot be located.
+.
+
+MessageId		= 0x9210
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_REENTRANT_ALLOCATION
+Language		= English
+Allocation reentrance detected.
 .
 

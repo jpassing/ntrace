@@ -9,6 +9,7 @@
  */
 #include <jpkfbt.h>
 #include <jpfbtdef.h>
+#include <jpkfagio.h>
 #include <crtdbg.h>
 
 /*++

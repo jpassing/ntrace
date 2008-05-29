@@ -36,6 +36,8 @@ jpkfbt
  
  * log stats at end of file/repeatedly
   
+ * only admin may access device
+ 
 jpfsv
 ------------------------------------------------------------------------
  * Grow tracetab

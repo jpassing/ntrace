@@ -199,6 +199,10 @@
 						>
 					</File>
 					<File
+						RelativePath=".\jpfbt\km_symptrs.c"
+						>
+					</File>
+					<File
 						RelativePath=".\jpfbt\km_undoc.h"
 						>
 					</File>
@@ -225,10 +229,6 @@
 				</File>
 				<File
 					RelativePath=".\testfbt\seh.c"
-					>
-				</File>
-				<File
-					RelativePath=".\testfbt\symptrs.c"
 					>
 				</File>
 				<File
