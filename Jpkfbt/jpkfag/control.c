@@ -251,7 +251,6 @@ NTSTATUS JpkfagpShutdownTracing(
 	__in PJPKFAGP_DEVICE_EXTENSION DevExtension
 	)
 {
-	ULONG Attempts = 0;
 	NTSTATUS Status;
 	LARGE_INTEGER WaitInterval;
 	
@@ -275,22 +274,23 @@ NTSTATUS JpkfagpShutdownTracing(
 	//
 	// Uninitialize FBT. There may still be patches active, although we
 	// have revoked them all. Therefore, we may have to try a couple
-	// of times until all threads have left the affected routines.
+	// of times until all threads have left the affected routines. If we
+	// are unlucky, this can take minutes or hours.
 	//
-	WaitInterval.QuadPart = -100; // 10 ms.
+	WaitInterval.QuadPart = -1 * 1000 * 1000 * 10; // 1 sec.
 	do
 	{
 		Status = KeDelayExecutionThread( KernelMode, FALSE, &WaitInterval );
 		ASSERT( STATUS_SUCCESS == Status );
 
 		Status = JpfbtUninitialize();
-	} while ( Status == STATUS_FBT_PATCHES_ACTIVE && Attempts++ < 1000 );
+	} while ( Status == STATUS_FBT_PATCHES_ACTIVE );
 
 	if ( NT_SUCCESS( Status ) )
 	{
 		PJPKFAGP_EVENT_SINK	EventSink;	
 		
-		KdPrint( ( "JPKFAG: Uninitialized after %d attempts\n", Attempts ) );
+		TRACE( ( "JPKFAG: Uninitialized after %d attempts\n", Attempts ) );
 
 		EventSink				= DevExtension->EventSink;
 		DevExtension->EventSink	= NULL;
@@ -303,13 +303,13 @@ NTSTATUS JpkfagpShutdownTracing(
 		// routines located in this driver. Nap a little to give these
 		// threads time to escape before this driver will be unloaded.
 		//
-		WaitInterval.QuadPart = -30000; // 3 sec.
+		WaitInterval.QuadPart = -3 * 1000 * 1000 * 10; // 3 sec.
 		Status = KeDelayExecutionThread( KernelMode, FALSE, &WaitInterval );
 		ASSERT( STATUS_SUCCESS == Status );
 	}
 	else
 	{
-		KdPrint( ( "JPKFAG: Uninitialization FAILED after %d attempts\n", Attempts ) );
+		TRACE( ( "JPKFAG: Uninitialization FAILED after %d attempts\n", Attempts ) );
 
 		//
 		// Now we are utterly fucked.
@@ -404,10 +404,10 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		Request->BufferCount,
 		Request->BufferSize,
 		JPKFAGP_THREAD_DATA_PREALLOCATIONS,
-		InitFlags,
+		InitFlags | JPFBT_FLAG_INTERCEPT_EXCEPTIONS,
 		EventSink->OnProcedureEntry,
 		EventSink->OnProcedureExit,
-		NULL, 
+		EventSink->OnProcedureUnwind, 
 		EventSink->OnProcessBuffer,
 		EventSink );
 	if ( NT_SUCCESS( Status ) )

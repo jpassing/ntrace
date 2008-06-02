@@ -39,6 +39,11 @@ VOID JpfsvpOutputError(
 	WCHAR Msg[ 255 ];
 	WCHAR Err[ 200 ] = { 0 };
 
+	//
+	// Clear NT flag - HRESULT may be derived from an NTSTATUS.
+	//
+	Hr &= ~FACILITY_NT_BIT;
+
 	if ( SUCCEEDED( ProcessorState->MessageResolver->ResolveMessage(
 		ProcessorState->MessageResolver,
 		Hr,

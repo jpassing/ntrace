@@ -17,6 +17,8 @@
 #include <strsafe.h>
 #pragma warning( pop )
 
+#define JpfsvsIsDirectory( FileAttributes ) \
+	( ( FILE_ATTRIBUTE_DIRECTORY & FileAttributes ) != 0 )
 
 struct _JPFSV_ENUM;
 
@@ -501,7 +503,10 @@ static HRESULT JpfsvsNextDriver(
 		if ( Enum->Data.PsapiEnum.NextIndex < Enum->Data.PsapiEnum.ModuleCount )
 		{
 			#pragma warning( suppress : 6385 )
-			PVOID ImageBase = Enum->Data.PsapiEnum.Modules.Drivers[ Enum->Data.PsapiEnum.NextIndex ];
+			PVOID ImageBase;
+			WCHAR RawFilePath[ MAX_PATH ];
+			
+			ImageBase = Enum->Data.PsapiEnum.Modules.Drivers[ Enum->Data.PsapiEnum.NextIndex ];
 
 			if ( ImageBase == NULL )
 			{
@@ -530,13 +535,27 @@ static HRESULT JpfsvsNextDriver(
 
 			if ( ! GetDeviceDriverFileName(
 				ImageBase,
-				Module->ModulePath,
-				MAX_PATH ) )
+				RawFilePath,
+				_countof( RawFilePath ) ) )
 			{
 				DWORD Err = GetLastError();
 				return HRESULT_FROM_WIN32( Err );
 			}
 			
+			if ( FAILED( JpfsvSantizeDeviceDriverPath(
+				RawFilePath,
+				_countof( Module->ModulePath ),
+				Module->ModulePath ) ) )
+			{
+				//
+				// Revert to filename.
+				//
+				( VOID ) StringCchCopy(
+					Module->ModulePath,
+					_countof( Module->ModulePath ),
+					Module->ModuleName );
+			}
+
 			//
 			// Advance enum.
 			//
@@ -722,4 +741,98 @@ HRESULT JpfsvCloseEnum(
 	}
 
 	return Enum->Routines.Close( Enum );
+}
+
+HRESULT JpfsvSantizeDeviceDriverPath(
+	__in PCWSTR DeviceDriverPath,
+	__in DWORD BufferSize,
+	__out_ecount( BufferSize ) PWSTR Buffer 
+	)
+{
+	HRESULT Hr;
+	DWORD FileAttributes;
+	WCHAR PathPrefixed[ MAX_PATH ];
+	PWSTR DeviceDriverPathMutable;
+
+	if ( DeviceDriverPath == NULL ||
+		 wcslen( DeviceDriverPath ) == 0 ||
+		 Buffer == NULL ||
+		 BufferSize == 0 )
+	{
+		return E_INVALIDARG;
+	}
+
+	//
+	// DeviceDriverPath may already be valid.
+	//
+	FileAttributes = GetFileAttributes( DeviceDriverPath );
+	if ( INVALID_FILE_ATTRIBUTES != FileAttributes &&
+		 ! JpfsvsIsDirectory( FileAttributes ) &&
+		 DeviceDriverPath[ 0 ] != '\\' )
+	{
+		return StringCchCopy( Buffer, BufferSize, DeviceDriverPath );
+	}
+	
+	//
+	// DeviceDriverPath may be \windows\system32\...
+	//
+	// See if c:\<DeviceDriverPath> exists.
+	//
+	Hr = StringCchPrintf(
+		PathPrefixed,
+		_countof( PathPrefixed ),
+		L"c:%s",
+		DeviceDriverPath );
+	if ( FAILED( Hr ) )
+	{
+		return Hr;
+	}
+
+	FileAttributes = GetFileAttributes( PathPrefixed );
+	if ( INVALID_FILE_ATTRIBUTES != FileAttributes &&
+		 ! JpfsvsIsDirectory( FileAttributes ) )
+	{
+		return StringCchCopy( Buffer, BufferSize, PathPrefixed );
+	}
+
+	DeviceDriverPathMutable = &PathPrefixed[ 2 ];
+
+	//
+	// DeviceDriverPath may be \systemroot\...
+	//
+	_wcslwr( DeviceDriverPathMutable );
+	if ( wcsstr( DeviceDriverPathMutable, L"\\systemroot" ) == DeviceDriverPathMutable )
+	{
+		WCHAR WindowsDirectory[ 100 ];
+
+		if ( 0 == GetWindowsDirectory( 
+			WindowsDirectory,
+			_countof( WindowsDirectory ) ) )
+		{
+			return HRESULT_FROM_WIN32( GetLastError() );
+		}
+
+		Hr = StringCchPrintf(
+			Buffer,
+			BufferSize,
+			L"%s\\%s",
+			WindowsDirectory,
+			DeviceDriverPathMutable + 12 );	// \systemroot\ 
+		if ( FAILED( Hr ) )
+		{
+			return Hr;
+		}
+
+		FileAttributes = GetFileAttributes( Buffer );
+		if ( INVALID_FILE_ATTRIBUTES != FileAttributes &&
+			 ! JpfsvsIsDirectory( FileAttributes ) )
+		{
+			return S_OK;
+		}
+	}
+
+	//
+	// No idea what weird format this path uses.
+	//
+	return JPFSV_E_UNRECOGNIZED_PATH_FORMAT;
 }

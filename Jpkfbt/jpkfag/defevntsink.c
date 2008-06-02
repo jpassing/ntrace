@@ -64,7 +64,7 @@ static BOOLEAN JpkfagsIsFilePositionConsistent(
 		FilePositionInformation );
 	if ( ! NT_SUCCESS( Status ) )
 	{
-		KdPrint( ( "JPKFAG: Failed to obtain file position: %x\n", Status ) );
+		TRACE( ( "JPKFAG: Failed to obtain file position: %x\n", Status ) );
 		return FALSE;
 	}
 	else
@@ -156,7 +156,7 @@ static NTSTATUS JpkfagsFlushChunk(
 			// we do not adjust the file pointer.
 			//
 
-			KdPrint( ( "JPKFAG: Failed to flush pad chunk: %x\n", Status ) );
+			TRACE( ( "JPKFAG: Failed to flush pad chunk: %x\n", Status ) );
 			InterlockedIncrement( &Sink->Statistics->FailedChunkFlushes );
 
 			return Status;
@@ -222,7 +222,7 @@ static NTSTATUS JpkfagsFlushChunk(
 		// we do not adjust the file pointer.
 		//
 
-		KdPrint( ( "JPKFAG: Failed to flush chunk: %x\n", Status ) );
+		TRACE( ( "JPKFAG: Failed to flush chunk: %x\n", Status ) );
 		InterlockedIncrement( &Sink->Statistics->FailedChunkFlushes );
 
 		return Status;
@@ -300,7 +300,7 @@ static VOID JpkfagsOnImageLoadDefEventSink(
 	
 	if ( Path->Length > 0x7fff )
 	{
-		KdPrint( ( "JPKFAG: Suspiciously long path\n" ) );
+		TRACE( ( "JPKFAG: Suspiciously long path\n" ) );
 		return;
 	}
 
@@ -469,8 +469,6 @@ static VOID JpkfagsOnProcedureEntryDefEventSink(
 		Event->Timestamp		= __rdtsc();
 		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
 		Event->Info.CallerIp	= *Esp;
-
-		//KdPrint( ( "Caller: %x\n", Event->Info.CallerIp ) );
 #else
 #error Unsupported architecture
 #endif
@@ -481,6 +479,40 @@ static VOID JpkfagsOnProcedureEntryDefEventSink(
 		// Event lost.
 		//
 		InterlockedIncrement( &Sink->Statistics->EntryEventsDropped );
+	}
+}
+
+static VOID JpkfagsOnProcedureUnwindDefEventSink(
+	__in ULONG ExceptionCode,
+	__in PVOID Procedure,
+	__in_opt PVOID This
+	)
+{
+	PJPTRC_PROCEDURE_TRANSITION32 Event;
+	PJPKFAGP_DEF_EVENT_SINK Sink = ( PJPKFAGP_DEF_EVENT_SINK ) This;
+
+	ASSERT( Sink );
+
+	Event = ( PJPTRC_PROCEDURE_TRANSITION32 )
+		JpfbtGetBuffer( sizeof( JPTRC_PROCEDURE_TRANSITION32 ) );
+
+	if ( Event != NULL )
+	{
+#ifdef _M_IX86
+		Event->Type				= JPTRC_PROCEDURE_TRANSITION_UNWIND;
+		Event->Timestamp		= __rdtsc();
+		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
+		Event->Info.Exception.Code	= ExceptionCode;
+#else
+#error Unsupported architecture
+#endif
+	}
+	else if ( Sink != NULL )
+	{
+		//
+		// Event lost.
+		//
+		InterlockedIncrement( &Sink->Statistics->UnwindEventsDropped );
 	}
 }
 
@@ -644,13 +676,13 @@ NTSTATUS JpkfagpCreateDefaultEventSink(
 
 	if ( ! NT_SUCCESS( Status ) )
 	{
-		KdPrint( ( "JPKFAG: Creating log file '%wZ' failed: %x\n", 
+		TRACE( ( "JPKFAG: Creating log file '%wZ' failed: %x\n", 
 			LogFilePath, Status ) );
 		return Status;
 	}
 	else
 	{
-		KdPrint( ( "JPKFAG: Created log file '%wZ'\n", LogFilePath ) );
+		TRACE( ( "JPKFAG: Created log file '%wZ'\n", LogFilePath ) );
 	}
 
 	TempSink = ( PJPKFAGP_DEF_EVENT_SINK ) ExAllocatePoolWithTag(
@@ -666,6 +698,7 @@ NTSTATUS JpkfagpCreateDefaultEventSink(
 	TempSink->Base.OnImageInvolved		= JpkfagsOnImageLoadDefEventSink;
 	TempSink->Base.OnProcedureEntry		= JpkfagsOnProcedureEntryDefEventSink;
 	TempSink->Base.OnProcedureExit		= JpkfagsOnProcedureExitDefEventSink;
+	TempSink->Base.OnProcedureUnwind	= JpkfagsOnProcedureUnwindDefEventSink;
 	TempSink->Base.OnProcessBuffer		= JpkfagsOnProcessBufferDefEventSink;
 	TempSink->Base.Delete				= JpkfagsDeleteDefEventSink;
 	TempSink->Statistics				= Statistics;

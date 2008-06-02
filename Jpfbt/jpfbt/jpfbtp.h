@@ -26,8 +26,8 @@
 	#define ASSERT_IRQL_LTE( Irql )
 #elif defined( JPFBT_TARGET_KERNELMODE )
 	#define INFINITE ( ( ULONG ) -1 )
-	#define TRACE KdPrint
-	//#define TRACE
+	//#define TRACE KdPrint
+	#define TRACE
 	#define ASSERT_IRQL_LTE( Irql ) ASSERT( KeGetCurrentIrql() <= ( Irql ) )
 #else
 	#error Unknown mode (User/Kernel)

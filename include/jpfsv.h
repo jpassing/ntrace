@@ -327,6 +327,17 @@ HRESULT JpfsvCloseEnum(
 	__in JPFSV_ENUM_HANDLE EnumHandle
 	);
 
+/*++
+	Routine Description:
+		Tries to converts paths as retruned by GetDeviceDriverFileName 
+		to valid DOS paths, accounting for the inconsistencies among 
+		OS releases.
+--*/
+HRESULT JpfsvSantizeDeviceDriverPath(
+	__in PCWSTR DeviceDriverPath,
+	__in DWORD BufferSize,
+	__out_ecount( BufferSize ) PWSTR Buffer 
+	);
 
 /*----------------------------------------------------------------------
  *

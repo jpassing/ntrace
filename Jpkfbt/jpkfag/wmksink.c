@@ -65,6 +65,17 @@ static VOID JpkfagsOnProcedureExitWmkEventSink(
 		Function );
 }
 
+static VOID JpkfagsOnProcedureUnwindWmkEventSink(
+	__in ULONG ExceptionCode,
+	__in PVOID Function,
+	__in_opt PVOID This
+	)
+{
+	UNREFERENCED_PARAMETER( ExceptionCode );
+	UNREFERENCED_PARAMETER( Function );
+	UNREFERENCED_PARAMETER( This );
+}
+
 static VOID JpkfagsOnProcessBufferWmkEventSink(
 	__in SIZE_T BufferSize,
 	__in_bcount(BufferSize) PUCHAR Buffer,
@@ -115,6 +126,7 @@ NTSTATUS JpkfagpCreateWmkEventSink(
 	TempSink->Base.OnImageInvolved		= JpkfagsOnImageLoadWmkEventSink;
 	TempSink->Base.OnProcedureEntry		= JpkfagsOnProcedureEntryWmkEventSink;
 	TempSink->Base.OnProcedureExit		= JpkfagsOnProcedureExitWmkEventSink;
+	TempSink->Base.OnProcedureUnwind	= JpkfagsOnProcedureUnwindWmkEventSink;
 	TempSink->Base.OnProcessBuffer		= JpkfagsOnProcessBufferWmkEventSink;
 	TempSink->Base.Delete				= JpkfagsDeleteWmkEventSink;
 

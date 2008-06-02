@@ -88,19 +88,19 @@ static BOOL JpfsvsCheckTracabilityFilter(
 
 	if ( ! Hotpatchable )
 	{
-		JpfsvpOutput(
-			Ctx->ProcessorState,
-			L"%s not suitable for tracing (No hotpatchable prolog)\n",
-			SymInfo->Name );
+		//JpfsvpOutput(
+		//	Ctx->ProcessorState,
+		//	L"%s not suitable for tracing (No hotpatchable prolog)\n",
+		//	SymInfo->Name );
 		return FALSE;
 	}
 
 	if ( PaddingSize < JPFBT_MIN_PROCEDURE_PADDING_REQUIRED )
 	{
-		JpfsvpOutput(
-			Ctx->ProcessorState,
-			L"%s not suitable for tracing (Padding to small)\n",
-			SymInfo->Name );
+		//JpfsvpOutput(
+		//	Ctx->ProcessorState,
+		//	L"%s not suitable for tracing (Padding to small)\n",
+		//	SymInfo->Name );
 		return FALSE;
 	}
 

@@ -15,6 +15,9 @@
 
 #define JPKFAG_POOL_TAG 'gafJ'
 
+//#define TRACE KdPrint
+#define TRACE( x )
+
 #define JPKFAGP_THREAD_DATA_PREALLOCATIONS	128
 #define JPKFAGP_MIN_BUFFER_SIZE				\
 	( 2 * sizeof( JPTRC_PROCEDURE_TRANSITION32 ) )
@@ -48,6 +51,7 @@ typedef struct _JPKFAGP_STATISTICS
 {
 	volatile LONG EntryEventsDropped;
 	volatile LONG ExitEventsDropped;
+	volatile LONG UnwindEventsDropped;
 	volatile LONG ImageInfoEventsDropped;
 	volatile LONG FailedChunkFlushes;
 } JPKFAGP_STATISTICS, *PJPKFAGP_STATISTICS;
@@ -104,6 +108,23 @@ typedef struct _JPKFAGP_EVENT_SINK
 	--*/
 	VOID ( *OnProcedureExit )(
 		__in CONST PJPFBT_CONTEXT Context,
+		__in PVOID Function,
+		__in PVOID This
+		);
+
+	/*++
+		Routine Description:
+			Procedure frame unwind due to an exception.
+
+			Callable at any IRQL.
+
+		Parameters:
+			ExceptionCode		- Exception Code.
+			Function			- Procedure affected.
+			This				- Pointer to self.
+	--*/
+	VOID ( *OnProcedureUnwind )(
+		__in ULONG ExceptionCode,
 		__in PVOID Function,
 		__in PVOID This
 		);

@@ -15,12 +15,9 @@ jpfbt
  Kernel
    * MmGetSystemAddressForMdlSafe may return NULL
    
- finegrained locking for TLS
+ * SymPtr: use GUID instead of BuildNr
+ * Better Exception-Alg.?
 
- * Exceptions
- 
- make RtlPointers mandatory
- 
  UM: detect alloc reentrance
  
 jpufbt
@@ -38,6 +35,8 @@ jpkfbt
   
  * only admin may access device
  
+ 
+ 
 jpfsv
 ------------------------------------------------------------------------
  * Grow tracetab
@@ -48,5 +47,7 @@ jpfsv
  * mask out nt-bit for message resolution? --> do in cdiag
  
  * allow second instance of ctrc
+ 
+ * Vista symsrv
  
  * declspec dllexport/import

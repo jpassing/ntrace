@@ -13,9 +13,6 @@
 #define JPKFAG_DEVICE_NT_NAME L"\\Device\\Jpkfag"
 #define JPKFAG_DEVICE_DOS_NAME L"\\DosDevices\\Jpkfag"
 
-//#define JPKFAGP_TRACE KdPrint
-#define JPKFAGP_TRACE( x )
-
 DRIVER_DISPATCH JpkfagpDispatchCreate;
 DRIVER_DISPATCH JpkfagpDispatchCleanup;
 DRIVER_DISPATCH JpkfagpDispatchClose;
@@ -27,7 +24,7 @@ NTSTATUS JpkfagpDispatchCreate(
 	__in PIRP Irp 
 	)
 {
-	JPKFAGP_TRACE(( "JPKFAG: JpkfagpDispatchCreate.\n" ));
+	TRACE(( "JPKFAG: JpkfagpDispatchCreate.\n" ));
 
 	UNREFERENCED_PARAMETER( DeviceObject );
 	UNREFERENCED_PARAMETER( Irp );
@@ -40,7 +37,7 @@ NTSTATUS JpkfagpDispatchCleanup(
 	__in PIRP Irp 
 	)
 {
-	JPKFAGP_TRACE(( "JPKFAG: JpkfagpDispatchCleanup.\n" ));
+	TRACE(( "JPKFAG: JpkfagpDispatchCleanup.\n" ));
 	UNREFERENCED_PARAMETER( DeviceObject );
 	UNREFERENCED_PARAMETER( Irp );
 	
@@ -54,7 +51,7 @@ NTSTATUS JpkfagpDispatchClose(
 {
 	PIO_STACK_LOCATION StackLocation;
 
-	JPKFAGP_TRACE(( "JPKFAG: JpkfagpDispatchClose.\n" ));
+	TRACE(( "JPKFAG: JpkfagpDispatchClose.\n" ));
 	UNREFERENCED_PARAMETER( DeviceObject );
 
 	StackLocation = IoGetCurrentIrpStackLocation( Irp );
@@ -72,7 +69,7 @@ NTSTATUS JpkfagpDispatchDeviceControl(
 	ULONG ResultSize;
 	NTSTATUS Status;
 
-	JPKFAGP_TRACE(( "JPKFAG: JpkfagpDispatchDeviceControl.\n" ));
+	TRACE(( "JPKFAG: JpkfagpDispatchDeviceControl.\n" ));
 	UNREFERENCED_PARAMETER( DeviceObject );
 
 	StackLocation = IoGetCurrentIrpStackLocation( Irp );
@@ -145,17 +142,17 @@ VOID JpkfagpUnload(
 		//
 		NTSTATUS Status;
 
-		KdPrint(( "JPKFAG: Forcing shutdown...\n" ));
+		TRACE(( "JPKFAG: Forcing shutdown...\n" ));
 		
 		Status = JpkfagpShutdownTracing( DevExtension );
 		if ( ! NT_SUCCESS( Status ) )
 		{
-			KdPrint(( "JPKFAG: Forcing shutdown failed, likely "
+			TRACE(( "JPKFAG: Forcing shutdown failed, likely "
 				"to bugcheck soon: %x.\n", Status ));
 		}
 	}
 
-	KdPrint(( "JPKFAG: Unload.\n" ));
+	TRACE(( "JPKFAG: Unload.\n" ));
 
 	IoDeleteSymbolicLink( &NameStringDos );
 
@@ -226,7 +223,7 @@ NTSTATUS DriverEntry(
 			DevExtension = ( PJPKFAGP_DEVICE_EXTENSION ) DeviceObject->DeviceExtension;
 			RtlZeroMemory( DevExtension, sizeof( JPKFAGP_DEVICE_EXTENSION ) );
 
-			KdPrint( ( "JPKFAG: Device Extension at %p\n", DevExtension ) );
+			TRACE( ( "JPKFAG: Device Extension at %p\n", DevExtension ) );
 		}
 		else
 		{
@@ -234,7 +231,7 @@ NTSTATUS DriverEntry(
 		}
 	}
 	
-	JPKFAGP_TRACE(( "JPKFAG: Device created.\n" ));
+	TRACE(( "JPKFAG: Device created.\n" ));
 	
 	return Status;
 }

@@ -162,7 +162,58 @@ static void TestDriverEnum()
 	EnumModules( JPFSV_KERNEL, Enum );
 }
 
+static void TestSantize()
+{
+	WCHAR Buffer[ MAX_PATH ];
+	TEST( 
+		E_INVALIDARG ==
+		JpfsvSantizeDeviceDriverPath(
+			L"",
+			_countof( Buffer ),
+			Buffer ) );
+
+	TEST( 
+		JPFSV_E_UNRECOGNIZED_PATH_FORMAT ==
+		JpfsvSantizeDeviceDriverPath(
+			L"\\",
+			_countof( Buffer ),
+			Buffer ) );
+
+	TEST( 
+		JPFSV_E_UNRECOGNIZED_PATH_FORMAT ==
+		JpfsvSantizeDeviceDriverPath(
+			L"c:\\",
+			_countof( Buffer ),
+			Buffer ) );
+
+	TEST( 
+		JPFSV_E_UNRECOGNIZED_PATH_FORMAT ==
+		JpfsvSantizeDeviceDriverPath(
+			L"\\SystemRoot\\",
+			_countof( Buffer ),
+			Buffer ) );
+
+	TEST_OK( JpfsvSantizeDeviceDriverPath(
+			L"c:\\windows\\system32\\notepad.exe",
+			_countof( Buffer ),
+			Buffer ) );
+	TEST( 0 == _wcsicmp( Buffer, L"c:\\windows\\system32\\notepad.exe" ) );
+
+	TEST_OK( JpfsvSantizeDeviceDriverPath(
+			L"\\windows\\system32\\notepad.exe",
+			_countof( Buffer ),
+			Buffer ) );
+	TEST( 0 == _wcsicmp( Buffer, L"c:\\windows\\system32\\notepad.exe" ) );
+
+	TEST_OK( JpfsvSantizeDeviceDriverPath(
+			L"\\SystemRoot\\system32\\notepad.exe",
+			_countof( Buffer ),
+			Buffer ) );
+	TEST( 0 == _wcsicmp( Buffer, L"c:\\windows\\system32\\notepad.exe" ) );
+}
+
 CFIX_BEGIN_FIXTURE( PsInfoEnum )
+	CFIX_FIXTURE_ENTRY( TestSantize )
 	CFIX_FIXTURE_ENTRY( TestProcessEnum )
 	CFIX_FIXTURE_ENTRY( TestDriverEnum )
 CFIX_END_FIXTURE()

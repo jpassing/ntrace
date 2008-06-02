@@ -675,6 +675,15 @@ static VOID TestAttachDetachKernel()
 	}
 }
 
+static BOOL IsVistaOrLater()
+{
+	OSVERSIONINFO Ver;
+	Ver.dwOSVersionInfoSize = sizeof( OSVERSIONINFO );
+
+	TEST( GetVersionEx( &Ver ) );
+	return Ver.dwMajorVersion >= 6;
+}
+
 static VOID TestTraceKernel()
 {
 	ULONG BufferCount;
@@ -799,7 +808,9 @@ static VOID TestTraceKernel()
 		TEST( SymEnumSymbols(
 			Set.Process,
 			0,
-			L"tcpip!IPRc*",
+			IsVistaOrLater()
+				? L"tcpip!IPReg*"
+				: L"tcpip!IPRc*",
 			AddProcedureSymCallback,
 			&Set ) );
 		TEST( Set.Count > 0 );
@@ -823,7 +834,9 @@ static VOID TestTraceKernel()
 		TEST( SymEnumSymbols(
 			Set.Process,
 			0,
-			L"tcpip!_wcsicmp",
+			IsVistaOrLater()
+				? L"tcpip!__report_gsfailure"
+				: L"tcpip!_wcsicmp",
 			AddProcedureSymCallback,
 			&Set ) );
 		TEST( Set.Count > 0 );
@@ -846,7 +859,9 @@ static VOID TestTraceKernel()
 		TEST( SymEnumSymbols(
 			Set.Process,
 			0,
-			L"tcpip!IPRc*",
+			IsVistaOrLater()
+				? L"tcpip!IPReg*"
+				: L"tcpip!IPRc*",
 			AddProcedureSymCallback,
 			&Set ) );
 		TEST( Set.Count >= 3 );

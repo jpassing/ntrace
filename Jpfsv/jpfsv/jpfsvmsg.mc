@@ -91,3 +91,11 @@ Language		= English
 Unsupported tracing type.
 .
 
+MessageId		= 0x9009
+Severity		= Warning
+Facility		= Interface
+SymbolicName	= JPFSV_E_UNRECOGNIZED_PATH_FORMAT
+Language		= English
+Unrecognized path format.
+.
+
