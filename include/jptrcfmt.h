@@ -102,7 +102,7 @@ typedef struct _JPTRC_CHUNK_HEADER
 typedef struct _JPTRC_PROCEDURE_TRANSITION32
 {
 	//
-	// ENTRY/EXIT discriminator.
+	// ENTRY/EXIT/UNWIND discriminator.
 	//
 	ULONGLONG Type : 2;
 	ULONGLONG __Unused : 2;

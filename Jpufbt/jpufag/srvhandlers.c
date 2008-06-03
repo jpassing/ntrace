@@ -104,7 +104,7 @@ static VOID JpufagsReadTraceHandler(
 		// This will call JpufagsProcessBuffer, which fills in the
 		// response.
 		//
-		Message->Body.ReadTraceResponse.Status = JpfbtProcessBuffer( 
+		Message->Body.ReadTraceResponse.Status = JpfbtProcessBuffers( 
 			JpufagsProcessBuffer,
 			Message->Body.ReadTraceRequest.Timeout,
 			State );

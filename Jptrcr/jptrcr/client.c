@@ -228,7 +228,7 @@ static HRESULT JptrcrsEnumCalls(
 				break;
 
 			case JPTRC_PROCEDURE_TRANSITION_EXIT:
-			case JPTRC_PROCEDURE_TRANSITION_EXCEPTION:
+			case JPTRC_PROCEDURE_TRANSITION_UNWIND:
 				//
 				// Adjust depth immediately.
 				//
@@ -363,7 +363,7 @@ static HRESULT JptrcrsEnumCalls(
 					}
 					else
 					{
-						ASSERT( Transition->Type == JPTRC_PROCEDURE_TRANSITION_EXCEPTION );
+						ASSERT( Transition->Type == JPTRC_PROCEDURE_TRANSITION_UNWIND );
 
 						Call.ExitType			= JptrcrException;
 						Call.Result.ExceptionCode = Transition->Info.Exception.Code;
