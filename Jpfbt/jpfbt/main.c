@@ -125,10 +125,21 @@ NTSTATUS JpfbtInitializeEx(
 	}
 
 #if defined(JPFBT_TARGET_KERNELMODE)
-	if ( Flags > ( JPFBT_FLAG_AUTOCOLLECT | JPFBT_FLAG_INTERCEPT_EXCEPTIONS ) )
+	if ( Flags > 
+		( JPFBT_FLAG_AUTOCOLLECT | 
+		  JPFBT_FLAG_INTERCEPT_EXCEPTIONS |
+		  JPFBT_FLAG_DISABLE_LAZY_ALLOCATION |
+		  JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION ) )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
+
+	if ( ( Flags & JPFBT_FLAG_DISABLE_LAZY_ALLOCATION ) &&
+		 ThreadDataPreallocations == 0 )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
 #else
 	if ( Flags > JPFBT_FLAG_AUTOCOLLECT )
 	{
@@ -150,7 +161,7 @@ NTSTATUS JpfbtInitializeEx(
 		BufferCount, 
 		BufferSize,
 		ThreadDataPreallocations,
-		( BOOLEAN ) Flags == JPFBT_FLAG_AUTOCOLLECT );
+		( Flags & JPFBT_FLAG_AUTOCOLLECT ) ? TRUE : FALSE );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		goto Cleanup;
@@ -175,6 +186,13 @@ NTSTATUS JpfbtInitializeEx(
 
 #if defined(JPFBT_TARGET_KERNELMODE)
 	KeInitializeSpinLock( &JpfbtpGlobalState->PatchDatabase.ThreadData.Lock ); 
+
+	JpfbtpGlobalState->DisableLazyThreadDataAllocations = 
+		( Flags & JPFBT_FLAG_DISABLE_LAZY_ALLOCATION ) ? TRUE : FALSE;
+
+	JpfbtpGlobalState->DisableTriggerBufferCollection =
+		( Flags & JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION ) ? TRUE : FALSE;
+
 #endif
 
 	JpfbtpGlobalState->UserPointer			  = UserPointer;

@@ -404,10 +404,14 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 		Request->BufferCount,
 		Request->BufferSize,
 		JPKFAGP_THREAD_DATA_PREALLOCATIONS,
-		InitFlags | JPFBT_FLAG_INTERCEPT_EXCEPTIONS,
+		InitFlags 
+			| JPFBT_FLAG_DISABLE_LAZY_ALLOCATION
+			| JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION
+			//| JPFBT_FLAG_INTERCEPT_EXCEPTIONS
+			,
 		EventSink->OnProcedureEntry,
 		EventSink->OnProcedureExit,
-		EventSink->OnProcedureUnwind, 
+		NULL, //EventSink->OnProcedureUnwind, 
 		EventSink->OnProcessBuffer,
 		EventSink );
 	if ( NT_SUCCESS( Status ) )

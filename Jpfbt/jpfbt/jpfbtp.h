@@ -27,7 +27,7 @@
 #elif defined( JPFBT_TARGET_KERNELMODE )
 	#define INFINITE ( ( ULONG ) -1 )
 	//#define TRACE KdPrint
-	#define TRACE
+	#define TRACE( x )
 	#define ASSERT_IRQL_LTE( Irql ) ASSERT( KeGetCurrentIrql() <= ( Irql ) )
 #else
 	#error Unknown mode (User/Kernel)
@@ -503,6 +503,23 @@ typedef struct _JPFBT_GLOBAL_DATA
 	// Preallocated memory. Do not use.
 	//
 	PVOID ThreadDataPreallocationBlob;
+
+	//
+	// Disable lazy allocation of thread data structures?
+	//
+	// Should be set to TRUE if the kernel itself is traced to prevent
+	// reentrance issues.
+	//
+	BOOLEAN DisableLazyThreadDataAllocations;
+
+	//
+	// Disable eager notification of buffer collector if dirty buffer
+	// has been placed on dirty list.
+	//
+	// Should be set to TRUE if the kernel itself is traced to prevent
+	// reentrance issues.
+	//
+	BOOLEAN DisableTriggerBufferCollection;
 #endif
 	//
 	// Set to TRUE, followed by signalling BufferCollectorEvent to
@@ -932,6 +949,19 @@ PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
 
 #define JpfbtGetFbtDataCurrentThread() \
 	JpfbtGetFbtDataThread( PsGetCurrentThread() )
+
+/*++
+	Routine Description:
+		Acquire thread to protect against reentrant FBT data
+		modification.
+--*/
+BOOLEAN JpfbtpAcquireCurrentThread();
+
+/*++
+	Routine Description:
+		Release thread previously acquired via JpfbtpAcquireCurrentThread.
+--*/
+VOID JpfbtpReleaseCurrentThread();
 
 #endif
 

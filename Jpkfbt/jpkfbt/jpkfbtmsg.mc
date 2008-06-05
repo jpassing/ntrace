@@ -109,14 +109,6 @@ Language		= English
 The specified tracing type is not supported by this library.
 .
 
-MessageId		= 0x930b
-Severity		= Error
-Facility		= Interface
-SymbolicName	= STATUS_KFBT_INVALID_SYMPOINTERS
-Language		= English
-The symbol pointer addresses are invalid.
-.
-
 ;//--------------------------------------------------------------------
 ;// Warnings
 ;//--------------------------------------------------------------------
@@ -284,4 +276,13 @@ SymbolicName	= STATUS_FBT_REENTRANT_ALLOCATION
 Language		= English
 Allocation reentrance detected.
 .
+
+MessageId		= 0x9211
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_UNSUPPORTED_KERNEL_BUILD
+Language		= English
+Unsupported kernel build.
+.
+
 

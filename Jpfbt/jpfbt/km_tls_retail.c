@@ -8,6 +8,8 @@
  */
 #include "jpfbtp.h"
 
+#define JPFBTP_BUSY_BIT 0x8000
+
 //
 // Offset of ETHREAD fields - vary among releases.
 // We use the top JPFBTP_SPARE_BITS bits of each.
@@ -40,6 +42,59 @@ VOID JpfbtpDeleteKernelTls()
 	ASSERT( JpfbtsSameThreadPassiveFlagsOffset != 0);
 }
 
+BOOLEAN JpfbtpAcquireCurrentThread()
+{
+	PUCHAR ThreadPtr = ( PUCHAR ) PsGetCurrentThread();
+	volatile LONG* SameThreadPassiveFlags;
+	ULONG OldValue;
+
+	SameThreadPassiveFlags	= ( volatile LONG* ) 
+		( ThreadPtr + JpfbtsSameThreadPassiveFlagsOffset );
+
+	//
+	// Try to set JPFBTP_BUSY_BIT.
+	//
+	OldValue = InterlockedOr( SameThreadPassiveFlags, JPFBTP_BUSY_BIT );
+	if ( OldValue & JPFBTP_BUSY_BIT )
+	{
+		//
+		// Already acquired by someone else, reentrance must have
+		// occured.
+		//
+		return FALSE;
+	}
+	else
+	{
+		//
+		// Bit was 0 before, we own the thread now.
+		//
+		ASSERT( ! JpfbtpAcquireCurrentThread() );
+		return TRUE;
+	}
+}
+
+VOID JpfbtpReleaseCurrentThread()
+{
+	PUCHAR ThreadPtr = ( PUCHAR ) PsGetCurrentThread();
+	volatile LONG* SameThreadPassiveFlags;
+	ULONG OldValue;
+
+	SameThreadPassiveFlags	= ( volatile LONG* ) 
+		( ThreadPtr + JpfbtsSameThreadPassiveFlagsOffset );
+
+	//
+	// Clear JPFBTP_BUSY_BIT.
+	//
+	OldValue = InterlockedAnd( SameThreadPassiveFlags, ~JPFBTP_BUSY_BIT );
+	if ( ! ( OldValue & JPFBTP_BUSY_BIT ) )
+	{
+		//
+		// Huh? Not acquired!
+		//
+		ASSERT( !"Thread released that has not been acquired before" );
+	}
+}
+
 NTSTATUS JpfbtSetFbtDataThread(
 	__in PETHREAD Thread,
 	__in PJPFBT_THREAD_DATA Data 
@@ -49,8 +104,8 @@ NTSTATUS JpfbtSetFbtDataThread(
 	ULONG DataVa = ( ULONG ) ( ULONG_PTR ) Data;
 	ULONG DataVaMaskHi = DataVa & 0xFFFF0000;
 	ULONG DataVaMaskLo = DataVa << 16;
-	PULONG SameThreadPassiveFlags;
-	PULONG SameThreadApcFlags;
+	volatile PULONG SameThreadPassiveFlags;
+	volatile PULONG SameThreadApcFlags;
 	
 #if DBG
 	PJPFBT_THREAD_DATA ThreadData;
@@ -59,6 +114,11 @@ NTSTATUS JpfbtSetFbtDataThread(
 	ASSERT( ThreadData == NULL || 
 			ThreadData->Signature == JPFBT_THREAD_DATA_SIGNATURE );
 #endif
+
+	//
+	// N.B. We are protected by JpfbtpAcquireCurrentThread, so it is
+	// ok to be non-atomic here.
+	//
 
 	SameThreadPassiveFlags	= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadPassiveFlagsOffset );
 	SameThreadApcFlags		= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadApcFlagsOffset );
@@ -81,9 +141,14 @@ PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
 	ULONG DataVa;
 	ULONG DataVaLo;
 	ULONG DataVaHi;
-	PULONG SameThreadPassiveFlags;
-	PULONG SameThreadApcFlags;
+	volatile PULONG SameThreadPassiveFlags;
+	volatile PULONG SameThreadApcFlags;
 	
+	//
+	// N.B. We are protected by JpfbtpAcquireCurrentThread, so it is
+	// ok to be non-atomic here.
+	//
+
 	SameThreadPassiveFlags	= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadPassiveFlagsOffset );
 	SameThreadApcFlags		= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadApcFlagsOffset );
 

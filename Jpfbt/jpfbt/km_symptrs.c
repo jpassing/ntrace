@@ -25,6 +25,12 @@ static JPFBTP_SYMBOL_SET JpfbtsSymbolSets[] =
 		_ToPtr( 0x80838f96 ), _ToPtr( 0x80838e89 ), _ToPtr( 0x8081f912 ) },
 	
 	//
+	// WRK.
+	//
+	{ 3800, 0x244, 0x248, 
+		_ToPtr( 0x808646da ), _ToPtr( 0x80864858 ), _ToPtr( 0x8088541c ) },
+	
+	//
 	// Vista Gold.
 	//
 	{ 6000, 0x264, 0x268, 

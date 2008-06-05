@@ -28,9 +28,7 @@ PJPFBT_THUNK_STACK JpfbtpGetCurrentThunkStack()
 		Called by thunk on procedure entry.
 
 	Parameters:
-		Context	-   Context on call entry. Note that edx and eax
-				    (both volatile) are 0 and do not reflect the
-				    real values.
+		Context	-   Context on call entry. 
 		Procedure - Procedure entered.
 --*/
 VOID __stdcall JpfbtpProcedureEntry( 
@@ -53,8 +51,7 @@ VOID __stdcall JpfbtpProcedureEntry(
 		Called by thunk on procedure exit.
 
 	Parameters:
-		Context	-   Context on call entry. Note that ecx (volatile) is 0 
-				    and does not reflect the real value.
+		Context	-   Context on call entry. 
 		Procedure - Procedure entered.
 --*/
 VOID __stdcall JpfbtpProcedureExit( 

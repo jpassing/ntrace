@@ -23,6 +23,15 @@
 
 struct JPFBT_THREAD_DATA;
 
+BOOLEAN JpfbtpAcquireCurrentThread()
+{
+	return TRUE;
+}
+
+VOID JpfbtpReleaseCurrentThread()
+{
+}
+
 NTSTATUS JpfbtSetFbtDataThread(
 	__in PETHREAD Thread,
 	__in struct JPFBT_THREAD_DATA* Data 

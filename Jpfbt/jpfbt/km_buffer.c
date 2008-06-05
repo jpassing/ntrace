@@ -292,7 +292,8 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 	// as part of this allocation, reentrace can occur.
 	//
 	
-	if ( KeGetCurrentIrql() <= DISPATCH_LEVEL )
+	if ( ! JpfbtpGlobalState->DisableLazyThreadDataAllocations &&
+		 KeGetCurrentIrql() <= DISPATCH_LEVEL )
 	{
 		//
 		// Code potentially causing reentrance begins here.
@@ -464,13 +465,29 @@ VOID JpfbtpFreeThreadData(
 
 static VOID JpfbtsBufferCollectorThreadProc(  __in PVOID Unused )
 {
+	ULONG Timeout;
+
 	UNREFERENCED_PARAMETER( Unused );
+
+	if ( JpfbtpGlobalState->DisableTriggerBufferCollection )
+	{
+		//
+		// If we specified INFINITE, nothing would happen as the
+		// event will not ever be signalled. Thus, specify a low
+		// timeout, which effetively is the a period.
+		//
+		Timeout = 5 * 1000 * 1000 * 10;	// 5 seconds.
+	}
+	else
+	{
+		Timeout = INFINITE;
+	}
 
 	while ( ! JpfbtpGlobalState->StopBufferCollector )
 	{
 		JpfbtProcessBuffers( 
 			JpfbtpGlobalState->Routines.ProcessBuffer,
-			INFINITE,
+			Timeout,
 			JpfbtpGlobalState->UserPointer );
 	}
 
@@ -479,7 +496,8 @@ static VOID JpfbtsBufferCollectorThreadProc(  __in PVOID Unused )
 
 VOID JpfbtpTriggerDirtyBufferCollection()
 {
-	if ( KeGetCurrentIrql() <= DISPATCH_LEVEL )
+	if ( ! JpfbtpGlobalState->DisableTriggerBufferCollection &&
+		KeGetCurrentIrql() <= DISPATCH_LEVEL )
 	{
 		( VOID ) KeSetEvent( 
 			&JpfbtpGlobalState->BufferCollectorEvent,

@@ -115,12 +115,22 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 //
 // Auto-colect buffers.
 //
-#define JPFBT_FLAG_AUTOCOLLECT			1
+#define JPFBT_FLAG_AUTOCOLLECT				1
 
 //
 // Enable exception interception (KM only).
 //
-#define JPFBT_FLAG_INTERCEPT_EXCEPTIONS	2
+#define JPFBT_FLAG_INTERCEPT_EXCEPTIONS		2
+
+//
+// Disable lazy allocation of thread data structures (KM only).
+//
+#define JPFBT_FLAG_DISABLE_LAZY_ALLOCATION	4
+
+//
+// Disable eager notification of buffer collector (KM only).
+//
+#define JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION	8
 
 /*++
 	Routine Description:
@@ -147,6 +157,8 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 						JpfbtProcessBuffer must be called 
 						repeatedly.
 					  JPFBT_FLAG_INTERCEPT_EXCEPTIONS
+					  JPFBT_FLAG_DISABLE_LAZY_ALLOCATION
+					  JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION
 		EntryEvRt.  - Routine called on entry of hooked function.
 		ExitEvRt.   - Routine called on exit of hooked function.
 		ExcepEvRt.  - Routine called when a traced routine is unwound after

@@ -36,6 +36,55 @@ static PSLIST_ENTRY JpfbtsReverseSlist(
 	return Prev;
 }
 
+static VOID JpfbtsCheckSlist( 
+	__in PSLIST_ENTRY List 
+	)
+{
+#if DBG
+	PSLIST_ENTRY ListEntry = List;
+	while ( ListEntry != NULL )
+	{
+#if defined(JPFBT_TARGET_KERNELMODE)
+		ASSERT( ListEntry->Next == NULL ||
+				MmIsAddressValid( ListEntry->Next ) );
+#endif
+		ListEntry = ListEntry->Next;
+	}
+#endif
+}
+
+static VOID JpfbtsCheckForSuspiciousThunkStackFrameDuplicates( 
+	__in PJPFBT_THREAD_DATA ThreadData 
+	)
+{
+	PJPFBT_THUNK_STACK_FRAME Frame;
+	ULONG Occurences = 0;
+	
+	if ( ThreadData->ThunkStack.StackPointer ==
+		 &ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ] )
+	{
+		//
+		// Stack empty.
+		//
+		return;
+	}
+
+	Frame = &ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ];
+	ASSERT( Frame != ThreadData->ThunkStack.StackPointer );
+	
+	do
+	{
+		if ( Frame->Procedure == ThreadData->ThunkStack.StackPointer->Procedure )
+		{
+			Occurences++;
+		}
+
+		Frame--;
+	} while ( Frame != ThreadData->ThunkStack.StackPointer );
+
+	ASSERT( Occurences <= 3 );
+}
+
 /*++
 	Routine Description:
 		Retrieve current buffer from thread data. If no buffer
@@ -50,7 +99,7 @@ static PSLIST_ENTRY JpfbtsReverseSlist(
 	Return Value:
 		Buffer or NULL if free list depleted.
 --*/
-static PJPFBT_BUFFER JpfbtpsGetBuffer( 
+static PJPFBT_BUFFER JpfbtsGetBuffer( 
 	__in PJPFBT_THREAD_DATA ThreadData,
 	__in ULONG RequiredSize
 	)
@@ -266,6 +315,22 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 	NTSTATUS Status;
 	PJPFBT_THREAD_DATA ThreadData;
 
+//	// DEBUG
+//#if defined(JPFBT_TARGET_KERNELMODE)	
+//	if ( KeGetCurrentIrql() >= DISPATCH_LEVEL )
+//	{
+//		_asm nop;
+//		return NULL;
+//	}
+//#endif
+//
+#if defined(JPFBT_TARGET_KERNELMODE)	
+	if ( IoGetRemainingStackSize() < 1000 )
+	{
+		return NULL;
+	}
+#endif
+
 	Status = JpfbtpGetCurrentThreadDataIfAvailable( &ThreadData );
 	if ( Status == STATUS_FBT_REENTRANT_ALLOCATION )
 	{
@@ -294,8 +359,8 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 		//
 		// Initialize stack.
 		//
-		ThreadData->CurrentBuffer = NULL;
-		ThreadData->ThunkStack.StackPointer = 
+		ThreadData->CurrentBuffer			= NULL;
+		ThreadData->ThunkStack.StackPointer	= 
 			&ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ];
 		ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ].Procedure = 0xDEADBEEF;
 		ThreadData->ThunkStack.Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ].ReturnAddress = 0xDEADBEEF;
@@ -374,10 +439,14 @@ PUCHAR JpfbtGetBuffer(
 	CurrentThreadData = JpfbtpGetCurrentThreadData();
 	ASSERT( CurrentThreadData != NULL );
 
+//#if DBG
+//	JpfbtsCheckForSuspiciousThunkStackFrameDuplicates( CurrentThreadData );
+//#endif
+
 	//
 	// Get buffer (may have already been used).
 	//
-	Buffer = JpfbtpsGetBuffer( CurrentThreadData, GrossSize );
+	Buffer = JpfbtsGetBuffer( CurrentThreadData, GrossSize );
 	if ( Buffer )
 	{
 		ASSERT( Buffer->Guard == 0xDEADBEEF );
@@ -481,13 +550,15 @@ NTSTATUS JpfbtProcessBuffers(
 	// Now we have a DirtyList. As the list is LIFO but we have to process
 	// buffers FIFO, we have to reverse this list first.
 	//
+	JpfbtsCheckSlist( DirtyList );
 	DirtyList = JpfbtsReverseSlist( DirtyList );
+	JpfbtsCheckSlist( DirtyList );
 
 	//
 	// Process all entries. We own the DirytList, thus, there is no
 	// need to use interlocked operations any more.
 	//
-	ListEntry = PopEntryList( DirtyList );
+	ListEntry = DirtyList;
 	while ( ListEntry != NULL )
 	{
 		PJPFBT_BUFFER Buffer;
@@ -513,13 +584,16 @@ NTSTATUS JpfbtProcessBuffers(
 		Buffer->ThreadId = 0xDEADBEEF;
 	#endif
 
+		ListEntry = ListEntry->Next;
+
+		//
+		// Release this entry and put it back on the free list.
+		//
 		InterlockedPushEntrySList(
 			 &JpfbtpGlobalState->FreeBuffersList,
 			 &Buffer->ListEntry );
 
 		InterlockedIncrement( &JpfbtpGlobalState->Counters.NumberOfBuffersCollected );
-
-		ListEntry = PopEntryList( DirtyList );
 	}
 
 	return STATUS_SUCCESS;
@@ -561,7 +635,9 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 		//
 		// There is no way to safely remove this entry from the 
 		// linked list. Therefore, do not free the structure - 
-		// JpfbtUninitialize will do it later.
+		// JpfbtUninitialize will do it later. However, as the ETHREAD
+		// will be gone by then, disassociate now.
 		//
+		ThreadData->Association.Thread = NULL;
 	}
 }

@@ -15,6 +15,11 @@ extrn JpfbtpProcedureEntry@8 : proc
 extrn JpfbtpProcedureExit@8 : proc
 extrn JpfbtpThunkExceptionHandler@16 : proc
 
+ifndef JPFBT_TARGET_USERMODE
+extrn JpfbtpAcquireCurrentThread@0 : proc
+extrn JpfbtpReleaseCurrentThread@0 : proc
+endif
+
 extrn JpfbtpExceptionHandlingUsed : BYTE
 
 ifdef JPFBT_TARGET_USERMODE
@@ -105,6 +110,15 @@ JpfbtpFunctionEntryThunk proc
 	;  edx: free
 	;
 	
+	;
+	; Protect against reentrance.
+	;
+ifndef JPFBT_TARGET_USERMODE
+	call JpfbtpAcquireCurrentThread@0
+	test eax, 1
+	jz ReentrantEntry			; if FALSE, acquiration failed
+endif
+
 	;
 	; Get thunkstack.
 	;
@@ -214,6 +228,13 @@ SehInstallationEnd:
 	push eax				; &Context 
 
 	call JpfbtpProcedureEntry@8
+	
+ifndef JPFBT_TARGET_USERMODE	
+	;
+	; Release reentrance protection.
+	;
+	call JpfbtpReleaseCurrentThread@0
+endif
 
 	;
 	; Tear down CONTEXT.
@@ -238,7 +259,17 @@ JumpToTarget:
 	; return to the caller rather than to JpfbtProcedureCallThunk.
 	;
 	jmp [esp-4]
-
+	
+ReentrantEntry:
+	;
+	; To avoid nasty reentrancy issues, do not intercept this call.
+	;
+	nop
+	
+	;
+	; Fallthru to NoStack.
+	;
+	
 NoStack:
 	;
 	; We have not been able to retrieve a thunkstack, so intercepting
@@ -321,6 +352,16 @@ JpfbtpFunctionCallThunk proc
 	;   ???
 	;
 
+ifndef JPFBT_TARGET_USERMODE	
+	;
+	; Acquire reentrance protection. Note that we only have to
+	; protect against reentrant entries. If entries are avoided while
+	; we are handling an exit, we are implicitly protected against
+	; reentrant exits.
+	;
+	call JpfbtpAcquireCurrentThread@0	; will always return TRUE
+endif
+	
 	;
 	; Get thunkstack.
 	;
@@ -415,6 +456,10 @@ SehUninstallationEnd:
 	push eax				; &Context
 
 	call JpfbtpProcedureExit@8
+	
+ifndef JPFBT_TARGET_USERMODE	
+	call JpfbtpReleaseCurrentThread@0
+endif
 	
 	; Tear down CONTEXT.
 	add esp, 028h	; sizeof( JPFBT_CONTEXT )
