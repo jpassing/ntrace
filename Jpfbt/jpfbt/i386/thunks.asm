@@ -26,6 +26,7 @@ ifdef JPFBT_TARGET_USERMODE
 extrn RaiseException@16 : proc
 else
 extrn ExRaiseStatus@4 : proc
+extrn KeBugCheck@4 : proc
 endif
 
 ;
@@ -251,14 +252,12 @@ JumpToTarget:
 	pop ecx
 	pop eax
 	pop ebp	
-	
-	add esp, 8
-	
-	;
-	; Resume procedure - as we have restored the RA, the function will
-	; return to the caller rather than to JpfbtProcedureCallThunk.
-	;
-	jmp [esp-4]
+
+	add esp, 4
+	ret						; Funcptr is at [esp].
+;	add esp, 8
+;	
+;	jmp [esp-4]
 	
 ReentrantEntry:
 	;
@@ -292,7 +291,8 @@ ifdef JPFBT_TARGET_USERMODE
 	call RaiseException@16
 else
 	push 0C00000FDh			; STATUS_STACK_OVERFLOW
-	call ExRaiseStatus@4
+	call KeBugCheck@4
+	;call ExRaiseStatus@4
 endif
 JpfbtpFunctionEntryThunk endp
 
@@ -490,7 +490,8 @@ ifdef JPFBT_TARGET_USERMODE
 	call RaiseException@16	
 else
 	push 80049200h			; STATUS_FBT_NO_THUNKSTACK
-	call ExRaiseStatus@4	
+	call KeBugCheck@4
+	;call ExRaiseStatus@4	
 endif
 JpfbtpFunctionCallThunk endp
 

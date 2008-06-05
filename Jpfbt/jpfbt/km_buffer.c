@@ -476,7 +476,7 @@ static VOID JpfbtsBufferCollectorThreadProc(  __in PVOID Unused )
 		// event will not ever be signalled. Thus, specify a low
 		// timeout, which effetively is the a period.
 		//
-		Timeout = 5 * 1000 * 1000 * 10;	// 5 seconds.
+		Timeout = 1 * 1000 * 1000 * 10;	// 1 second.
 	}
 	else
 	{

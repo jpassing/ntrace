@@ -56,6 +56,7 @@ static NTSTATUS JpfbtsLockMemory(
 		? EXCEPTION_EXECUTE_HANDLER 
 		: EXCEPTION_CONTINUE_SEARCH )
 	{
+		IoFreeMdl( Mdl );
 		return GetExceptionCode();
 	}
 
@@ -209,6 +210,7 @@ NTSTATUS JpfbtpPatchCode(
 {
 	JPFBTP_PATCH_CONTEXT Context;
 	ULONG Index;
+	ULONG MdlsAllocated = 0;
 	NTSTATUS Status;
 
 	ASSERT_IRQL_LTE( APC_LEVEL );
@@ -244,10 +246,16 @@ NTSTATUS JpfbtpPatchCode(
 		{
 			break;
 		}
+		else
+		{
+			MdlsAllocated++;
+		}
 	}
 
 	if ( NT_SUCCESS( Status ) )
 	{
+		ASSERT( MdlsAllocated == PatchCount );
+
 		//
 		// Now that the MDLs have been prepared, do the actual
 		// patching. A DPC is scheduled on each CPU.
@@ -264,7 +272,7 @@ NTSTATUS JpfbtpPatchCode(
 	//
 	// Free MDLs.
 	//
-	for ( Index = 0; Index < PatchCount; Index++ )
+	for ( Index = 0; Index < MdlsAllocated; Index++ )
 	{
 		if ( Patches[ Index ]->Mdl != NULL )
 		{
