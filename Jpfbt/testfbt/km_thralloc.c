@@ -8,12 +8,16 @@ void CreateGlobalState()
 		1,
 		8,
 		0,
+		FALSE,
+		FALSE,
 		FALSE ) );
 	JpfbtpFreeGlobalState();
 	TEST_SUCCESS( JpfbtpCreateGlobalState(
 		1,
 		8,
 		32,
+		FALSE,
+		FALSE,
 		FALSE ) );
 	JpfbtpFreeGlobalState();
 }
@@ -27,6 +31,8 @@ void AllocateThreadDataAtApcLevel()
 		1,
 		8,
 		1,		// 1 preallocated struct
+		FALSE,
+		FALSE,
 		FALSE ) );
 
 	//
@@ -51,6 +57,8 @@ void AllocateThreadDataAtDirql()
 		1,
 		8,
 		1,		// 1 preallocated struct
+		FALSE,
+		FALSE,
 		FALSE ) );
 
 	//
@@ -86,6 +94,8 @@ void AllocateThreadDataAtApcAndFreeAtDirql()
 		1,
 		8,
 		1,		// 1 preallocated struct
+		FALSE,
+		FALSE,
 		FALSE ) );
 
 	//

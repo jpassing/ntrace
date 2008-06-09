@@ -84,13 +84,15 @@ NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
-	__in BOOLEAN StartCollectorThread
+	__in BOOLEAN StartCollectorThread,
+	__in BOOLEAN DisableLazyThreadDataAllocations,
+	__in BOOLEAN DisableTriggerBufferCollection
 	)
 {
 	HANDLE CollectorThread;
 	OBJECT_ATTRIBUTES ObjectAttributes;
 	NTSTATUS Status;
-	PJPFBTP_SYMBOL_POINTERS SymbolPointers;
+	JPFBTP_SYMBOL_POINTERS SymbolPointers;
 	PJPFBT_GLOBAL_DATA TempState = NULL;
 	BOOLEAN TlsInitialized = FALSE;
 	
@@ -123,9 +125,12 @@ NTSTATUS JpfbtpCreateGlobalState(
 		return Status;
 	}
 
+	TempState->DisableLazyThreadDataAllocations = DisableLazyThreadDataAllocations;
+	TempState->DisableTriggerBufferCollection	= DisableTriggerBufferCollection;
+
 	Status = JpfbtpInitializeKernelTls(
-		SymbolPointers->Ethread.SameThreadPassiveFlagsOffset,
-		SymbolPointers->Ethread.SameThreadApcFlagsOffset );
+		SymbolPointers.Ethread.SameThreadPassiveFlagsOffset,
+		SymbolPointers.Ethread.SameThreadApcFlagsOffset );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		goto Cleanup;

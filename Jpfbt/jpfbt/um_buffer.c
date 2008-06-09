@@ -26,7 +26,9 @@ NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
-	__in BOOLEAN StartCollectorThread
+	__in BOOLEAN StartCollectorThread,
+	__in BOOLEAN DisableLazyThreadDataAllocations,
+	__in BOOLEAN DisableTriggerBufferCollection
 	)
 {
 	ULONG TlsIndex;
@@ -34,6 +36,8 @@ NTSTATUS JpfbtpCreateGlobalState(
 	PJPFBT_GLOBAL_DATA TempState = NULL;
 
 	UNREFERENCED_PARAMETER( ThreadDataPreallocations );
+	UNREFERENCED_PARAMETER( DisableLazyThreadDataAllocations );
+	UNREFERENCED_PARAMETER( DisableTriggerBufferCollection );
 
 	if ( BufferCount == 0 || 
 		 BufferSize == 0 ||

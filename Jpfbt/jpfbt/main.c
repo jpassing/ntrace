@@ -20,7 +20,7 @@ static NTSTATUS JpfbtsApplyRtlExceptionHandlingPatches()
 {
 	PJPFBT_CODE_PATCH Patches[ 2 ];
 	NTSTATUS Status;
-	PJPFBTP_SYMBOL_POINTERS SymbolPointers;
+	JPFBTP_SYMBOL_POINTERS SymbolPointers;
 
 	Status = JpfbtpGetSymbolPointers( &SymbolPointers );
 	if ( ! NT_SUCCESS( Status ) )
@@ -29,7 +29,7 @@ static NTSTATUS JpfbtsApplyRtlExceptionHandlingPatches()
 	}
 
 	Status = JpfbtpPrepareRtlExceptionHandlingCodePatches(
-		SymbolPointers,
+		&SymbolPointers,
 		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 0 ],
 		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ] );
 	if ( ! NT_SUCCESS( Status ) )
@@ -140,6 +140,12 @@ NTSTATUS JpfbtInitializeEx(
 		return STATUS_INVALID_PARAMETER;
 	}
 
+	Status = AuxKlibInitialize();
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
+
 #else
 	if ( Flags > JPFBT_FLAG_AUTOCOLLECT )
 	{
@@ -161,7 +167,9 @@ NTSTATUS JpfbtInitializeEx(
 		BufferCount, 
 		BufferSize,
 		ThreadDataPreallocations,
-		( Flags & JPFBT_FLAG_AUTOCOLLECT ) ? TRUE : FALSE );
+		( Flags & JPFBT_FLAG_AUTOCOLLECT ) ? TRUE : FALSE,
+		( Flags & JPFBT_FLAG_DISABLE_LAZY_ALLOCATION ) ? TRUE : FALSE,
+		( Flags & JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION ) ? TRUE : FALSE );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		goto Cleanup;
@@ -186,13 +194,6 @@ NTSTATUS JpfbtInitializeEx(
 
 #if defined(JPFBT_TARGET_KERNELMODE)
 	KeInitializeSpinLock( &JpfbtpGlobalState->PatchDatabase.ThreadData.Lock ); 
-
-	JpfbtpGlobalState->DisableLazyThreadDataAllocations = 
-		( Flags & JPFBT_FLAG_DISABLE_LAZY_ALLOCATION ) ? TRUE : FALSE;
-
-	JpfbtpGlobalState->DisableTriggerBufferCollection =
-		( Flags & JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION ) ? TRUE : FALSE;
-
 #endif
 
 	JpfbtpGlobalState->UserPointer			  = UserPointer;
@@ -203,6 +204,7 @@ NTSTATUS JpfbtInitializeEx(
 	JpfbtpGlobalState->Routines.ProcessBuffer = ProcessBufferRoutine;
 
 #if defined(JPFBT_TARGET_KERNELMODE)
+
 	if ( Flags & JPFBT_FLAG_INTERCEPT_EXCEPTIONS )
 	{
 		//
@@ -211,7 +213,7 @@ NTSTATUS JpfbtInitializeEx(
 		Status = JpfbtsApplyRtlExceptionHandlingPatches();
 		if ( ! NT_SUCCESS( Status ) )
 		{
-			goto Cleasnup;
+			goto Cleanup;
 		}
 
 		JpfbtpExceptionHandlingUsed = TRUE;

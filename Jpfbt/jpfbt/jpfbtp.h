@@ -25,6 +25,8 @@
 
 	#define ASSERT_IRQL_LTE( Irql )
 #elif defined( JPFBT_TARGET_KERNELMODE )
+	#include <aux_klib.h>
+
 	#define INFINITE ( ( ULONG ) -1 )
 	//#define TRACE KdPrint
 	#define TRACE( x )
@@ -707,12 +709,18 @@ VOID JpfbtpInitializeBuffersGlobalState(
 		ThreadDataPreallocations	- # of ThreadData sructures to be 
 									  preallocated (for high-IRQL
 									  allocations)
+		StartCollectorThread		- Start collector bg thread?
+		DisableLazyThreadD.			- (KM only) always use preallocation.
+		DisableTriggerBufferColl.	- (KM only) trigger collector thread
+									  as soon as an event is written?
 --*/
 NTSTATUS JpfbtpCreateGlobalState(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
 	__in ULONG ThreadDataPreallocations,
-	__in BOOLEAN StartCollectorThread
+	__in BOOLEAN StartCollectorThread,
+	__in BOOLEAN DisableLazyThreadDataAllocations,
+	__in BOOLEAN DisableTriggerBufferCollectionu
 	);
 
 /*++
@@ -879,7 +887,7 @@ typedef struct _JPFBTP_SYMBOL_POINTERS
 		Obtain symbol pointers matching the current kernel build.
 --*/
 NTSTATUS JpfbtpGetSymbolPointers( 
-	__out PJPFBTP_SYMBOL_POINTERS *SymbolPointers 
+	__out PJPFBTP_SYMBOL_POINTERS SymbolPointers 
 	);
 
 /*++

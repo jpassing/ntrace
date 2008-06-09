@@ -165,3 +165,19 @@ Language		= English
 Unsupported kernel build.
 .
 
+MessageId		= 0x9212
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_CV_GUID_LOOKUP_FAILED
+Language		= English
+Looking up the GUID in the kernel module's CodeView information failed 
+as the corresponding record could not be found.
+.
+
+MessageId		= 0x9213
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_UNRECOGNIZED_CV_HEADER
+Language		= English
+The kernel image contains an unrecognized CodeView record
+.
