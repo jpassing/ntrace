@@ -80,14 +80,19 @@ static BOOL JpfsvsCheckTracabilityFilter(
 	if ( 0 == wcscmp( SymInfo->Name, L"KeBugCheck" ) ||
 		 0 == wcscmp( SymInfo->Name, L"KeBugCheck2" ) ||
 		 0 == wcscmp( SymInfo->Name, L"KeBugCheckEx" ) ||
-		 0 == wcscmp( SymInfo->Name, L"RtlAssert" ) /*||
-		 0 != wcsstr( SymInfo->Name, L"Stack" ) ||
-		 SymInfo->Name == wcsstr( SymInfo->Name, L"Dbg" ) ||
-		 SymInfo->Name == wcsstr( SymInfo->Name, L"Io" ) ||
-		 SymInfo->Name == wcsstr( SymInfo->Name, L"Kd" ) ||
+		 0 == wcscmp( SymInfo->Name, L"RtlAssert" ) ||
+		 0 == wcscmp( SymInfo->Name, L"RtlRaiseStatus" ) ||
+		 0 == wcscmp( SymInfo->Name, L"RtlUnwind" ) //||
+		 //0 == wcscmp( SymInfo->Name, L"IofCallDriver" ) ||
+		 //0 == wcscmp( SymInfo->Name, L"IopSynchronousServiceTail" ) ||
+		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Rtl" ) //||
+		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Dbg" ) ||
+		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Io" ) //||
+		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Kd" ) ||
 		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Ke" ) ||
-		 SymInfo->Name == wcsstr( SymInfo->Name, L"Mm" ) ||
-		 SymInfo->Name == wcsstr( SymInfo->Name, L"Mi" )*/ )
+		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Mm" ) ||
+		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Mi" ) 
+		 )
 	{
 		//
 		// We certainly do not want to trace these.

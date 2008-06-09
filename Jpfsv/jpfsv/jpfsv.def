@@ -24,4 +24,4 @@ EXPORTS
 	JpfsvEnumTracePointsContext
 	JpfsvExistsTracepointContext
 	JpfsvGetTracepointContext
-	JpfsvSantizeDeviceDriverPath
+	JpfsvSanitizeDeviceDriverPath

@@ -333,7 +333,7 @@ HRESULT JpfsvCloseEnum(
 		to valid DOS paths, accounting for the inconsistencies among 
 		OS releases.
 --*/
-HRESULT JpfsvSantizeDeviceDriverPath(
+HRESULT JpfsvSanitizeDeviceDriverPath(
 	__in PCWSTR DeviceDriverPath,
 	__in DWORD BufferSize,
 	__out_ecount( BufferSize ) PWSTR Buffer 

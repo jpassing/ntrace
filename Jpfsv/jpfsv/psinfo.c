@@ -542,7 +542,7 @@ static HRESULT JpfsvsNextDriver(
 				return HRESULT_FROM_WIN32( Err );
 			}
 			
-			if ( FAILED( JpfsvSantizeDeviceDriverPath(
+			if ( FAILED( JpfsvSanitizeDeviceDriverPath(
 				RawFilePath,
 				_countof( Module->ModulePath ),
 				Module->ModulePath ) ) )
@@ -743,7 +743,7 @@ HRESULT JpfsvCloseEnum(
 	return Enum->Routines.Close( Enum );
 }
 
-HRESULT JpfsvSantizeDeviceDriverPath(
+HRESULT JpfsvSanitizeDeviceDriverPath(
 	__in PCWSTR DeviceDriverPath,
 	__in DWORD BufferSize,
 	__out_ecount( BufferSize ) PWSTR Buffer 
