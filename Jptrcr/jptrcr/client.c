@@ -369,7 +369,7 @@ static HRESULT JptrcrsEnumCalls(
 						Call.Result.ExceptionCode = Transition->Info.Exception.Code;
 					}
 
-					ASSERT( Call.ExitTimestamp > Call.EntryTimestamp );
+					ASSERT( Call.ExitTimestamp >= Call.EntryTimestamp );
 
 					JptrcrsResolveSymbolAndDeliverCallback(
 						File,
