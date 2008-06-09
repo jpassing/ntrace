@@ -211,8 +211,7 @@ NTSTATUS JpfbtInitializeEx(
 		Status = JpfbtsApplyRtlExceptionHandlingPatches();
 		if ( ! NT_SUCCESS( Status ) )
 		{
-			Status = STATUS_NO_MEMORY;
-			goto Cleanup;
+			goto Cleasnup;
 		}
 
 		JpfbtpExceptionHandlingUsed = TRUE;
@@ -224,6 +223,7 @@ NTSTATUS JpfbtInitializeEx(
 Cleanup:
 	if ( ! NT_SUCCESS( Status ) && JpfbtpGlobalState != NULL )
 	{
+		JpfbtpShutdownDirtyBufferCollector();
 		JpfbtpFreeGlobalState();
 		JpfbtpGlobalState = NULL;
 	}

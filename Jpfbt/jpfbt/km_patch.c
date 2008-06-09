@@ -56,7 +56,7 @@ static NTSTATUS JpfbtsLockMemory(
 		? EXCEPTION_EXECUTE_HANDLER 
 		: EXCEPTION_CONTINUE_SEARCH )
 	{
-		IoFreeMdl( Mdl );
+		IoFreeMdl( *Mdl );
 		return GetExceptionCode();
 	}
 

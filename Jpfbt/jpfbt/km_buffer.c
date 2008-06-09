@@ -313,7 +313,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 		PseudoThreadData->AllocationType	 = JpfbtpPseudoAllocation;
 		PseudoThreadData->Association.Thread = PsGetCurrentThread();
 
-		Status = JpfbtSetFbtDataThread( 
+		Status = JpfbtpSetFbtDataThread( 
 			PseudoThreadData->Association.Thread, 
 			PseudoThreadData );
 		if ( ! NT_SUCCESS( Status ) )
@@ -336,7 +336,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 		//
 		// Code potentially causing ends here.
 		//
-		JpfbtSetFbtDataThread( 
+		JpfbtpSetFbtDataThread( 
 			PsGetCurrentThread(), 
 			NULL );
 	}
@@ -353,7 +353,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 		if ( ListEntry == NULL )
 		{
 			InterlockedIncrement( 
-				&JpfbtpGlobalState->Counters.FailedDirqlThreadDataAllocations );
+				&JpfbtpGlobalState->Counters.FailedAllocationsFromPreallocatedPool );
 		}
 		else
 		{
@@ -375,7 +375,7 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 	{
 		ThreadData->Signature = JPFBT_THREAD_DATA_SIGNATURE;
 		ThreadData->Association.Thread = PsGetCurrentThread();
-		Status = JpfbtSetFbtDataThread( ThreadData->Association.Thread, ThreadData );
+		Status = JpfbtpSetFbtDataThread( ThreadData->Association.Thread, ThreadData );
 
 		if ( ! NT_SUCCESS( Status ) )
 		{
@@ -401,7 +401,7 @@ VOID JpfbtpFreeThreadData(
 	//
 	if ( ThreadData->Association.Thread != NULL )
 	{
-		( VOID ) JpfbtSetFbtDataThread( ThreadData->Association.Thread, NULL );
+		( VOID ) JpfbtpSetFbtDataThread( ThreadData->Association.Thread, NULL );
 	}
 
 	if ( ThreadData->AllocationType == JpfbtpPoolAllocated )

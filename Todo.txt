@@ -17,6 +17,7 @@ jpfbt
    
  * SymPtr: use GUID instead of BuildNr
  * Better Exception-Alg.?
+ * NTSTATUS vs. Driver Verifier
 
  UM: detect alloc reentrance
  

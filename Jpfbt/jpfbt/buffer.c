@@ -315,22 +315,6 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 	NTSTATUS Status;
 	PJPFBT_THREAD_DATA ThreadData;
 
-//	// DEBUG
-//#if defined(JPFBT_TARGET_KERNELMODE)	
-//	if ( KeGetCurrentIrql() >= DISPATCH_LEVEL )
-//	{
-//		_asm nop;
-//		return NULL;
-//	}
-//#endif
-//
-#if defined(JPFBT_TARGET_KERNELMODE)	
-	if ( IoGetRemainingStackSize() < 1000 )
-	{
-		return NULL;
-	}
-#endif
-
 	Status = JpfbtpGetCurrentThreadDataIfAvailable( &ThreadData );
 	if ( Status == STATUS_FBT_REENTRANT_ALLOCATION )
 	{
@@ -614,7 +598,7 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 #else
 	ASSERT( Thread != NULL );
 	ThreadData = ( PJPFBT_THREAD_DATA ) 
-		JpfbtGetFbtDataThread( ( PETHREAD ) Thread );
+		JpfbtpGetFbtDataThread( ( PETHREAD ) Thread );
 #endif
 	
 	if ( ThreadData != NULL && ThreadData->AllocationType != JpfbtpPseudoAllocation )

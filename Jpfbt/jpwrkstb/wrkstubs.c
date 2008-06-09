@@ -32,7 +32,7 @@ VOID JpfbtpReleaseCurrentThread()
 {
 }
 
-NTSTATUS JpfbtSetFbtDataThread(
+NTSTATUS JpfbtpSetFbtDataThread(
 	__in PETHREAD Thread,
 	__in struct JPFBT_THREAD_DATA* Data 
 	)
@@ -41,7 +41,7 @@ NTSTATUS JpfbtSetFbtDataThread(
 	return STATUS_SUCCESS;
 }
 
-struct JPFBT_THREAD_DATA* JpfbtGetFbtDataThread(
+struct JPFBT_THREAD_DATA* JpfbtpGetFbtDataThread(
 	__in PETHREAD Thread
 	)
 {

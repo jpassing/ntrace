@@ -19,13 +19,13 @@ typedef struct _JPFBTP_SYMBOL_SET
 static JPFBTP_SYMBOL_SET JpfbtsSymbolSets[] =
 {
 	//
-	// Svr03 SP2.
+	// Svr03 SP2 UP.
 	//
 	{ 3790, 0x244, 0x248, 
 		_ToPtr( 0x80838f96 ), _ToPtr( 0x80838e89 ), _ToPtr( 0x8081f912 ) },
 	
 	//
-	// WRK.
+	// WRK-HP.
 	//
 	{ 3800, 0x244, 0x248, 
 		_ToPtr( 0x808646da ), _ToPtr( 0x80864858 ), _ToPtr( 0x8088541c ) },

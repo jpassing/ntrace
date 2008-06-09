@@ -464,14 +464,15 @@ static VOID JpkfagsOnProcedureEntryDefEventSink(
 	{
 #ifdef _M_IX86
 		PULONG Esp = ( PULONG ) ( PVOID ) ( ULONG_PTR ) Context->Esp;
-
-		Event->Type				= JPTRC_PROCEDURE_TRANSITION_ENTRY;
-		Event->Timestamp		= __rdtsc();
-		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
-		Event->Info.CallerIp	= *Esp;
+		ULONG ReturnAddress = *Esp;
 #else
 #error Unsupported architecture
 #endif
+
+		Event->Type				= JPTRC_PROCEDURE_TRANSITION_ENTRY;
+		Event->Timestamp		= KeQueryPerformanceCounter( NULL ).QuadPart;
+		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
+		Event->Info.CallerIp	= ReturnAddress;
 	}
 	else if ( Sink != NULL )
 	{
@@ -498,14 +499,10 @@ static VOID JpkfagsOnProcedureUnwindDefEventSink(
 
 	if ( Event != NULL )
 	{
-#ifdef _M_IX86
 		Event->Type				= JPTRC_PROCEDURE_TRANSITION_UNWIND;
-		Event->Timestamp		= __rdtsc();
+		Event->Timestamp		= KeQueryPerformanceCounter( NULL ).QuadPart;
 		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
 		Event->Info.Exception.Code	= ExceptionCode;
-#else
-#error Unsupported architecture
-#endif
 	}
 	else if ( Sink != NULL )
 	{
@@ -532,14 +529,10 @@ static VOID JpkfagsOnProcedureExitDefEventSink(
 
 	if ( Event != NULL )
 	{
-#ifdef _M_IX86
 		Event->Type				= JPTRC_PROCEDURE_TRANSITION_EXIT;
-		Event->Timestamp		= __rdtsc();
+		Event->Timestamp		= KeQueryPerformanceCounter( NULL ).QuadPart;
 		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
 		Event->Info.ReturnValue	= Context->Eax;
-#else
-#error Unsupported architecture
-#endif
 	}
 	else if ( Sink != NULL )
 	{

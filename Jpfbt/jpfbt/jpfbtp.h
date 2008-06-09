@@ -533,9 +533,9 @@ typedef struct _JPFBT_GLOBAL_DATA
 		// # of allocations at DIRQL that failed because of a depleted
 		// preallocation list.
 		//
-		volatile LONG FailedDirqlThreadDataAllocations;
-		volatile LONG FailedDirqlTlsAllocations;
+		volatile LONG FailedAllocationsFromPreallocatedPool;
 		volatile LONG NumberOfBuffersCollected;
+		volatile LONG ReentrantThunkExecutionsDetected;
 	} Counters;
 
 	PVOID UserPointer;
@@ -932,7 +932,7 @@ VOID JpfbtpDeleteKernelTls();
 
 		Callable at any IRQL.
 --*/
-NTSTATUS JpfbtSetFbtDataThread(
+NTSTATUS JpfbtpSetFbtDataThread(
 	__in PETHREAD Thread,
 	__in PJPFBT_THREAD_DATA Data 
 	);
@@ -943,12 +943,12 @@ NTSTATUS JpfbtSetFbtDataThread(
 
 		Callable at any IRQL.
 --*/
-PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
+PJPFBT_THREAD_DATA JpfbtpGetFbtDataThread(
 	__in PETHREAD Thread
 	);
 
 #define JpfbtGetFbtDataCurrentThread() \
-	JpfbtGetFbtDataThread( PsGetCurrentThread() )
+	JpfbtpGetFbtDataThread( PsGetCurrentThread() )
 
 /*++
 	Routine Description:

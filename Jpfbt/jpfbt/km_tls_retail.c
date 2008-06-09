@@ -61,6 +61,9 @@ BOOLEAN JpfbtpAcquireCurrentThread()
 		// Already acquired by someone else, reentrance must have
 		// occured.
 		//
+		//InterlockedIncrement( 
+		//	&JpfbtpGlobalState->Counters.ReentrantThunkExecutionsDetected );
+
 		return FALSE;
 	}
 	else
@@ -95,7 +98,7 @@ VOID JpfbtpReleaseCurrentThread()
 	}
 }
 
-NTSTATUS JpfbtSetFbtDataThread(
+NTSTATUS JpfbtpSetFbtDataThread(
 	__in PETHREAD Thread,
 	__in PJPFBT_THREAD_DATA Data 
 	)
@@ -110,7 +113,7 @@ NTSTATUS JpfbtSetFbtDataThread(
 #if DBG
 	PJPFBT_THREAD_DATA ThreadData;
 
-	ThreadData = JpfbtGetFbtDataThread( Thread );
+	ThreadData = JpfbtpGetFbtDataThread( Thread );
 	ASSERT( ThreadData == NULL || 
 			ThreadData->Signature == JPFBT_THREAD_DATA_SIGNATURE );
 #endif
@@ -132,7 +135,7 @@ NTSTATUS JpfbtSetFbtDataThread(
 	return STATUS_SUCCESS;
 }
 
-PJPFBT_THREAD_DATA JpfbtGetFbtDataThread(
+PJPFBT_THREAD_DATA JpfbtpGetFbtDataThread(
 	__in PETHREAD Thread
 	)
 {
