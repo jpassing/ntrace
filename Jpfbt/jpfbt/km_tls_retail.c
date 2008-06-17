@@ -63,8 +63,8 @@ BOOLEAN JpfbtpAcquireCurrentThread()
 		// Already acquired by someone else, reentrance must have
 		// occured.
 		//
-		//InterlockedIncrement( 
-		//	&JpfbtpGlobalState->Counters.ReentrantThunkExecutionsDetected );
+		InterlockedIncrement( 
+			&JpfbtpGlobalState->Counters.ReentrantThunkExecutionsDetected );
 
 		return FALSE;
 	}

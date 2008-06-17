@@ -147,7 +147,9 @@ NTSTATUS JpfbtInitializeEx(
 	}
 
 #else
-	if ( Flags > JPFBT_FLAG_AUTOCOLLECT )
+	if ( Flags > 
+		( JPFBT_FLAG_AUTOCOLLECT | 
+		  JPFBT_FLAG_INTERCEPT_EXCEPTIONS ) )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}

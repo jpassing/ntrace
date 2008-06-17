@@ -25,7 +25,8 @@ TARGETNAME=testfbt_um
 TARGETPATH=..\..\..\bin\$(DDKBUILDENV)
 TARGETTYPE=DYNLINK
 SOURCES=\
-	..\testprocs.c
+	..\testprocs.c \
+	..\seh.c 
 
 I386_SOURCES=..\i386\procs.c
 

@@ -66,7 +66,7 @@ static ULONG ExcpFilter( ULONG Code )
 		: EXCEPTION_CONTINUE_SEARCH;
 }
 
-static void CallRaise()
+static void CallRaiseAndHandleException()
 {
 	__try
 	{
@@ -77,6 +77,21 @@ static void CallRaise()
 		CFIX_LOG( L"Excp caught" );
 	}
 }
+
+#pragma warning( push )
+#pragma warning( disable: 6312 )
+static void CallRaiseAndContinueExecution()
+{
+	__try
+	{
+		Raise();
+	}
+	__except( EXCEPTION_CONTINUE_EXECUTION )
+	{
+		CFIX_ASSERT( !"Should not get here" );
+	}
+}
+#pragma warning( pop )
 
 static void TestSehThunkStackCleanup()
 {
@@ -113,11 +128,23 @@ static void TestSehThunkStackCleanup()
 		&FailedProc ) );
 	TEST( FailedProc.u.Procedure == NULL );
 
-	CallRaise();
+	CallRaiseAndHandleException();
 
 	TEST( EntryCalls == 1 );	
 	TEST( ExitCalls == 0 );	
 	TEST( ExceptionCalls == 1 );	
+
+	EntryCalls = 0;
+	ExitCalls = 0;
+	ExceptionCalls = 0;
+
+#ifdef JPFBT_TARGET_USERMODE
+	CallRaiseAndContinueExecution();
+
+	TEST( EntryCalls == 1 );	
+	TEST( ExitCalls == 1 );	
+	TEST( ExceptionCalls == 0 );	
+#endif
 
 	TEST_SUCCESS( JpfbtInstrumentProcedure( 
 		JpfbtRemoveInstrumentation, 

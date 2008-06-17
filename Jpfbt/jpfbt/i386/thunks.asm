@@ -10,17 +10,19 @@
 .model flat, stdcall                    ; 32 bit memory model
 option casemap :none                    ; case sensitive
 
-extrn JpfbtpGetCurrentThunkStack@4 : proc
+extrn JpfbtpGetCurrentThunkStack@0 : proc
 extrn JpfbtpProcedureEntry@8 : proc
 extrn JpfbtpProcedureExit@8 : proc
+
 extrn JpfbtpThunkExceptionHandler@16 : proc
+extrn JpfbtpUnwindThunkstack@16 : proc
+extrn JpfbtpInstallExceptionHandler@8 : proc
+extrn JpfbtpUninstallExceptionHandler@4 : proc
 
 ifndef JPFBT_TARGET_USERMODE
 extrn JpfbtpAcquireCurrentThread@0 : proc
 extrn JpfbtpReleaseCurrentThread@0 : proc
 endif
-
-extrn JpfbtpExceptionHandlingUsed : BYTE
 
 ifdef JPFBT_TARGET_USERMODE
 extrn RaiseException@16 : proc
@@ -30,10 +32,13 @@ extrn KeBugCheck@4 : proc
 endif
 
 ;
-; Pit JpfbtpThunkExceptionHandler in the SafeSEH table.
+; Put JpfbtpThunkExceptionHandlerThunk in the SafeSEH table.
 ;
-JpfbtsThunkExceptionHandler proto
-.SAFESEH JpfbtsThunkExceptionHandler
+JpfbtpThunkExceptionHandlerThunk proto
+JpfbtpUnwindThunkstackThunk proto
+
+.SAFESEH JpfbtpThunkExceptionHandlerThunk
+.SAFESEH JpfbtpUnwindThunkstackThunk
 
 ;
 ; Helper equates for JPFBT_THUNK_STACK_FRAME
@@ -64,9 +69,20 @@ ASSUME FS:NOTHING
 ;		We just delcare it here so we can have ML register it as a
 ;		SafeSEH handler for us.
 ;--
-JpfbtsThunkExceptionHandler proc
+JpfbtpThunkExceptionHandlerThunk proc
 	jmp JpfbtpThunkExceptionHandler@16
-JpfbtsThunkExceptionHandler endp
+JpfbtpThunkExceptionHandlerThunk endp
+
+;++
+;	Routine Description:
+;		Exception handler. Delegates to JpfbtpUnwindThunkstack.
+;		We just delcare it here so we can have ML register it as a
+;		SafeSEH handler for us.
+;--
+JpfbtpUnwindThunkstackThunk proc
+	jmp JpfbtpUnwindThunkstack@16
+JpfbtpUnwindThunkstackThunk endp
+
 
 ;++
 ;	Routine Description:
@@ -134,8 +150,7 @@ endif
 	;
 	; N.B. All volatiles are free.
 	;
-	push 1
-	call JpfbtpGetCurrentThunkStack@4
+	call JpfbtpGetCurrentThunkStack@0
 	
 	test eax, eax			; Check that we have got a stack
 	jz NoStack
@@ -171,26 +186,22 @@ endif
 	mov [ecx - SizeofStackFrame + ReturnAddressOffset], edx
 	
 	;
-	; See if we are to install our SEH exception registration record.
+	; Install our SEH handler.
 	;
-	movzx edx, [JpfbtpExceptionHandlingUsed]
-	test edx, 1
-	jz SehInstallationEnd
+	lea edx, [ecx - SizeofStackFrame]	
+	push eax						; Preserve.
+	push ecx						; Preserve.
+	push edx						; Frame being set up.
+	push fs:[0]						; TopRecord
+	call JpfbtpInstallExceptionHandler@8
 	
-	;
-	; Setup SEH record.
-	;
-	mov edx, fs:[0]
-	mov [ecx - SizeofStackFrame + SehRecordOffset + 0], edx
-	mov [ecx - SizeofStackFrame + SehRecordOffset + 4], JpfbtsThunkExceptionHandler
+	test eax, 1						; if FALSE, we have to give up.
+
+	pop ecx							; Restore.
+	pop eax							; Restore.
 	
-	;
-	; Install SEH record.
-	;
-	lea edx, [ecx - SizeofStackFrame + SehRecordOffset]
-	mov fs:[0], edx
+	jz ExcpHandlerInstallationFailed
 	
-SehInstallationEnd:
 	;
 	; Adjust stack pointer:
 	;   thunkstack->StackPointer--
@@ -265,18 +276,13 @@ JumpToTarget:
 
 	add esp, 4
 	ret						; Funcptr is at [esp].
-;	add esp, 8
-;	
-;	jmp [esp-4]
 	
-ReentrantEntry:
+ExcpHandlerInstallationFailed:
 	;
-	; To avoid nasty reentrancy issues, do not intercept this call.
+	; Do the same as when the stack is depleted - continue without 
+	; interception.
 	;
-	nop
-	
-	;
-	; Fallthru to NoStack.
+	; Release thread and continue without interception.
 	;
 	
 NoStack:
@@ -286,7 +292,19 @@ NoStack:
 	; i.e. re-adjust esp, restore registers and - most importantly -
 	; restore the original return address.
 	;
+	; Release thread and continue without interception.
+	;
+ifndef JPFBT_TARGET_USERMODE
+	call JpfbtpReleaseCurrentThread@0
+endif
 	
+ReentrantEntry:
+	;
+	; To avoid nasty reentrancy issues, do not intercept this call.
+	;
+	; N.B. The thread has not been acquired.
+	;
+
 	mov eax, [ebp+4]		; Real RA
 	mov [ebp+12], eax		; restore real RA
 	
@@ -302,7 +320,6 @@ ifdef JPFBT_TARGET_USERMODE
 else
 	push STATUS_STACK_OVERFLOW
 	call KeBugCheck@4
-	;call ExRaiseStatus@4
 endif
 JpfbtpFunctionEntryThunk endp
 
@@ -379,8 +396,7 @@ endif
 	;
 	; N.B. All volatiles are free.
 	;
-	push 0
-	call JpfbtpGetCurrentThunkStack@4
+	call JpfbtpGetCurrentThunkStack@0
 	
 	test eax, eax			; Check that we have got a stack
 	jz NoStack
@@ -404,20 +420,24 @@ endif
 	mov [ebp+4], edx						; Write to reserved slot.
 	
 	;
-	; See if we are to uninstall our SEH exception registration record.
+	; Uninstall our SEH handler.
 	;
-	movzx edx, [JpfbtpExceptionHandlingUsed]
-	test edx, 1
-	jz SehUninstallationEnd
+	push eax								; Preserve.
+	push edx								; Preserve.
+	push ecx								; Preserve.
+	push ecx								; Frame.
+	call JpfbtpUninstallExceptionHandler@4
+	pop ecx									; Restore.
+	pop edx									; Restore.
+	pop eax									; Restore.
 	
 	;
-	; Uninstall SEH record.
+	; Register state:
+	;  eax: free
+	;  ecx: thunkstack->StackPointer
+	;  edx: funcptr
 	;
-	mov edx, fs:[0]
-	mov edx, [edx]
-	mov fs:[0], edx
 	
-SehUninstallationEnd:
 	;
 	; Retrieve funcptr.
 	;

@@ -79,7 +79,7 @@ typedef struct _EXCEPTION_REGISTRATION_RECORD
 {
     struct _EXCEPTION_REGISTRATION_RECORD *Next;
     PEXCEPTION_ROUTINE Handler;
-} EXCEPTION_REGISTRATION_RECORD;
+} EXCEPTION_REGISTRATION_RECORD, *PEXCEPTION_REGISTRATION_RECORD;
 
 /*----------------------------------------------------------------------
  *
@@ -103,12 +103,19 @@ typedef struct _JPFBT_THUNK_STACK_FRAME
 	//
 	ULONG_PTR ReturnAddress;
 
-	//
-	// SEH record. Normally, these records are stored on the stack,
-	// but as we do not have any stack during the call of the actual
-	// routine, we have to store the record here.
-	//
-	EXCEPTION_REGISTRATION_RECORD SehRecord;
+	struct
+	{
+		//
+		// Pointer to the (stack-located) registration record
+		// corresponding to this stack frame.
+		//
+		PEXCEPTION_REGISTRATION_RECORD RegistrationRecord;
+
+		//
+		// Pointer to original handler that has been replaced.
+		//
+		PEXCEPTION_ROUTINE OriginalHandler;
+	} Seh;
 } JPFBT_THUNK_STACK_FRAME, *PJPFBT_THUNK_STACK_FRAME;
 
 
@@ -544,6 +551,7 @@ typedef struct _JPFBT_GLOBAL_DATA
 		volatile LONG FailedAllocationsFromPreallocatedPool;
 		volatile LONG NumberOfBuffersCollected;
 		volatile LONG ReentrantThunkExecutionsDetected;
+		volatile LONG FailedExceptionHandlerInstallations;
 	} Counters;
 
 	PVOID UserPointer;

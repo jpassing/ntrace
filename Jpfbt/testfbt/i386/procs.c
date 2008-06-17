@@ -364,6 +364,12 @@ VOID Raise()
 #else
 	ExRaiseStatus( 'excp' );
 #endif
+	_asm 
+	{
+		mov esp, ebp;
+		pop ebp;
+		ret;
+	}
 }
 
 //
