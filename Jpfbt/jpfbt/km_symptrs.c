@@ -46,8 +46,21 @@ static JPFBTP_SYMBOL_SET JpfbtsSymbolSets[] =
 		0x77b80, 
 		0x77cf4, 
 		0x8ee7c 
-	}
+	},
 
+	//
+	// Vista Gold.
+	//
+	{
+		// {8ee03d07-7fb7-4833-8312-523dcc42d169}
+		{ 0x8ee03d07, 0x7fb7, 0x4833, 
+			{ 0x83, 0x12, 0x52, 0x3d, 0xcc, 0x42, 0xd1, 0x69 } },
+		0x264, 
+		0x268, 
+		0x8c7d7,
+		0x8ca0b, 
+		0x81cdd 
+	}
 
 	//{ 3790, 0x244, 0x248, 
 	//	_ToPtr( 0x80838f96 ), _ToPtr( 0x80838e89 ), _ToPtr( 0x8081f912 ) },
@@ -58,11 +71,6 @@ static JPFBTP_SYMBOL_SET JpfbtsSymbolSets[] =
 	//{ 3800, 0x244, 0x248, 
 	//	_ToPtr( 0x808646da ), _ToPtr( 0x80864858 ), _ToPtr( 0x8088541c ) },
 	//
-	////
-	//// Vista Gold.
-	////
-	//{ 6000, 0x264, 0x268, 
-	//	_ToPtr( 0x8188c7d7 ), _ToPtr( 0x8188ca0b ), _ToPtr( 0x81881cdd ) }
 };
 
 //

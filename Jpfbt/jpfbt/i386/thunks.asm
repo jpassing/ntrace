@@ -10,7 +10,7 @@
 .model flat, stdcall                    ; 32 bit memory model
 option casemap :none                    ; case sensitive
 
-extrn JpfbtpGetCurrentThunkStack@0 : proc
+extrn JpfbtpGetCurrentThunkStack@4 : proc
 extrn JpfbtpProcedureEntry@8 : proc
 extrn JpfbtpProcedureExit@8 : proc
 extrn JpfbtpThunkExceptionHandler@16 : proc
@@ -38,11 +38,20 @@ JpfbtsThunkExceptionHandler proto
 ;
 ; Helper equates for JPFBT_THUNK_STACK_FRAME
 ;
-ProcedureOffset		EQU 0
-ReturnAddressOffset	EQU 4
-SehRecordOffset		EQU 8
+ProcedureOffset					EQU 0
+ReturnAddressOffset				EQU 4
+SehRecordOffset					EQU 8
 
-SizeofStackFrame	EQU 16
+SizeofStackFrame				EQU 16
+
+STATUS_FBT_NO_THUNKSTACK		EQU 80049200h
+STATUS_FBT_REENTRANT_EXIT		EQU 80049214h
+STATUS_FBT_THUNKSTACK_UNDERFLOW	EQU 80049215h
+STATUS_STACK_OVERFLOW			EQU 0C00000FDh
+
+EXCEPTION_FBT_NO_THUNKSTACK		EQU 80049200h
+EXCEPTION_STACK_OVERFLOW		EQU 0C00000FDh
+EXCEPTION_NONCONTINUABLE		EQU 1
 
 .data
 .code
@@ -125,7 +134,8 @@ endif
 	;
 	; N.B. All volatiles are free.
 	;
-	call JpfbtpGetCurrentThunkStack@0
+	push 1
+	call JpfbtpGetCurrentThunkStack@4
 	
 	test eax, eax			; Check that we have got a stack
 	jz NoStack
@@ -230,7 +240,7 @@ SehInstallationEnd:
 
 	call JpfbtpProcedureEntry@8
 	
-ifndef JPFBT_TARGET_USERMODE	
+ifdef JPFBT_TARGET_KERNELMODE	
 	;
 	; Release reentrance protection.
 	;
@@ -286,11 +296,11 @@ StackOverflow:
 ifdef JPFBT_TARGET_USERMODE
 	push 0					; lpArguments
 	push 0					; nNumberOfArguments
-	push 1					; EXCEPTION_NONCONTINUABLE
-	push 0C00000FDh			; EXCEPTION_STACK_OVERFLOW
+	push EXCEPTION_NONCONTINUABLE
+	push EXCEPTION_STACK_OVERFLOW
 	call RaiseException@16
 else
-	push 0C00000FDh			; STATUS_STACK_OVERFLOW
+	push STATUS_STACK_OVERFLOW
 	call KeBugCheck@4
 	;call ExRaiseStatus@4
 endif
@@ -360,6 +370,8 @@ ifndef JPFBT_TARGET_USERMODE
 	; reentrant exits.
 	;
 	call JpfbtpAcquireCurrentThread@0	; will always return TRUE
+	test eax, 1
+	jz ReentrantEntry					; if FALSE, acquiration failed
 endif
 	
 	;
@@ -367,7 +379,8 @@ endif
 	;
 	; N.B. All volatiles are free.
 	;
-	call JpfbtpGetCurrentThunkStack@0
+	push 0
+	call JpfbtpGetCurrentThunkStack@4
 	
 	test eax, eax			; Check that we have got a stack
 	jz NoStack
@@ -385,6 +398,9 @@ endif
 	; Restore RA. Use the space reserved earlier.
 	;
 	mov edx, [ecx + ReturnAddressOffset]	; Get RA address.
+	cmp edx, 0deadbeefh
+	je StackUnderflow
+	
 	mov [ebp+4], edx						; Write to reserved slot.
 	
 	;
@@ -457,7 +473,7 @@ SehUninstallationEnd:
 
 	call JpfbtpProcedureExit@8
 	
-ifndef JPFBT_TARGET_USERMODE	
+ifdef JPFBT_TARGET_KERNELMODE	
 	call JpfbtpReleaseCurrentThread@0
 endif
 	
@@ -476,6 +492,7 @@ endif
 	; The return address is now at [esp], so a ret will do.
 	;
 	ret
+
 NoStack:
 	;
 	; Now we are in trouble - being in this procedure means
@@ -485,15 +502,32 @@ NoStack:
 ifdef JPFBT_TARGET_USERMODE
 	push 0					; lpArguments
 	push 0					; nNumberOfArguments
-	push 1					; EXCEPTION_NONCONTINUABLE
-	push 80049200h			; EXCEPTION_FBT_NO_THUNKSTACK
+	push EXCEPTION_NONCONTINUABLE
+	push EXCEPTION_FBT_NO_THUNKSTACK
 	call RaiseException@16	
 else
-	push 80049200h			; STATUS_FBT_NO_THUNKSTACK
+	push STATUS_FBT_NO_THUNKSTACK
 	call KeBugCheck@4
-	;call ExRaiseStatus@4	
 endif
-JpfbtpFunctionCallThunk endp
 
+ReentrantEntry:
+ifdef JPFBT_TARGET_KERNELMODE
+	push STATUS_FBT_REENTRANT_EXIT
+	call KeBugCheck@4
+endif
+	
+StackUnderflow:
+ifdef JPFBT_TARGET_USERMODE
+	push 0					; lpArguments
+	push 0					; nNumberOfArguments
+	push EXCEPTION_NONCONTINUABLE
+	push STATUS_FBT_THUNKSTACK_UNDERFLOW
+	call RaiseException@16	
+else
+	push STATUS_FBT_THUNKSTACK_UNDERFLOW
+	call KeBugCheck@4
+endif
+	
+JpfbtpFunctionCallThunk endp
 
 END

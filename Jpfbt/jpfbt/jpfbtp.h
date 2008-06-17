@@ -43,6 +43,12 @@
 	#endif
 #endif
 
+#if defined( JPFBT_TARGET_KERNELMODE )
+#undef ASSERT
+#define ASSERT( Expr ) \
+	( !!( Expr ) || ( KeBugCheck( ( ULONG ) STATUS_BREAKPOINT ), 0 ) )
+#endif
+
 /*++
 	Routine Description:
 		Trace routine for debugging.

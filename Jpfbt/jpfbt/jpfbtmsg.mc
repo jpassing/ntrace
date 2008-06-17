@@ -181,3 +181,19 @@ SymbolicName	= STATUS_FBT_UNRECOGNIZED_CV_HEADER
 Language		= English
 The kernel image contains an unrecognized CodeView record
 .
+
+MessageId		= 0x9214
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_REENTRANT_EXIT
+Language		= English
+Reentrant exit detected.
+.
+
+MessageId		= 0x9215
+Severity		= Error
+Facility		= Interface
+SymbolicName	= STATUS_FBT_THUNKSTACK_UNDERFLOW
+Language		= English
+Thunkstack underflow.
+.

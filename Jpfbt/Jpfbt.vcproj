@@ -27,7 +27,7 @@
 				ReBuildCommandLine="ddkbuild -WLHNET checked $(SolutionDir) -cZ"
 				CleanCommandLine=""
 				Output=""
-				PreprocessorDefinitions="_WIN32;DBG;_DEBUG;JPFBT_USERMODE"
+				PreprocessorDefinitions="_WIN32;DBG;_DEBUG;JPFBT_TARGET_KERNELMODE"
 				IncludeSearchPath=""
 				ForcedIncludes=""
 				AssemblySearchPath=""

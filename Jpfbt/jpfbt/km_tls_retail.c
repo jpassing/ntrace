@@ -12,7 +12,9 @@
 
 //
 // Offset of ETHREAD fields - vary among releases.
-// We use the top JPFBTP_SPARE_BITS bits of each.
+// We use the top JPFBTP_SPARE_BITS bits of each:
+//  16+1 bits from SameThreadPassiveFlags
+//  14 bits from SameThreadApcFlags
 //
 // Both SameThreadPassiveFlags and SameThreadApcFlags are
 // for use by the same thread only and are thus safe to use w/o
@@ -130,7 +132,7 @@ NTSTATUS JpfbtpSetFbtDataThread(
 	// Save: overwrite high words while keeping low words intact.
 	//
 	*SameThreadPassiveFlags = DataVaMaskHi | ( *SameThreadPassiveFlags & 0xFFFF );
-	*SameThreadApcFlags		= DataVaMaskLo | ( *SameThreadApcFlags     & 0xFFFF );
+	*SameThreadApcFlags		= DataVaMaskLo | ( *SameThreadApcFlags     & 0x3FFFF );
 
 	return STATUS_SUCCESS;
 }
@@ -156,8 +158,10 @@ PJPFBT_THREAD_DATA JpfbtpGetFbtDataThread(
 	SameThreadApcFlags		= ( PULONG ) ( ThreadPtr + JpfbtsSameThreadApcFlagsOffset );
 
 	DataVaHi = *SameThreadPassiveFlags	& 0xFFFF0000;
-	DataVaLo = *SameThreadApcFlags		& 0xFFFF0000;
+	DataVaLo = *SameThreadApcFlags		& 0xFFFC0000;
 		
+	//ASSERT( ( DataVaHi == 0 ) == ( DataVaLo == 0 ) );
+
 	DataVa = DataVaHi | ( ( DataVaLo >> 16 ) & 0xFFFF );
 
 	ThreadData = ( PJPFBT_THREAD_DATA ) ( PVOID ) ( ULONG_PTR ) DataVa;
