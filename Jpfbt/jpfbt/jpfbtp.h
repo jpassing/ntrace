@@ -43,11 +43,11 @@
 	#endif
 #endif
 
-#if defined( JPFBT_TARGET_KERNELMODE )
-#undef ASSERT
-#define ASSERT( Expr ) \
-	( !!( Expr ) || ( KeBugCheck( ( ULONG ) STATUS_BREAKPOINT ), 0 ) )
-#endif
+//#if defined( JPFBT_TARGET_KERNELMODE )
+//#undef ASSERT
+//#define ASSERT( Expr ) \
+//	( !!( Expr ) || ( KeBugCheck( ( ULONG ) STATUS_BREAKPOINT ), 0 ) )
+//#endif
 
 /*++
 	Routine Description:
@@ -222,11 +222,6 @@ typedef enum
 	// Part of the preallocation blob.
 	//
 	JpfbtpPreAllocated,
-
-	//
-	// Pseudo allocation. Used to detect reentrance.
-	//
-	JpfbtpPseudoAllocation
 } JPFBTP_THREAD_DATA_ALLOCATION_TYPE;
 
 #define JPFBT_THREAD_DATA_SIGNATURE 'RHTJ'
@@ -259,18 +254,13 @@ typedef struct _JPFBT_THREAD_DATA
 
 	JPFBTP_THREAD_DATA_ALLOCATION_TYPE AllocationType;
 
-	union
+	struct
 	{
 		//
 		// Backpointer to the thread this struct is associated with.
 		// (PETHREAD).
 		//
 		PVOID Thread;
-
-		//
-		// Used for retail kernel only.
-		//
-		JPHT_HASHTABLE_ENTRY HashtableEntry;
 	} Association;
 
 	//

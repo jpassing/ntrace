@@ -66,6 +66,11 @@ static ULONG ExcpFilter( ULONG Code )
 		: EXCEPTION_CONTINUE_SEARCH;
 }
 
+static ULONG ExcpFilterContinueSearch()
+{
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 static void CallRaiseAndHandleException()
 {
 	__try
@@ -75,6 +80,30 @@ static void CallRaiseAndHandleException()
 	__except( ExcpFilter( GetExceptionCode() ) )
 	{
 		CFIX_LOG( L"Excp caught" );
+	}
+}
+
+static void CallRaiseAndHandleExceptionWithSehFrameUnderneath()
+{
+	__try
+	{
+		CallRaiseAndHandleException();
+	}
+	__except( ExcpFilterContinueSearch() )
+	{
+		CFIX_ASSERT( !"Dead code" );
+	}
+}
+
+static void CallSetupDummySehFrameAndCallRaise()
+{
+	__try
+	{
+		CallRaiseAndHandleException();
+	}
+	__except( ExcpFilter( GetExceptionCode() ) )
+	{
+		CFIX_ASSERT( !"Dead code" );
 	}
 }
 
@@ -95,7 +124,7 @@ static void CallRaiseAndContinueExecution()
 
 static void TestSehThunkStackCleanup()
 {
-	JPFBT_PROCEDURE Proc;
+	JPFBT_PROCEDURE Procs[ 2 ];
 	JPFBT_PROCEDURE FailedProc;
 
 	TEST_STATUS( STATUS_INVALID_PARAMETER, JpfbtInitializeEx( 
@@ -120,15 +149,36 @@ static void TestSehThunkStackCleanup()
 		SehProcessBuffer,
 		NULL ) );
 
-	Proc.u.Procedure = ( PVOID ) Raise;
+	Procs[ 0 ].u.Procedure = ( PVOID ) Raise;
+	Procs[ 1 ].u.Procedure = ( PVOID ) SetupDummySehFrameAndCallRaise;
 	TEST_SUCCESS( JpfbtInstrumentProcedure( 
 		JpfbtAddInstrumentation, 
-		1, 
-		&Proc, 
+		_countof( Procs ), 
+		Procs, 
 		&FailedProc ) );
 	TEST( FailedProc.u.Procedure == NULL );
 
 	CallRaiseAndHandleException();
+
+	TEST( EntryCalls == 1 );	
+	TEST( ExitCalls == 0 );	
+	TEST( ExceptionCalls == 1 );	
+
+	EntryCalls = 0;
+	ExitCalls = 0;
+	ExceptionCalls = 0;
+
+	CallRaiseAndHandleExceptionWithSehFrameUnderneath();
+
+	TEST( EntryCalls == 1 );	
+	TEST( ExitCalls == 0 );	
+	TEST( ExceptionCalls == 1 );	
+
+	EntryCalls = 0;
+	ExitCalls = 0;
+	ExceptionCalls = 0;
+
+	CallSetupDummySehFrameAndCallRaise();
 
 	TEST( EntryCalls == 1 );	
 	TEST( ExitCalls == 0 );	
@@ -148,8 +198,8 @@ static void TestSehThunkStackCleanup()
 
 	TEST_SUCCESS( JpfbtInstrumentProcedure( 
 		JpfbtRemoveInstrumentation, 
-		1, 
-		&Proc, 
+		_countof( Procs ), 
+		Procs, 
 		&FailedProc ) );
 	TEST( FailedProc.u.Procedure == NULL );
 

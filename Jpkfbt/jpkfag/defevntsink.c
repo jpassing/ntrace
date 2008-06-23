@@ -43,6 +43,13 @@ typedef struct _JPKFAGP_DEF_EVENT_SINK
 	LARGE_INTEGER FilePosition;
 } JPKFAGP_DEF_EVENT_SINK, *PJPKFAGP_DEF_EVENT_SINK;
 
+typedef NTSTATUS ( * ZWFLUSHBUFFERSFILE_ROUTINE )(
+	__in HANDLE  FileHandle,
+	__out PIO_STATUS_BLOCK  IoStatusBlock
+	);
+
+ZWFLUSHBUFFERSFILE_ROUTINE JpkfagsZwFlushBuffersFile;
+
 /*----------------------------------------------------------------------
  *
  * Privates.
@@ -215,7 +222,21 @@ static NTSTATUS JpkfagsFlushChunk(
 
 	}
 
-	if ( ! NT_SUCCESS( Status ) )
+	if ( NT_SUCCESS( Status ) )
+	{
+		IO_STATUS_BLOCK StatusBlock;
+		if ( JpkfagsZwFlushBuffersFile != NULL )
+		{
+			Status = ( JpkfagsZwFlushBuffersFile )( 
+				Sink->LogFile, 
+				&StatusBlock );
+		}
+		else
+		{
+			Status = STATUS_SUCCESS;
+		}
+	}
+	else
 	{
 		//
 		// To at least avoid the file from becomming corrupted,
@@ -224,14 +245,12 @@ static NTSTATUS JpkfagsFlushChunk(
 
 		TRACE( ( "JPKFAG: Failed to flush chunk: %x\n", Status ) );
 		InterlockedIncrement( &Sink->Statistics->FailedChunkFlushes );
-
-		return Status;
 	}
 
 	ASSERT( JpkfagsIsFilePositionConsistent( Sink ) );
 	ASSERT( ( Sink->FilePosition.QuadPart % JPTRC_CHUNK_ALIGNMENT ) == 0 );
 	
-	return STATUS_SUCCESS;
+	return Status;
 }
 
 static VOID JpkfagsFlushImageInfoEventQueue(
@@ -470,7 +489,7 @@ static VOID JpkfagsOnProcedureEntryDefEventSink(
 #endif
 
 		Event->Type				= JPTRC_PROCEDURE_TRANSITION_ENTRY;
-		Event->Timestamp		= KeQueryPerformanceCounter( NULL ).QuadPart;
+		Event->Timestamp		= __rdtsc(); //KeQueryPerformanceCounter( NULL ).QuadPart;
 		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
 		Event->Info.CallerIp	= ReturnAddress;
 	}
@@ -500,7 +519,7 @@ static VOID JpkfagsOnProcedureUnwindDefEventSink(
 	if ( Event != NULL )
 	{
 		Event->Type				= JPTRC_PROCEDURE_TRANSITION_UNWIND;
-		Event->Timestamp		= KeQueryPerformanceCounter( NULL ).QuadPart;
+		Event->Timestamp		= __rdtsc(); //KeQueryPerformanceCounter( NULL ).QuadPart;
 		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
 		Event->Info.Exception.Code	= ExceptionCode;
 	}
@@ -530,7 +549,7 @@ static VOID JpkfagsOnProcedureExitDefEventSink(
 	if ( Event != NULL )
 	{
 		Event->Type				= JPTRC_PROCEDURE_TRANSITION_EXIT;
-		Event->Timestamp		= KeQueryPerformanceCounter( NULL ).QuadPart;
+		Event->Timestamp		= __rdtsc(); //KeQueryPerformanceCounter( NULL ).QuadPart;
 		Event->Procedure		= ( ULONG ) ( ULONG_PTR ) Procedure;
 		Event->Info.ReturnValue	= Context->Eax;
 	}
@@ -633,11 +652,22 @@ NTSTATUS JpkfagpCreateDefaultEventSink(
 	OBJECT_ATTRIBUTES ObjectAttributes;
     NTSTATUS Status;
 	PJPKFAGP_DEF_EVENT_SINK TempSink = NULL;
+	UNICODE_STRING ZwFlushBuffersName = 
+		RTL_CONSTANT_STRING( L"ZwFlushBuffersFile" );
 
 	ASSERT( KeGetCurrentIrql() == PASSIVE_LEVEL );
 	ASSERT( LogFilePath );
 	ASSERT( Statistics );
 	ASSERT( Sink );
+
+	//
+	// Dynamically import ZwFlushBuffersFile (not in ntoskrnl.lib).
+	//
+#pragma warning( push )
+#pragma warning( disable: 4055 )
+	JpkfagsZwFlushBuffersFile = ( ZWFLUSHBUFFERSFILE_ROUTINE )
+		MmGetSystemRoutineAddress( &ZwFlushBuffersName );
+#pragma warning( pop )
 
 	//
 	// Open log file.

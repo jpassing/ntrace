@@ -36,4 +36,4 @@ typedef struct _SAMPLE_PROC_SET
 
 PSAMPLE_PROC_SET GetSampleProcs();
 VOID Raise();
-
+VOID SetupDummySehFrameAndCallRaise();

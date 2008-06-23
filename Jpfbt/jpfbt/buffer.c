@@ -40,16 +40,16 @@ static VOID JpfbtsCheckSlist(
 	__in PSLIST_ENTRY List 
 	)
 {
-#if DBG
+#if defined(DBG) && defined(JPFBT_TARGET_KERNELMODE)
 	PSLIST_ENTRY ListEntry = List;
 	while ( ListEntry != NULL )
 	{
-#if defined(JPFBT_TARGET_KERNELMODE)
 		ASSERT( ListEntry->Next == NULL ||
 				MmIsAddressValid( ListEntry->Next ) );
-#endif
 		ListEntry = ListEntry->Next;
 	}
+#else
+	UNREFERENCED_PARAMETER( List );
 #endif
 }
 
@@ -601,7 +601,7 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 		JpfbtpGetFbtDataThread( ( PETHREAD ) Thread );
 #endif
 	
-	if ( ThreadData != NULL && ThreadData->AllocationType != JpfbtpPseudoAllocation )
+	if ( ThreadData != NULL )
 	{
 		ASSERT( ThreadData->Signature == JPFBT_THREAD_DATA_SIGNATURE );
 

@@ -349,6 +349,8 @@ VOID CallStdcallRecursive()
 	TEST( Edi_ == 0xDEAD0003 );
 }
 
+#pragma warning( push )
+#pragma warning( disable: 4702 )
 __declspec(naked)
 VOID Raise()
 {
@@ -364,6 +366,10 @@ VOID Raise()
 #else
 	ExRaiseStatus( 'excp' );
 #endif
+
+	//
+	// N.B. This code is reachable in case of execution continuation.
+	//
 	_asm 
 	{
 		mov esp, ebp;
@@ -371,6 +377,20 @@ VOID Raise()
 		ret;
 	}
 }
+#pragma warning( push )
+
+VOID SetupDummySehFrameAndCallRaise()
+{
+	__try
+	{
+		Raise();
+	}
+	__finally
+	{
+		Raise();
+	}
+}
+
 
 //
 // N.B. For profiling, exclude these procs from being instrumented.

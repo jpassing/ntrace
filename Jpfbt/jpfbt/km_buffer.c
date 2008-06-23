@@ -268,20 +268,8 @@ NTSTATUS JpfbtpGetCurrentThreadDataIfAvailable(
 	PJPFBT_THREAD_DATA ExistingThreadData = 
 		( PJPFBT_THREAD_DATA ) JpfbtGetFbtDataCurrentThread();
 
-	if ( ExistingThreadData != NULL && 
-		 ExistingThreadData->AllocationType == JpfbtpPseudoAllocation )
-	{
-		//
-		// Reentrance!
-		//
-		*ThreadData = NULL;
-		return STATUS_FBT_REENTRANT_ALLOCATION;
-	}
-	else
-	{
-		*ThreadData = ExistingThreadData;
-		return STATUS_SUCCESS;
-	}
+	*ThreadData = ExistingThreadData;
+	return STATUS_SUCCESS;
 }
 
 PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
@@ -301,32 +289,6 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 		 KeGetCurrentIrql() <= DISPATCH_LEVEL )
 	{
 		//
-		// Code potentially causing reentrance begins here.
-		//
-		// Assign a pseudo allocation that signals reentrance. To 
-		// avoid excessive stack usage, we use a minimal, cropped
-		// version of a ThreadData structure that is just enough to be
-		// assigned to the thread.
-		//
-		UCHAR PseudoThreadDataBuffer[ 
-			RTL_SIZEOF_THROUGH_FIELD( 
-				JPFBT_THREAD_DATA,
-				Association.HashtableEntry ) ];
-		PJPFBT_THREAD_DATA PseudoThreadData = 
-			( PJPFBT_THREAD_DATA ) &PseudoThreadDataBuffer;
-		PseudoThreadData->Signature			 = JPFBT_THREAD_DATA_SIGNATURE;
-		PseudoThreadData->AllocationType	 = JpfbtpPseudoAllocation;
-		PseudoThreadData->Association.Thread = PsGetCurrentThread();
-
-		Status = JpfbtpSetFbtDataThread( 
-			PseudoThreadData->Association.Thread, 
-			PseudoThreadData );
-		if ( ! NT_SUCCESS( Status ) )
-		{
-			return NULL;
-		}
-
-		//
 		// IRQL is low enough to make an allocation.
 		//
 		ThreadData = JpfbtpAllocateNonPagedMemory(
@@ -337,13 +299,6 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 
 			TRACE( ( "JPFBT: ThreadData %p alloc'd from NPP\n", ThreadData ) );
 		}
-
-		//
-		// Code potentially causing ends here.
-		//
-		JpfbtpSetFbtDataThread( 
-			PsGetCurrentThread(), 
-			NULL );
 	}
 	else
 	{

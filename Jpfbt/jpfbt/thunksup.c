@@ -173,6 +173,7 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 {
 	PJPFBT_THREAD_DATA ThreadData;
 
+	UNREFERENCED_PARAMETER( ExceptionRecord );
 	UNREFERENCED_PARAMETER( EstablisherFrame );
 	UNREFERENCED_PARAMETER( ContextRecord );
 	UNREFERENCED_PARAMETER( DispatcherContext );
@@ -221,6 +222,9 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 	return ExceptionContinueSearch;
 }
 
+#pragma warning( push )
+#pragma warning( disable: 4113 )	// Function Poiinter Casting
+#pragma warning( disable: 4733 )	// FS:0 assignment
 static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 	__in PEXCEPTION_ROUTINE OriginalHandler,
 	__in PEXCEPTION_RECORD ExceptionRecord,
@@ -249,11 +253,8 @@ static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 		mov [TopRecord], eax;
 	}
 	
-#pragma warning( push )
-#pragma warning( disable: 4113 )
-	DummyRecord.Handler = JpfbtpUnwindThunkstackThunk;
-#pragma warning( pop )
 
+	DummyRecord.Handler = JpfbtpUnwindThunkstackThunk;
 	DummyRecord.Next = TopRecord;
 
 	_asm 
@@ -276,6 +277,7 @@ static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 
 	return Disposition;
 }
+#pragma warning( pop )
 
 /*++
 	Routine Description:
