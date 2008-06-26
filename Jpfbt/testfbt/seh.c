@@ -127,22 +127,11 @@ static void TestSehThunkStackCleanup()
 	JPFBT_PROCEDURE Procs[ 2 ];
 	JPFBT_PROCEDURE FailedProc;
 
-	TEST_STATUS( STATUS_INVALID_PARAMETER, JpfbtInitializeEx( 
-		10,
-		8,
-		0,
-		JPFBT_FLAG_AUTOCOLLECT, // Missing JPFBT_FLAG_INTERCEPT_EXCEPTIONS.
-		SehProcedureEntry, 
-		SehProcedureExit,
-		SehProcedureException,
-		SehProcessBuffer,
-		NULL ) );
-
 	TEST_SUCCESS( JpfbtInitializeEx( 
 		10,
 		8,
 		0,
-		JPFBT_FLAG_AUTOCOLLECT | JPFBT_FLAG_INTERCEPT_EXCEPTIONS,
+		JPFBT_FLAG_AUTOCOLLECT,
 		SehProcedureEntry, 
 		SehProcedureExit,
 		SehProcedureException,

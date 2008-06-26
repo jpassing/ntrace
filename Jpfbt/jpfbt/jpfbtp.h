@@ -338,6 +338,11 @@ typedef struct _JPFBT_CODE_PATCH
 	} u;
 
 	//
+	// [in] Affected procedure.
+	//
+	JPFBT_PROCEDURE Procedure;
+
+	//
 	// [in] Location of code to patch (Virtual Address).
 	//
 	PVOID Target;
@@ -468,8 +473,6 @@ typedef struct _JPFBT_GLOBAL_DATA
 			LIST_ENTRY ListHead;
 		} ThreadData;
 	} PatchDatabase;
-
-	JPFBT_CODE_PATCH RtlExceptionHandlingPatches[ 2 ];
 
 #if defined(JPFBT_TARGET_USERMODE)
 	//
@@ -892,17 +895,6 @@ typedef struct _JPFBTP_SYMBOL_POINTERS
 --*/
 NTSTATUS JpfbtpGetSymbolPointers( 
 	__out PJPFBTP_SYMBOL_POINTERS SymbolPointers 
-	);
-
-/*++
-	Routine Description:
-		Prepare, but do not yet apply, patches to the RTL exception
-		handling implementation.
---*/
-NTSTATUS JpfbtpPrepareRtlExceptionHandlingCodePatches(
-	__in PJPFBTP_SYMBOL_POINTERS RtlPointers,
-	__out PJPFBT_CODE_PATCH DispatchExceptionPatch,
-	__out PJPFBT_CODE_PATCH UnwindPatch
 	);
 
 #if defined( JPFBT_WRK )

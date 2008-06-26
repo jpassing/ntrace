@@ -317,7 +317,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 				//
 				if ( ( JphtGetEntryCountHashtable( 
 						&JpfbtpGlobalState->PatchDatabase.PatchTable ) * 3 ) / 4 >=
-					 JphtGetBucketCountHashtable(
+					   JphtGetBucketCountHashtable(
 						&JpfbtpGlobalState->PatchDatabase.PatchTable ) )
 				{
 					VERIFY( JphtResize(

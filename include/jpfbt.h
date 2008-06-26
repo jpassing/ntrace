@@ -118,19 +118,14 @@ typedef VOID ( JPFBTCALLTYPE * JPFBT_PROCESS_BUFFER_ROUTINE ) (
 #define JPFBT_FLAG_AUTOCOLLECT				1
 
 //
-// Enable exception interception (KM only).
-//
-#define JPFBT_FLAG_INTERCEPT_EXCEPTIONS		2
-
-//
 // Disable lazy allocation of thread data structures (KM only).
 //
-#define JPFBT_FLAG_DISABLE_LAZY_ALLOCATION	4
+#define JPFBT_FLAG_DISABLE_LAZY_ALLOCATION	2
 
 //
 // Disable eager notification of buffer collector (KM only).
 //
-#define JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION	8
+#define JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION	4
 
 /*++
 	Routine Description:

@@ -115,10 +115,6 @@
 					Name="i386"
 					>
 					<File
-						RelativePath=".\jpfbt\eh.c"
-						>
-					</File>
-					<File
 						RelativePath=".\jpfbt\instrument.c"
 						>
 					</File>

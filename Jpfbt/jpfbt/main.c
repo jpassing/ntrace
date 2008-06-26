@@ -10,73 +10,6 @@
 #include "jpfbtp.h"
 #include <stdlib.h>
 
-//
-// Flag indicating whether exceptions should be intercepted.
-//
-BOOLEAN JpfbtpExceptionHandlingUsed = FALSE;
-
-#if defined( JPFBT_TARGET_KERNELMODE )
-static NTSTATUS JpfbtsApplyRtlExceptionHandlingPatches()
-{
-	PJPFBT_CODE_PATCH Patches[ 2 ];
-	NTSTATUS Status;
-	JPFBTP_SYMBOL_POINTERS SymbolPointers;
-
-	Status = JpfbtpGetSymbolPointers( &SymbolPointers );
-	if ( ! NT_SUCCESS( Status ) )
-	{
-		return Status;
-	}
-
-	Status = JpfbtpPrepareRtlExceptionHandlingCodePatches(
-		&SymbolPointers,
-		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 0 ],
-		&JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ] );
-	if ( ! NT_SUCCESS( Status ) )
-	{
-		TRACE( ( "Preparing RTL patches failed: %x\n", Status ) );
-		return Status;
-	}
-
-	Patches[ 0 ] = &JpfbtpGlobalState->RtlExceptionHandlingPatches[ 0 ];
-	Patches[ 1 ] = &JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ];
-
-	JpfbtpAcquirePatchDatabaseLock();
-	
-	Status = JpfbtpPatchCode(
-		JpfbtPatch,
-		_countof( Patches ),
-		Patches );
-
-	JpfbtpReleasePatchDatabaseLock();
-
-	return Status;
-}
-
-static NTSTATUS JpfbtsRevokeRtlExceptionHandlingPatches()
-{
-	PJPFBT_CODE_PATCH Patches[ 2 ];
-	NTSTATUS Status;
-	
-	Patches[ 0 ] = &JpfbtpGlobalState->RtlExceptionHandlingPatches[ 0 ];
-	Patches[ 1 ] = &JpfbtpGlobalState->RtlExceptionHandlingPatches[ 1 ];
-
-	JpfbtpAcquirePatchDatabaseLock();
-	
-	Status = JpfbtpPatchCode(
-		JpfbtUnpatch,
-		_countof( Patches ),
-		Patches );
-
-	JpfbtpReleasePatchDatabaseLock();
-
-	return Status;
-}
-#else
-	#define JpfbtsApplyRtlExceptionHandlingPatches( x ) STATUS_SUCCESS
-	#define JpfbtsRevokeRtlExceptionHandlingPatches() STATUS_SUCCESS
-#endif
-	
 NTSTATUS JpfbtInitialize(
 	__in ULONG BufferCount,
 	__in ULONG BufferSize,
@@ -117,9 +50,7 @@ NTSTATUS JpfbtInitializeEx(
 
 	if ( EntryEventRoutine == NULL ||
 		 ExitEventRoutine == NULL ||
-		 ProcessBufferRoutine == NULL ||
-		 ( ExceptionEventRoutine != NULL ) != 
-			( ( Flags & JPFBT_FLAG_INTERCEPT_EXCEPTIONS ) != 0 ) )
+		 ProcessBufferRoutine == NULL )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -127,7 +58,6 @@ NTSTATUS JpfbtInitializeEx(
 #if defined(JPFBT_TARGET_KERNELMODE)
 	if ( Flags > 
 		( JPFBT_FLAG_AUTOCOLLECT | 
-		  JPFBT_FLAG_INTERCEPT_EXCEPTIONS |
 		  JPFBT_FLAG_DISABLE_LAZY_ALLOCATION |
 		  JPFBT_FLAG_DISABLE_EAGER_BUFFER_COLLECTION ) )
 	{
@@ -147,9 +77,7 @@ NTSTATUS JpfbtInitializeEx(
 	}
 
 #else
-	if ( Flags > 
-		( JPFBT_FLAG_AUTOCOLLECT | 
-		  JPFBT_FLAG_INTERCEPT_EXCEPTIONS ) )
+	if ( Flags > JPFBT_FLAG_AUTOCOLLECT )
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -204,23 +132,6 @@ NTSTATUS JpfbtInitializeEx(
 	JpfbtpGlobalState->Routines.ExitEvent	  = ExitEventRoutine;
 	JpfbtpGlobalState->Routines.ExceptionEvent= ExceptionEventRoutine;
 	JpfbtpGlobalState->Routines.ProcessBuffer = ProcessBufferRoutine;
-
-#if defined(JPFBT_TARGET_KERNELMODE)
-
-	if ( Flags & JPFBT_FLAG_INTERCEPT_EXCEPTIONS )
-	{
-		//
-		// Apply RTL patches.
-		//
-		Status = JpfbtsApplyRtlExceptionHandlingPatches();
-		if ( ! NT_SUCCESS( Status ) )
-		{
-			goto Cleanup;
-		}
-
-		JpfbtpExceptionHandlingUsed = TRUE;
-	}
-#endif
 
 	Status = STATUS_SUCCESS;
 
@@ -329,14 +240,6 @@ NTSTATUS JpfbtUninitialize()
 		JpfbtpFreeThreadData( ThreadData );
 
 		ListEntry = NextEntry;
-	}
-
-	if ( JpfbtpExceptionHandlingUsed )
-	{
-		//
-		// Revoke RTL patches.
-		//
-		( VOID ) JpfbtsRevokeRtlExceptionHandlingPatches();
 	}
 
 	//
