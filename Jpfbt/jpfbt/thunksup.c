@@ -101,6 +101,16 @@ BOOLEAN __stdcall JpfbtpInstallExceptionHandler(
 		return FALSE;
 	}
 
+#if defined(JPFBT_TARGET_KERNELMODE)
+	if ( ! MmIsAddressValid( TopRecord ) )
+	{
+		//
+		// PsConvertToGuiThread-Issue.
+		//
+		return FALSE;
+	}
+#endif
+
 	//
 	// Remember the location of the registration record.
 	//
@@ -181,7 +191,13 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 	//TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
 
 	#define EH_UNWINDING 2
-
+	
+	//
+	// As this handler has been installed late, it should never occur
+	// that it is called other than for unwining.
+	//
+	ASSERT ( ExceptionRecord->ExceptionFlags & EH_UNWINDING );
+	
 	ThreadData = JpfbtpGetCurrentThreadData();
 	
 	//
@@ -290,17 +306,27 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
     __inout PVOID DispatcherContext
 	)
 {
+	PEXCEPTION_ROUTINE OriginalHandler;
+	PJPFBT_THREAD_DATA ThreadData;
+		
 	UNREFERENCED_PARAMETER( ContextRecord );
 	UNREFERENCED_PARAMETER( DispatcherContext );
+	
+	ThreadData = JpfbtpGetCurrentThreadData();
 	
 	//TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
 
 	if ( ExceptionRecord->ExceptionFlags & EH_UNWINDING )
 	{
 		//
-		// Classic unwinding.
+		// Call the handler we have replaced.
 		//
-		return JpfbtpUnwindThunkstack(
+		OriginalHandler = JpfbtsLookupOriginalExceptionHandler( 
+			&ThreadData->ThunkStack,
+			EstablisherFrame );
+		ASSERT( OriginalHandler != NULL );
+
+		return ( OriginalHandler )( 
 			ExceptionRecord,
 			EstablisherFrame,
 			ContextRecord,
@@ -309,11 +335,6 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 	else
 	{
 		EXCEPTION_DISPOSITION Disposition;
-		PEXCEPTION_ROUTINE OriginalHandler;
-		PJPFBT_THREAD_DATA ThreadData;
-		
-		ThreadData = JpfbtpGetCurrentThreadData();
-		
 		//
 		// N.B. ThreadData should never be NULL as it contains the exception
 		// registration record that brought us here in the first place!
