@@ -92,13 +92,20 @@ BOOLEAN __stdcall JpfbtpInstallExceptionHandler(
 {
 	if ( ( ULONG_PTR ) ( PVOID ) TopRecord == ( ULONG_PTR ) -1 )
 	{
-		//
-		// No top record (Head of chain).
-		//
-		InterlockedIncrement( 
-			&JpfbtpGlobalState->Counters.FailedExceptionHandlerInstallations );
+		////
+		//// No top record (Head of chain).
+		////
+		//InterlockedIncrement( 
+		//	&JpfbtpGlobalState->Counters.FailedExceptionHandlerInstallations );
 
-		return FALSE;
+		//return FALSE;
+
+		//
+		// No existing frame -> no chance of being unwound. 
+		// Install our SEH handler is not neccessary.
+		//
+		Frame->Seh.RegistrationRecord = NULL;
+		return TRUE;
 	}
 
 #if defined(JPFBT_TARGET_KERNELMODE)
@@ -141,7 +148,10 @@ VOID __stdcall JpfbtpUninstallExceptionHandler(
 	//
 	// Restore the original handler.
 	//
-	Frame->Seh.RegistrationRecord->Handler = Frame->Seh.OriginalHandler;
+	if ( Frame->Seh.RegistrationRecord != NULL )
+	{
+		Frame->Seh.RegistrationRecord->Handler = Frame->Seh.OriginalHandler;
+	}
 }
 
 static PEXCEPTION_ROUTINE JpfbtsLookupOriginalExceptionHandler(
