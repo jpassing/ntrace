@@ -87,7 +87,8 @@ static NTSTATUS JpfbtsResumeThread(
 NTSTATUS JpfbtpPatchCode(
 	__in JPFBT_PATCH_ACTION Action,
 	__in ULONG PatchCount,
-	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches 
+	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches,
+	__out_opt PJPFBT_CODE_PATCH *FailedPatch
 	)
 {
 	ULONG PatchIndex;
@@ -95,7 +96,49 @@ NTSTATUS JpfbtpPatchCode(
 	SUSPEND_CONTEXT SuspendContextBefore = { 0 };
 	SUSPEND_CONTEXT SuspendContextAfter = { 0 };
 
+	if ( FailedPatch != NULL )
+	{
+		*FailedPatch = NULL;
+	}
+
 	ASSERT( JpfbtpIsPatchDatabaseLockHeld() );
+
+	//
+	// Validate.
+	//
+	for ( PatchIndex = 0; PatchIndex < PatchCount; PatchIndex++ )
+	{
+		ASSERT( Patches[ PatchIndex ]->Flags == 0 );
+		ASSERT( Patches[ PatchIndex ]->Validate != NULL );
+
+		Status = ( Patches[ PatchIndex ]->Validate )(
+			Patches[ PatchIndex ],
+			Action );
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			//
+			// Does not validate.
+			//
+			if ( FailedPatch != NULL )
+			{
+				*FailedPatch = Patches[ PatchIndex ];
+			}
+
+			//
+			// If we are instrumenting, abort. Otherwise, ignore
+			// the patch and continue.
+			//
+			if ( Action == JpfbtAddInstrumentation )
+			{
+				return Status;
+			}
+			else
+			{
+				Patches[ PatchIndex ]->Flags |= 
+					JPFBT_CODE_PATCH_FLAG_DOOMED;
+			}
+		}
+	}
 
 	//
 	// Suspend all threads.
@@ -123,6 +166,14 @@ NTSTATUS JpfbtpPatchCode(
 	//
 	for ( PatchIndex = 0; PatchIndex < PatchCount; PatchIndex++ )
 	{
+		if ( Patches[ PatchIndex ]->Flags & JPFBT_CODE_PATCH_FLAG_DOOMED )
+		{
+			//
+			// Skip.
+			//
+			continue;
+		}
+
 		if ( ! VirtualProtect(
 			Patches[ PatchIndex ]->Target,
 			Patches[ PatchIndex ]->CodeSize,
@@ -139,32 +190,19 @@ NTSTATUS JpfbtpPatchCode(
 		}
 	}
 
-	//if ( Action == JpfbtUnpatch )
-	//{
-	//	//
-	//	// Ensure that no thread is currently executing the 
-	//	// to-be-unpatched code.
-	//	//
-	//	for ( PatchIndex = 0; PatchIndex < PatchCount; PatchIndex++ )
-	//	{
-	//		Status = JpfbtpForEachThread(
-	//			THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_QUERY_INFORMATION,	// WOW64!
-	//			JpfbtsUpdateThreadContext,
-	//			NULL,
-	//			Patches[ PatchIndex ] );
-	//		if ( ! NT_SUCCESS( Status ) )
-	//		{
-	//			RISKY_TRACE( ( "Thread enumeration failed: 0x%x\n", Status ) );
-	//			goto Cleanup;
-	//		}
-	//	}
-	//}
-
 	//
 	// Copy code.
 	//
 	for ( PatchIndex = 0; PatchIndex < PatchCount; PatchIndex++ )
 	{
+		if ( Patches[ PatchIndex ]->Flags & JPFBT_CODE_PATCH_FLAG_DOOMED )
+		{
+			//
+			// Skip.
+			//
+			continue;
+		}
+
 		if ( Action == JpfbtPatch )
 		{
 			//
@@ -209,6 +247,14 @@ NTSTATUS JpfbtpPatchCode(
 	//
 	for ( PatchIndex = 0; PatchIndex < PatchCount; PatchIndex++ )
 	{
+		if ( Patches[ PatchIndex ]->Flags & JPFBT_CODE_PATCH_FLAG_DOOMED )
+		{
+			//
+			// Skip.
+			//
+			continue;
+		}
+
 		if ( ! VirtualProtect(
 			Patches[ PatchIndex ]->Target,
 			Patches[ PatchIndex ]->CodeSize,
@@ -223,6 +269,7 @@ NTSTATUS JpfbtpPatchCode(
 	}
 
 Cleanup:
+	
 	//
 	// Resume all threads.
 	//

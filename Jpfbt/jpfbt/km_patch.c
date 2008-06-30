@@ -15,6 +15,12 @@ typedef struct _JPFBTP_PATCH_CONTEXT
 	JPFBT_PATCH_ACTION Action;
 	ULONG PatchCount;
 	PJPFBT_CODE_PATCH *Patches;
+	
+	struct
+	{
+		PJPFBT_CODE_PATCH FailedPatch;
+		NTSTATUS Status;
+	} Validation;
 } JPFBTP_PATCH_CONTEXT, *PJPFBTP_PATCH_CONTEXT;
 
 /*----------------------------------------------------------------------
@@ -93,7 +99,10 @@ static VOID JpfbtsPatchRoutine(
 	KIRQL OldIrql;
 
 	UNREFERENCED_PARAMETER( Dpc );
-	
+
+	Context->Validation.FailedPatch = NULL;
+	Context->Validation.Status		= STATUS_SUCCESS;
+
 	//
 	// Raise IRQL to protect against interrupts.
 	//
@@ -110,75 +119,96 @@ static VOID JpfbtsPatchRoutine(
 		//
 
 		ULONG PatchIndex;
-
+		
 		//
-		// Copy code using the previously mapped addresses.
+		// Perform second validation pass. As we have all CPUs under
+		// control, we can be sure that no concurrent module unload
+		// can take place.
 		//
 		for ( PatchIndex = 0; PatchIndex < Context->PatchCount; PatchIndex++ )
 		{
-			//ULONG Index;
-			//PUCHAR Source;
-			//PUCHAR Target;
+			NTSTATUS Status;
 
-			if ( Context->Action == JpfbtPatch )
+			if ( Context->Patches[ PatchIndex ]->Flags & JPFBT_CODE_PATCH_FLAG_DOOMED )
 			{
 				//
-				// Target -> OldCode
+				// Skip.
 				//
-				memcpy( 
-					Context->Patches[ PatchIndex ]->OldCode, 
-					Context->Patches[ PatchIndex ]->MappedAddress, 
-					Context->Patches[ PatchIndex ]->CodeSize );
-
-				//
-				// NewCode -> Target
-				//
-				//TRACE( ( "Patching %p\n", Context->Patches[ PatchIndex ]->Target ) );
-
-				memcpy( 
-					Context->Patches[ PatchIndex ]->MappedAddress, 
-					Context->Patches[ PatchIndex ]->NewCode, 
-					Context->Patches[ PatchIndex ]->CodeSize );
-				//Target = ( PUCHAR ) 
-				//	Context->Patches[ PatchIndex ]->MappedAddress;
-				//Source = ( PUCHAR ) 
-				//	Context->Patches[ PatchIndex ]->NewCode;
-				//for ( Index = 0; 
-				//	  Index < Context->Patches[ PatchIndex ]->CodeSize;
-				//	  Index++ )
-				//{
-				//	ULONG RevIndex = 
-				//		Context->Patches[ PatchIndex ]->CodeSize - Index - 1;
-				//	TRACE( ( "Patch byte %d\n", Index ) );
-				//	Target[ RevIndex ] = Source[ RevIndex ];
-				//}
+				continue;
 			}
-			else if ( Context->Action == JpfbtUnpatch )
+
+			Status = ( Context->Patches[ PatchIndex ]->Validate )(
+				Context->Patches[ PatchIndex ],
+				Context->Action );
+			if ( ! NT_SUCCESS( Status ) )
 			{
 				//
-				// OldCode -> Target
+				// Does not validate.
 				//
-				memcpy( 
-					Context->Patches[ PatchIndex ]->MappedAddress, 
-					Context->Patches[ PatchIndex ]->OldCode, 
-					Context->Patches[ PatchIndex ]->CodeSize );
-				//Target = ( PUCHAR ) 
-				//	Context->Patches[ PatchIndex ]->MappedAddress;
-				//Source = ( PUCHAR ) 
-				//	Context->Patches[ PatchIndex ]->OldCode;
-				//for ( Index = 0; 
-				//	  Index < Context->Patches[ PatchIndex ]->CodeSize;
-				//	  Index++ )
-				//{
-				//	ULONG RevIndex = 
-				//		Context->Patches[ PatchIndex ]->CodeSize - Index - 1;
-				//	TRACE( ( "Unpatch byte %d\n", Index ) );
-				//	Target[ RevIndex ] = Source[ RevIndex ];
-				//}
+				Context->Validation.FailedPatch = Context->Patches[ PatchIndex ];
+
+				//
+				// If we are instrumenting, abort. Otherwise, ignore
+				// the patch and continue.
+				//
+				if ( Context->Action == JpfbtAddInstrumentation )
+				{
+					Context->Validation.Status = Status;
+					break;
+				}
+				else
+				{
+					Context->Patches[ PatchIndex ]->Flags |= 
+						JPFBT_CODE_PATCH_FLAG_DOOMED;
+				}
 			}
-			else
+		}
+
+		if ( NT_SUCCESS( Context->Validation.Status ) )
+		{
+			//
+			// Copy code using the previously mapped addresses.
+			//
+			for ( PatchIndex = 0; PatchIndex < Context->PatchCount; PatchIndex++ )
 			{
-				ASSERT( !"Invalid Action" );
+				if ( Context->Patches[ PatchIndex ]->Flags 
+					& JPFBT_CODE_PATCH_FLAG_DOOMED )
+				{
+					//
+					// Skip.
+					//
+					continue;
+				}
+
+				if ( Context->Action == JpfbtPatch )
+				{
+					//
+					// Target -> OldCode
+					//
+					memcpy( 
+						Context->Patches[ PatchIndex ]->OldCode, 
+						Context->Patches[ PatchIndex ]->MappedAddress, 
+						Context->Patches[ PatchIndex ]->CodeSize );
+
+					memcpy( 
+						Context->Patches[ PatchIndex ]->MappedAddress, 
+						Context->Patches[ PatchIndex ]->NewCode, 
+						Context->Patches[ PatchIndex ]->CodeSize );
+				}
+				else if ( Context->Action == JpfbtUnpatch )
+				{
+					//
+					// OldCode -> Target
+					//
+					memcpy( 
+						Context->Patches[ PatchIndex ]->MappedAddress, 
+						Context->Patches[ PatchIndex ]->OldCode, 
+						Context->Patches[ PatchIndex ]->CodeSize );
+				}
+				else
+				{
+					ASSERT( !"Invalid Action" );
+				}
 			}
 		}
 	}
@@ -205,10 +235,10 @@ static VOID JpfbtsPatchRoutine(
 NTSTATUS JpfbtpPatchCode(
 	__in JPFBT_PATCH_ACTION Action,
 	__in ULONG PatchCount,
-	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches 
+	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches,
+	__out_opt PJPFBT_CODE_PATCH *FailedPatch
 	)
 {
-	JPFBTP_PATCH_CONTEXT Context;
 	ULONG Index;
 	ULONG MdlsAllocated = 0;
 	NTSTATUS Status;
@@ -224,10 +254,58 @@ NTSTATUS JpfbtpPatchCode(
 		return STATUS_INVALID_PARAMETER;
 	}
 
+	if ( FailedPatch != NULL )
+	{
+		*FailedPatch = NULL;
+	}
+
 	for ( Index = 0; Index < PatchCount; Index++ )
 	{
 		Patches[ Index ]->Mdl = NULL;
 		Patches[ Index ]->MappedAddress = NULL;
+
+		ASSERT( Patches[ Index ]->Flags == 0 );
+		ASSERT( Patches[ Index ]->Validate != NULL );
+	}
+
+	//
+	// Perform first validation pass. This is to make sure that
+	// mapping the code using JpfbtsLockMemory will not touch
+	// invalid memory.
+	//
+	// N.B. There is a TOCTTOU here that cannot be easily avoided - 
+	// we cannot check and map atomically, neither can we map the
+	// memory in the GenericDpc.
+	//
+	for ( Index = 0; Index < PatchCount; Index++ )
+	{
+		Status = ( Patches[ Index ]->Validate )(
+			Patches[ Index ],
+			Action );
+		if ( ! NT_SUCCESS( Status ) )
+		{
+			//
+			// Does not validate.
+			//
+			if ( FailedPatch != NULL )
+			{
+				*FailedPatch = Patches[ Index ];
+			}
+
+			//
+			// If we are instrumenting, abort. Otherwise, ignore
+			// the patch and continue.
+			//
+			if ( Action == JpfbtAddInstrumentation )
+			{
+				return Status;
+			}
+			else
+			{
+				Patches[ Index ]->Flags |= 
+					JPFBT_CODE_PATCH_FLAG_DOOMED;
+			}
+		}
 	}
 
 	//
@@ -237,6 +315,16 @@ NTSTATUS JpfbtpPatchCode(
 	Status = STATUS_SUCCESS;
 	for ( Index = 0; Index < PatchCount; Index++ )
 	{
+		if ( Patches[ Index ]->Flags & JPFBT_CODE_PATCH_FLAG_DOOMED )
+		{
+			//
+			// Skip.
+			//
+			Patches[ Index ]->Mdl			= NULL;
+			Patches[ Index ]->MappedAddress = NULL;
+			continue;
+		}
+
 		Status = JpfbtsLockMemory(
 			Patches[ Index ]->Target,
 			Patches[ Index ]->CodeSize,
@@ -254,19 +342,31 @@ NTSTATUS JpfbtpPatchCode(
 
 	if ( NT_SUCCESS( Status ) )
 	{
+		JPFBTP_PATCH_CONTEXT Context;
+	
 		ASSERT( MdlsAllocated == PatchCount );
 
 		//
 		// Now that the MDLs have been prepared, do the actual
 		// patching. A DPC is scheduled on each CPU.
 		//
-		Context.Action		= Action;
-		Context.PatchCount	= PatchCount;
-		Context.Patches		= Patches;
+		Context.Action					= Action;
+		Context.PatchCount				= PatchCount;
+		Context.Patches					= Patches;
+
+		Context.Validation.FailedPatch	= NULL;
+		Context.Validation.Status		= 0;
 	
 		KeGenericCallDpc(
 			JpfbtsPatchRoutine,
 			&Context );
+
+		if ( FailedPatch != NULL )
+		{
+			*FailedPatch = Context.Validation.FailedPatch;
+		}
+
+		Status = Context.Validation.Status;
 	}
 
 	//

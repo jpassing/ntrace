@@ -8,6 +8,7 @@ static void Patch()
 	PJPFBT_CODE_PATCH PatchArray[ 1 ];
 	ULONG PatchMe = 0xAABBCCDD;
 
+	Patch.Flags		= 0;
 	Patch.Target	= &PatchMe;
 	Patch.CodeSize	= sizeof( ULONG );
 	Patch.NewCode[ 0 ] = 0xEF;
@@ -20,14 +21,16 @@ static void Patch()
 	TEST_SUCCESS( JpfbtpPatchCode(
 		JpfbtPatch,
 		1,
-		PatchArray ) );
+		PatchArray,
+		NULL ) );
 
 	TEST( PatchMe == 0xDEADBEEF );
 
 	TEST_SUCCESS( JpfbtpPatchCode(
 		JpfbtUnpatch,
 		1,
-		PatchArray ) );
+		PatchArray,
+		NULL ) );
 
 	TEST( PatchMe == 0xAABBCCDD );
 }

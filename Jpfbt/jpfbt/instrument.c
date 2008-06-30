@@ -29,7 +29,6 @@ typedef struct _JPFBTP_TABLE_ENUM_CONTEXT
 	PJPFBT_CODE_PATCH *Entries;
 } JPFBTP_TABLE_ENUM_CONTEXT, *PJPFBTP_TABLE_ENUM_CONTEXT;
 
-
 //
 // Disable warning: Function to PVOID casting
 //
@@ -163,6 +162,62 @@ static NTSTATUS JpfbtsInitializeTrampolineAndProlog(
 	return STATUS_SUCCESS;
 }
 
+static NTSTATUS JpfbtsValidateCodePatch(
+	__in PJPFBT_CODE_PATCH Patch,
+	__in JPFBT_PATCH_ACTION Action
+	)
+{
+	NTSTATUS Status;
+
+	if ( Action == JpfbtAddInstrumentation )
+	{
+		//
+		// Check instrumentability.
+		//
+		if ( JpfbtsIsAlreadyPatched( Patch->u.Procedure ) )
+		{
+			TRACE( ( "Procedure %p already patched\n", Patch->u.Procedure ) );
+			Status = STATUS_FBT_PROC_ALREADY_PATCHED;
+		}
+		else
+		{
+			BOOLEAN Instrumentable;
+			Status = JpfbtCheckProcedureInstrumentability(
+				Patch->u.Procedure,
+				&Instrumentable );
+			if ( ! NT_SUCCESS( Status ) )
+			{
+				TRACE( ( "Check for procedure %p failed\n", Patch->u.Procedure ) );
+			}
+			else if ( ! Instrumentable )
+			{
+				TRACE( ( "Procedure %p not instrumentable\n", Patch->u.Procedure ) );
+				Status = STATUS_FBT_PROC_NOT_PATCHABLE;
+			}
+			else
+			{
+				Status = STATUS_SUCCESS;
+			}
+		}
+	}
+	else
+	{
+		//
+		// The affected module may have been unloaded. Thus, recheck
+		// address.
+		//
+		if ( JpfbtpIsCodeAddressValid( Patch->u.Procedure.u.Procedure ) )
+		{
+			Status = STATUS_SUCCESS;
+		}
+		else
+		{
+			Status = STATUS_ACCESS_VIOLATION;
+		}
+	}
+
+	return Status;
+}
 
 static NTSTATUS JpfbtsInitializeCodePatch(
 	__in CONST JPFBT_PROCEDURE Procedure,
@@ -173,6 +228,8 @@ static NTSTATUS JpfbtsInitializeCodePatch(
 
 	ASSERT( Procedure.u.Procedure );
 	ASSERT( Patch );
+
+	Patch->Validate = JpfbtsValidateCodePatch;
 
 	//
 	// Patch padding and prolog.
@@ -230,7 +287,7 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 	for ( Index = 0; Index < ProcedureCount; Index++ )
 	{
 		PatchArray[ Index ] = JpfbtpAllocateNonPagedMemory(
-			sizeof( JPFBT_CODE_PATCH ), FALSE );
+			sizeof( JPFBT_CODE_PATCH ), TRUE );
 		if ( ! PatchArray[ Index ] )
 		{
 			Status = STATUS_NO_MEMORY;
@@ -254,35 +311,13 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 			JPFBT_PROCEDURE Procedure = Procedures[ Index ];
 
 			//
-			// Check instrumentability.
+			// N.B. We do not check instrumentability here as this would
+			// be exposed to a TOCTTOU issue. Validation is delayed until
+			// just before the patch is applied.
 			//
-			if ( JpfbtsIsAlreadyPatched( Procedure ) )
-			{
-				TRACE( ( "Procedure %p already patched\n", Procedure.u.Procedure ) );
-				Status = STATUS_FBT_PROC_ALREADY_PATCHED;
-			}
-			else
-			{
-				BOOLEAN Instrumentable;
-				Status = JpfbtCheckProcedureInstrumentability(
-					Procedure,
-					&Instrumentable );
-				if ( ! NT_SUCCESS( Status ) )
-				{
-					TRACE( ( "Check for procedure %p failed\n", Procedure.u.Procedure ) );
-				}
-				else if ( ! Instrumentable )
-				{
-					TRACE( ( "Procedure %p not instrumentable\n", Procedure.u.Procedure ) );
-					Status = STATUS_FBT_PROC_NOT_PATCHABLE;
-				}
-				else
-				{
-					Status = JpfbtsInitializeCodePatch( 
-						Procedure, 
-						PatchArray[ Index ] );
-				}
-			}
+			Status = JpfbtsInitializeCodePatch( 
+				Procedure, 
+				PatchArray[ Index ] );
 
 			if ( ! NT_SUCCESS( Status ) )
 			{
@@ -298,13 +333,16 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 
 	if ( NT_SUCCESS( Status ) )
 	{
+		PJPFBT_CODE_PATCH FailedPatch;
+
 		//
 		// Patch code and register patches.
 		//
 		Status = JpfbtpPatchCode(
 			JpfbtPatch,
 			ProcedureCount,
-			PatchArray );
+			PatchArray,
+			&FailedPatch );
 
 		if ( NT_SUCCESS( Status ) )
 		{
@@ -333,8 +371,20 @@ static NTSTATUS JpfbtsInstrumentProcedure(
 				ASSERT( OldEntry == NULL );
 			}
 		}
+		else
+		{
+			if ( FailedPatch != NULL && FailedProcedure != NULL)
+			{
+				*FailedProcedure = FailedPatch->u.Procedure;
+
+				//
+				// Keep Status to trigger cleanup.
+				//
+			}
+		}
 	}
-	else
+	
+	if ( ! NT_SUCCESS( Status ) )
 	{
 		//
 		// Cleanup.
@@ -387,7 +437,8 @@ static NTSTATUS JpfbtsUnpatchAndUnregister(
 	Status = JpfbtpPatchCode(
 		JpfbtUnpatch,
 		ProcedureCount,
-		PatchArray );
+		PatchArray,
+		NULL );
 
 	if ( NT_SUCCESS( Status ) )
 	{

@@ -316,7 +316,20 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
  *
  */
 
-#define JPFBT_MAX_CODE_PATCH_SIZE	16
+typedef enum _JPFBT_PATCH_ACTION
+{
+	JpfbtPatch,
+	JpfbtUnpatch
+} JPFBT_PATCH_ACTION;
+
+#define JPFBT_MAX_CODE_PATCH_SIZE		16
+
+//
+// Patch validated properly before instrumentation, but failed to
+// validate before uninstrumentation. Might be due to the code having
+// been unloaded.
+//
+#define JPFBT_CODE_PATCH_FLAG_DOOMED	1
 
 typedef struct _JPFBT_CODE_PATCH
 {
@@ -363,6 +376,11 @@ typedef struct _JPFBT_CODE_PATCH
 	UCHAR OldCode[ JPFBT_MAX_CODE_PATCH_SIZE ];
 
 	//
+	// [out] Flags.
+	//
+	ULONG Flags;
+
+	//
 	// Data used during the patching process.
 	//
 #if defined(JPFBT_TARGET_USERMODE)
@@ -384,6 +402,26 @@ typedef struct _JPFBT_CODE_PATCH
 	//
 	PVOID MappedAddress;
 #endif
+
+	/*++
+		Routine Description:
+			Check whether it is safe to conduct this patching process.
+
+			Kernel mode: Called at DISPATCH_LEVEL from within 
+			GenericDpc.
+			
+		Parameters:
+			Patch	- 'This' pointer.
+			Action	- Action about to be performed.
+
+		Return Value:
+			STATUS_SUCCESS if validation successful
+			Failure NTSTATUS otherwise.
+	--*/
+	NTSTATUS ( * Validate )(
+		__in struct _JPFBT_CODE_PATCH *Patch,
+		__in JPFBT_PATCH_ACTION Action
+		);
 } JPFBT_CODE_PATCH, *PJPFBT_CODE_PATCH;
 
 C_ASSERT( FIELD_OFFSET( JPFBT_CODE_PATCH, u.Procedure ) ==
@@ -641,15 +679,9 @@ NTSTATUS JpfbtAssembleNearCall(
  *
  */
 
-typedef enum _JPFBT_PATCH_ACTION
-{
-	JpfbtPatch,
-	JpfbtUnpatch
-} JPFBT_PATCH_ACTION;
-
 /*++
 	Routine Description:
-		Patch code. This requires making the page writable, 
+		Validate and patch code. This requires making the page writable, 
 		replace the code and recovering page protection.
 
 		The caller MUST hold the patch database lock before calling
@@ -661,11 +693,13 @@ typedef enum _JPFBT_PATCH_ACTION
 		Action		- Patch/Unpatch.
 		PatchCount	- # of elements in Patches.
 		Patches		- Array of pointers to JPFBT_CODE_PATCHes.
+		FailedPatch - Patch having caused the failure.
 --*/
 NTSTATUS JpfbtpPatchCode(
 	__in JPFBT_PATCH_ACTION Action,
 	__in ULONG PatchCount,
-	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches 
+	__in_ecount(PatchCount) PJPFBT_CODE_PATCH *Patches,
+	__out_opt PJPFBT_CODE_PATCH *FailedPatch
 	);
 
 /*++
