@@ -154,4 +154,14 @@ NTSTATUS JpkfbtCheckProcedureInstrumentability(
 	__in JPKFBT_SESSION SessionHandle,
 	__in JPFBT_PROCEDURE Procedure,
 	__out PBOOL Instrumentable,
-	__out PUINT PaddingSize );
+	__out PUINT PaddingSize 
+	);
+
+/*++
+	Routine Description:
+		Query statistics.
+--*/
+NTSTATUS JpkfbtQueryStatistics(
+	__in JPKFBT_SESSION SessionHandle,
+	__out PJPKFBT_STATISTICS Statistics 
+	);

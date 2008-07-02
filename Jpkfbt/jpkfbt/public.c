@@ -503,3 +503,48 @@ NTSTATUS JpkfbtCheckProcedureInstrumentability(
 		return Status;
 	}
 }
+
+NTSTATUS JpkfbtQueryStatistics(
+	__in JPKFBT_SESSION SessionHandle,
+	__out PJPKFBT_STATISTICS Statistics 
+	)
+{
+	JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE Response;
+	PJPKBTP_SESSION Session;
+	NTSTATUS Status;
+	IO_STATUS_BLOCK StatusBlock;
+
+	if ( SessionHandle == NULL || Statistics == NULL )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	Session = ( PJPKBTP_SESSION ) SessionHandle;
+
+	//
+	// Use NtDeviceIoControlFile rather than DeviceIoControl in 
+	// order to circumvent NTSTATUS -> DOS return value mapping.
+	//
+	Status = NtDeviceIoControlFile(
+		Session->DeviceHandle,
+		NULL,
+		NULL,
+		NULL,
+		&StatusBlock,
+		JPKFAG_IOCTL_QUERY_STATISTICS,
+		NULL,
+		0,
+		&Response,
+		sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE ) );
+	if ( NT_SUCCESS( Status ) )
+	{
+		ASSERT( StatusBlock.Information == 
+				sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE ) );
+		*Statistics = Response.Data;
+		return STATUS_SUCCESS;
+	}
+	else
+	{
+		return Status;
+	}
+}

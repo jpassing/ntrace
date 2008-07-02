@@ -612,6 +612,55 @@ NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
 	return STATUS_SUCCESS;
 }
 
+NTSTATUS JpkfagpQueryStatisticsIoctl(
+	__in PJPKFAGP_DEVICE_EXTENSION DevExtension,
+	__in PVOID Buffer,
+	__in ULONG InputBufferLength,
+	__in ULONG OutputBufferLength,
+	__out PULONG BytesWritten
+	)
+{
+	PJPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE Response;
+	JPFBT_STATISTICS Statistics;
+	NTSTATUS Status;
+
+	UNREFERENCED_PARAMETER( InputBufferLength );
+
+	ASSERT( BytesWritten );
+	*BytesWritten = 0;
+	
+	if ( ! Buffer ||
+		   OutputBufferLength < sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE ) )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	Response = ( PJPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE ) Buffer;
+
+	Status = JpfbtQueryStatistics( &Statistics );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
+
+	Response->Data.InstrumentedRoutinesCount = Statistics.PatchCount;
+	
+	Response->Data.Buffers.Free					 = Statistics.Buffers.Free;
+	Response->Data.Buffers.Dirty				 = Statistics.Buffers.Dirty;
+	Response->Data.Buffers.Collected			 = Statistics.Buffers.Collected;
+	Response->Data.ThreadData.FreePreallocationPoolSize			 = Statistics.ThreadData.FreePreallocationPoolSize;
+	Response->Data.ThreadData.FailedPreallocationPoolAllocations = Statistics.ThreadData.FailedPreallocationPoolAllocations;
+	Response->Data.ReentrantThunkExecutionsDetected				 = Statistics.ReentrantThunkExecutionsDetected;
+	Response->Data.Tracing.EntryEventsDropped	 = DevExtension->Statistics.EntryEventsDropped;
+	Response->Data.Tracing.ExitEventsDropped	 = DevExtension->Statistics.ExitEventsDropped;
+	Response->Data.Tracing.UnwindEventsDropped	 = DevExtension->Statistics.UnwindEventsDropped;
+	Response->Data.Tracing.ImageInfoEventsDropped= DevExtension->Statistics.ImageInfoEventsDropped;
+	Response->Data.Tracing.FailedChunkFlushes	 = DevExtension->Statistics.FailedChunkFlushes;
+
+	*BytesWritten = sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE );
+	return STATUS_SUCCESS;
+}
+
 VOID JpkfagpCleanupThread(
 	__in PETHREAD Thread
 	)

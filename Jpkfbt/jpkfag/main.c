@@ -115,6 +115,15 @@ NTSTATUS JpkfagpDispatchDeviceControl(
 			&ResultSize );
 		break;
 
+	case JPKFAG_IOCTL_QUERY_STATISTICS:
+		Status		= JpkfagpQueryStatisticsIoctl(
+			DevExtension,
+			Irp->AssociatedIrp.SystemBuffer,
+			StackLocation->Parameters.DeviceIoControl.InputBufferLength,
+			StackLocation->Parameters.DeviceIoControl.OutputBufferLength,
+			&ResultSize );
+		break;
+
 	default:
 		ResultSize	= 0;
 		Status		= STATUS_INVALID_DEVICE_REQUEST;

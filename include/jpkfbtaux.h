@@ -25,24 +25,32 @@ typedef enum _JPKFBT_TRACING_TYPE
 	JpkfbtTracingTypeMax = 1
 } JPKFBT_TRACING_TYPE;
 
-typedef struct _JPKFBT_SYMBOL_POINTERS
+typedef struct _JPKFBT_STATISTICS
 {
-	//
-	// Offsets within ETHREAD.
-	//
-	struct
-	{
-		ULONG SameThreadPassiveFlagsOffset;
-		ULONG SameThreadApcFlagsOffset;	
-	} Ethread;
+	ULONG InstrumentedRoutinesCount;
 
-	//
-	// Absolute VAs.
-	//
 	struct
 	{
-		ULONGLONG RtlDispatchException;
-		ULONGLONG RtlUnwind;
-		ULONGLONG RtlpGetStackLimits;
-	} ExceptionHandling;
-} JPKFBT_SYMBOL_POINTERS, *PJPKFBT_SYMBOL_POINTERS;
+		ULONG Free;
+		ULONG Dirty;
+		ULONG Collected;
+	} Buffers;
+
+	struct
+	{
+		ULONG FreePreallocationPoolSize;
+		ULONG FailedPreallocationPoolAllocations;
+	} ThreadData;
+
+	ULONG ReentrantThunkExecutionsDetected;
+
+	struct
+	{
+
+		ULONG EntryEventsDropped;
+		ULONG ExitEventsDropped;
+		ULONG UnwindEventsDropped;
+		ULONG ImageInfoEventsDropped;
+		ULONG FailedChunkFlushes;
+	} Tracing;
+} JPKFBT_STATISTICS, *PJPKFBT_STATISTICS;

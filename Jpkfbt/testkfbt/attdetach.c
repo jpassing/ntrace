@@ -41,6 +41,41 @@ void TestAttachDetachRetail()
 	TEST( ! IsDriverLoaded( L"jpkfar" ) );
 }
 
+void TestQueryStats()
+{
+	BOOL KernelSupported;
+	JPKFBT_SESSION Session;
+	JPKFBT_STATISTICS Stat;
+
+	TEST( ! IsDriverLoaded( L"jpkfar" ) );
+	TEST_SUCCESS( JpkfbtIsKernelTypeSupported( 
+		JpkfbtKernelRetail, &KernelSupported ) );
+	if ( ! KernelSupported )
+	{
+		CFIX_INCONCLUSIVE( L"Kernel not Retail-compatible." );
+	}
+
+	TEST_SUCCESS( JpkfbtAttach( JpkfbtKernelRetail, &Session ) );
+	TEST( Session );
+	
+	DeleteFile( L"__testkfbt.log" );
+	TEST_SUCCESS( JpkfbtInitializeTracing(
+		Session,
+		JpkfbtTracingTypeDefault,
+		0x10,
+		0x1000, 
+		L"__testkfbt.log" ) );
+
+	TEST_SUCCESS( JpkfbtQueryStatistics( Session, &Stat ) );
+	TEST( Stat.Buffers.Free == 0x10 );
+	TEST( Stat.Buffers.Dirty == 0 );
+
+	TEST_SUCCESS( JpkfbtShutdownTracing( Session ) );
+	TEST_SUCCESS( JpkfbtDetach( Session, TRUE ) );
+
+	TEST( ! IsDriverLoaded( L"jpkfar" ) );
+}
+
 void TestAttachDetachWmk()
 {
 	BOOL KernelSupported;
@@ -324,4 +359,5 @@ CFIX_BEGIN_FIXTURE( AttachDetach )
 	CFIX_FIXTURE_ENTRY( TestAttachDetachWmk )
 	CFIX_FIXTURE_ENTRY( TestInitShutdownTracing )
 	CFIX_FIXTURE_ENTRY( TestInstrumentFailures )
+	CFIX_FIXTURE_ENTRY( TestQueryStats )
 CFIX_END_FIXTURE()

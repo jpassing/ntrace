@@ -582,7 +582,6 @@ typedef struct _JPFBT_GLOBAL_DATA
 		volatile LONG FailedAllocationsFromPreallocatedPool;
 		volatile LONG NumberOfBuffersCollected;
 		volatile LONG ReentrantThunkExecutionsDetected;
-		volatile LONG FailedExceptionHandlerInstallations;
 	} Counters;
 
 	PVOID UserPointer;

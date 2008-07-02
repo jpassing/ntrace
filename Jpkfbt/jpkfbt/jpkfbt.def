@@ -6,3 +6,4 @@ EXPORTS
 	JpkfbtShutdownTracing
 	JpkfbtInstrumentProcedure
 	JpkfbtCheckProcedureInstrumentability
+	JpkfbtQueryStatistics

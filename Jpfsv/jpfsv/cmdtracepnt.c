@@ -96,26 +96,6 @@ static BOOL JpfsvsCheckTracabilityFilter(
 		 0 == wcscmp( SymInfo->Name, L"KiIdleLoop" ) ||				// must!
 		 
 		 0 == wcscmp( SymInfo->Name, L"KiDispatchInterrupt" ) 	// (not instr.)
-
-		 //0 == wcscmp( SymInfo->Name, L"IofCallDriver" ) ||
-		 //0 == wcscmp( SymInfo->Name, L"IopSynchronousServiceTail" ) ||
-		 
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Ki" ) ||
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Io" ) ||
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Kd" ) ||		//in
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Ke" ) ||	//!
-		 
-		 //( SymInfo->Name == wcsstr( SymInfo->Name, L"KeRe" ) 
-			//&& tolower( SymInfo->Name[ 4 ] ) <= 'l' ) ||
-
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Ex" ) ||		// in
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Ob" ) ||		// in
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Cc" ) ||		// in
-		 //
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Rtl" ) ||	// in
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Dbg" ) ||	// in
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Mm" ) ||		// in
-		 //SymInfo->Name == wcsstr( SymInfo->Name, L"Mi" )		// in
 		 )
 	{
 		//
@@ -309,6 +289,11 @@ static BOOL JpfsvsSetTracepointCommandWorker(
 		}
 		else
 		{
+			JpfsvpOutput( 
+				ProcessorState, 
+				L"%d tracepoints set\n",
+				Ctx.Procedures.Count );
+
 			Result = TRUE;
 		}
 	}

@@ -169,3 +169,35 @@ typedef struct _JPKFAG_IOCTL_CHECK_INSTRUMENTABILITY_RESPONSE
 	METHOD_BUFFERED,										\
 	FILE_READ_DATA )
 
+
+/*----------------------------------------------------------------------
+ *
+ * JPKFAG_IOCTL_QUERY_STATISTICS
+ *
+ */
+
+typedef struct _JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE
+{
+	JPKFBT_STATISTICS Data;
+} JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE,
+*PJPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE;
+
+/*++
+	IOCTL Description:
+		Check whether a procedure is instrumentable, i.e.
+		 - determine whether the procedure has a hotpatchable
+		   prolog
+	     - determine size of procedure padding.
+
+	Input:
+		None.
+	
+	Output:
+		JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE structure.
+--*/
+#define JPKFAG_IOCTL_QUERY_STATISTICS			CTL_CODE(	\
+	JPKFAG_TYPE,											\
+	JPKFAG_IOCTL_BASE + 5,									\
+	METHOD_BUFFERED,										\
+	FILE_READ_DATA )
+

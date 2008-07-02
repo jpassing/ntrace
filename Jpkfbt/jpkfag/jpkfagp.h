@@ -250,6 +250,14 @@ NTSTATUS JpkfagpCheckInstrumentabilityIoctl(
 	__out PULONG BytesWritten
 	);
 
+NTSTATUS JpkfagpQueryStatisticsIoctl(
+	__in PJPKFAGP_DEVICE_EXTENSION DevExtension,
+	__in PVOID Buffer,
+	__in ULONG InputBufferLength,
+	__in ULONG OutputBufferLength,
+	__out PULONG BytesWritten
+	);
+
 /*----------------------------------------------------------------------
  *
  * WMK routines.

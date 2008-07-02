@@ -54,6 +54,30 @@ typedef struct _JPFBT_CONTEXT {
 #endif
 
 /*++
+	Structure Description:
+		Execution statictics.
+--*/
+typedef struct _JPFBT_STATISTICS
+{
+	ULONG PatchCount;
+
+	struct
+	{
+		ULONG Free;
+		ULONG Dirty;
+		ULONG Collected;
+	} Buffers;
+
+	struct
+	{
+		ULONG FreePreallocationPoolSize;
+		ULONG FailedPreallocationPoolAllocations;
+	} ThreadData;
+
+	ULONG ReentrantThunkExecutionsDetected;
+} JPFBT_STATISTICS, *PJPFBT_STATISTICS;
+
+/*++
 	Routine Description:
 		Routine called at procedure event/exit.
 
@@ -337,4 +361,12 @@ VOID JPFBTCALLTYPE JpfbtCleanupThread(
 NTSTATUS JpfbtCheckProcedureInstrumentability(
 	__in JPFBT_PROCEDURE Procedure,
 	__out PBOOLEAN Instrumentable
+	);
+
+/*++
+	Routine Description:
+		Query statistics.
+--*/
+NTSTATUS JpfbtQueryStatistics(
+	__out PJPFBT_STATISTICS Statistics
 	);

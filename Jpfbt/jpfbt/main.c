@@ -266,3 +266,46 @@ VOID JpfbtCleanupThread(
 {
 	JpfbtpTeardownThreadDataForExitingThread( Thread );
 }
+
+#ifndef ExQueryDepthSList
+#define ExQueryDepthSList( ListHead ) ( ListHead )->Depth
+#endif
+
+NTSTATUS JpfbtQueryStatistics(
+	__out PJPFBT_STATISTICS Statistics
+	)
+{
+	if ( Statistics == NULL )
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	if ( JpfbtpGlobalState == NULL )
+	{
+		return STATUS_FBT_NOT_INITIALIZED;
+	}
+
+	Statistics->PatchCount = JphtGetEntryCountHashtable(
+		&JpfbtpGlobalState->PatchDatabase.PatchTable );
+
+	Statistics->Buffers.Free = ExQueryDepthSList(
+		&JpfbtpGlobalState->FreeBuffersList );
+
+	Statistics->Buffers.Dirty = ExQueryDepthSList(
+		&JpfbtpGlobalState->DirtyBuffersList );
+
+	Statistics->Buffers.Collected = 
+		JpfbtpGlobalState->Counters.NumberOfBuffersCollected;
+
+#if defined(JPFBT_TARGET_KERNELMODE)
+	Statistics->ThreadData.FreePreallocationPoolSize = ExQueryDepthSList( 
+		&JpfbtpGlobalState->ThreadDataPreallocationList );
+#else
+	Statistics->ThreadData.FreePreallocationPoolSize = 0;
+#endif
+
+	Statistics->ThreadData.FailedPreallocationPoolAllocations =
+		JpfbtpGlobalState->Counters.FailedAllocationsFromPreallocatedPool;
+
+	return STATUS_SUCCESS;
+}
