@@ -33,6 +33,7 @@ PASS0_SOURCEDIR=obj$(BUILD_ALT_DIR)\$(TARGET_DIRECTORY)
 SOURCES=\
 	load.c \
 	public.c \
+	perfctr.c \
 	jpkfbt.rc \
 	jpkfbtmsg.mc
 	
