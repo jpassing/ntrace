@@ -92,6 +92,18 @@
 					>
 				</File>
 				<File
+					RelativePath=".\jpkfbt\perfctr.c"
+					>
+				</File>
+				<File
+					RelativePath=".\jpkfbt\perfctr.h"
+					>
+				</File>
+				<File
+					RelativePath=".\jpkfbt\perfctr.ini"
+					>
+				</File>
+				<File
 					RelativePath=".\jpkfbt\public.c"
 					>
 				</File>

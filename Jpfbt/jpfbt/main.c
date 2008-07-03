@@ -307,5 +307,8 @@ NTSTATUS JpfbtQueryStatistics(
 	Statistics->ThreadData.FailedPreallocationPoolAllocations =
 		JpfbtpGlobalState->Counters.FailedAllocationsFromPreallocatedPool;
 
+	Statistics->ReentrantThunkExecutionsDetected = 
+		JpfbtpGlobalState->Counters.ReentrantThunkExecutionsDetected;
+	
 	return STATUS_SUCCESS;
 }

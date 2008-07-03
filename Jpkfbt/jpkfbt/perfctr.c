@@ -63,7 +63,7 @@ static struct
 	ULONG FieldOffset;
 } JpkfbtsCounterMetaData[] =
 {
-	{ -1, JPKFBTP_PLAIN_VALUE, JPKFBTP_INSTRUMENTEDROUTINES,								
+	{ -2, JPKFBTP_PLAIN_VALUE, JPKFBTP_INSTRUMENTEDROUTINES,								
 		__STAT_OFFSET( InstrumentedRoutinesCount ) },
 
 	//
@@ -84,7 +84,7 @@ static struct
 	{ -1, JPKFBTP_PLAIN_VALUE, JPKFBTP_FAILEDPREALLOCATIONPOOLALLOCATIONS,	
 		__STAT_OFFSET( ThreadData.FailedPreallocationPoolAllocations ) },
 
-	{ -1, JPKFBTP_PLAIN_VALUE, JPKFBTP_REENTRANTTHUNKEXECUTIONSDETECTED,	
+	{ -4, JPKFBTP_PLAIN_VALUE, JPKFBTP_REENTRANTTHUNKEXECUTIONSDETECTED,	
 		__STAT_OFFSET( ReentrantThunkExecutionsDetected ) },
 
 	//
@@ -188,6 +188,7 @@ static NTSTATUS JpkfbtsQueryPerformanceData(
 {
 	ULONG Index;
 	JPKFBT_STATISTICS Statistics;
+	NTSTATUS Status;
 
 	ASSERT( SessionHandle );
 	ASSERT( PerfData );
@@ -195,17 +196,15 @@ static NTSTATUS JpkfbtsQueryPerformanceData(
 	//
 	// Query data.
 	//
-	//Status = JpkfbtQueryStatistics( JpkfbtsPerformanceSession, &Statistics );
-	//if ( ! NT_SUCCESS( Status ) )
-	//{
-	//	//
-	//	// We cannot report an error, ignore.
-	//	//
-	//	OutputDebugString( L"JpkfbtQueryStatistics failed" );
-	//	return STATUS_SUCCESS;
-	//}
-	ZeroMemory( &Statistics, sizeof( JPKFBT_STATISTICS ) );
-	Statistics.InstrumentedRoutinesCount	 = 123;
+	Status = JpkfbtQueryStatistics( JpkfbtsPerformanceSession, &Statistics );
+	if ( ! NT_SUCCESS( Status ) )
+	{
+		//
+		// We cannot report an error, ignore.
+		//
+		OutputDebugString( L"JpkfbtQueryStatistics failed" );
+		return STATUS_SUCCESS;
+	}
 
 	//
 	// Populate Type.
@@ -318,6 +317,8 @@ DWORD JpkfbtCollectPerformanceData(
 {
 	PJPKFBTP_PERFDATA_BLOB* PerfData;
 	NTSTATUS Status;
+
+	UNREFERENCED_PARAMETER( Value );
 
 	//
 	// Only 'Global' is supported.

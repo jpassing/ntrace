@@ -638,26 +638,37 @@ NTSTATUS JpkfagpQueryStatisticsIoctl(
 	Response = ( PJPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE ) Buffer;
 
 	Status = JpfbtQueryStatistics( &Statistics );
-	if ( ! NT_SUCCESS( Status ) )
+	if ( STATUS_FBT_NOT_INITIALIZED == Status )
+	{
+		//
+		// Not initialized. Do not fail this request, but return 0
+		// for all counters.
+		//
+		RtlZeroMemory( Response, sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE ) );
+		*BytesWritten = sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE );
+	}
+	else if ( ! NT_SUCCESS( Status ) )
 	{
 		return Status;
 	}
+	else
+	{
+		Response->Data.InstrumentedRoutinesCount = Statistics.PatchCount;
+		
+		Response->Data.Buffers.Free					 = Statistics.Buffers.Free;
+		Response->Data.Buffers.Dirty				 = Statistics.Buffers.Dirty;
+		Response->Data.Buffers.Collected			 = Statistics.Buffers.Collected;
+		Response->Data.ThreadData.FreePreallocationPoolSize			 = Statistics.ThreadData.FreePreallocationPoolSize;
+		Response->Data.ThreadData.FailedPreallocationPoolAllocations = Statistics.ThreadData.FailedPreallocationPoolAllocations;
+		Response->Data.ReentrantThunkExecutionsDetected				 = Statistics.ReentrantThunkExecutionsDetected;
+		Response->Data.Tracing.EntryEventsDropped	 = DevExtension->Statistics.EntryEventsDropped;
+		Response->Data.Tracing.ExitEventsDropped	 = DevExtension->Statistics.ExitEventsDropped;
+		Response->Data.Tracing.UnwindEventsDropped	 = DevExtension->Statistics.UnwindEventsDropped;
+		Response->Data.Tracing.ImageInfoEventsDropped= DevExtension->Statistics.ImageInfoEventsDropped;
+		Response->Data.Tracing.FailedChunkFlushes	 = DevExtension->Statistics.FailedChunkFlushes;
 
-	Response->Data.InstrumentedRoutinesCount = Statistics.PatchCount;
-	
-	Response->Data.Buffers.Free					 = Statistics.Buffers.Free;
-	Response->Data.Buffers.Dirty				 = Statistics.Buffers.Dirty;
-	Response->Data.Buffers.Collected			 = Statistics.Buffers.Collected;
-	Response->Data.ThreadData.FreePreallocationPoolSize			 = Statistics.ThreadData.FreePreallocationPoolSize;
-	Response->Data.ThreadData.FailedPreallocationPoolAllocations = Statistics.ThreadData.FailedPreallocationPoolAllocations;
-	Response->Data.ReentrantThunkExecutionsDetected				 = Statistics.ReentrantThunkExecutionsDetected;
-	Response->Data.Tracing.EntryEventsDropped	 = DevExtension->Statistics.EntryEventsDropped;
-	Response->Data.Tracing.ExitEventsDropped	 = DevExtension->Statistics.ExitEventsDropped;
-	Response->Data.Tracing.UnwindEventsDropped	 = DevExtension->Statistics.UnwindEventsDropped;
-	Response->Data.Tracing.ImageInfoEventsDropped= DevExtension->Statistics.ImageInfoEventsDropped;
-	Response->Data.Tracing.FailedChunkFlushes	 = DevExtension->Statistics.FailedChunkFlushes;
-
-	*BytesWritten = sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE );
+		*BytesWritten = sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE );
+	}
 	return STATUS_SUCCESS;
 }
 
