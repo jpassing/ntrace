@@ -22,6 +22,21 @@ PJPFBT_THUNK_STACK JpfbtpGetCurrentThunkStack()
 	}
 	else
 	{
+		//
+		// This routine is only called when an event is being
+		// captured. Seize this oportunity to increment the 
+		// counter. Local counters are maintained to reduce 
+		// contention on the cache line of the global counter.
+		//
+		ThreadData->EventsCaptured++;
+		if ( ThreadData->EventsCaptured >= JPKFAG_EVENT_CAPTURE_DELTA )
+		{
+			InterlockedExchangeAdd(
+				&JpfbtpGlobalState->Counters.EventsCaptured,
+				ThreadData->EventsCaptured );
+			ThreadData->EventsCaptured = 0;
+		}
+
 		return &ThreadData->ThunkStack;
 	}
 }
@@ -223,6 +238,9 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 	//
 	ASSERT ( ExceptionRecord->ExceptionFlags & EH_UNWINDING );
 
+	InterlockedIncrement(
+		&JpfbtpGlobalState->Counters.ExceptionsUnwindings );
+
 	//
 	// Report event.
 	//
@@ -345,6 +363,7 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 	else
 	{
 		EXCEPTION_DISPOSITION Disposition;
+
 		//
 		// N.B. ThreadData should never be NULL as it contains the exception
 		// registration record that brought us here in the first place!

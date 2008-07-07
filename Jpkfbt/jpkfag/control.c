@@ -666,6 +666,8 @@ NTSTATUS JpkfagpQueryStatisticsIoctl(
 		Response->Data.Tracing.UnwindEventsDropped	 = DevExtension->Statistics.UnwindEventsDropped;
 		Response->Data.Tracing.ImageInfoEventsDropped= DevExtension->Statistics.ImageInfoEventsDropped;
 		Response->Data.Tracing.FailedChunkFlushes	 = DevExtension->Statistics.FailedChunkFlushes;
+		Response->Data.EventsCaptured				 = Statistics.EventsCaptured;
+		Response->Data.ExceptionsUnwindings			 = Statistics.ExceptionsUnwindings;
 
 		*BytesWritten = sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE );
 	}

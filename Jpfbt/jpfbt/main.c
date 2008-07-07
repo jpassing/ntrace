@@ -309,6 +309,12 @@ NTSTATUS JpfbtQueryStatistics(
 
 	Statistics->ReentrantThunkExecutionsDetected = 
 		JpfbtpGlobalState->Counters.ReentrantThunkExecutionsDetected;
-	
+
+	Statistics->EventsCaptured = 
+		JpfbtpGlobalState->Counters.EventsCaptured;
+
+	Statistics->ExceptionsUnwindings = 
+		JpfbtpGlobalState->Counters.ExceptionsUnwindings;
+
 	return STATUS_SUCCESS;
 }

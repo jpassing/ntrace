@@ -100,6 +100,11 @@ static struct
 		__STAT_OFFSET( Tracing.ImageInfoEventsDropped ) },
 	{ -1, JPKFBTP_DELTA_COUNTER, JPKFBTP_FAILEDCHUNKFLUSHES,	 			
 		__STAT_OFFSET( Tracing.FailedChunkFlushes ) },
+
+	{ -5, JPKFBTP_PLAIN_VALUE, JPKFBTP_EVENTSCAPTURED,	
+		__STAT_OFFSET( EventsCaptured ) },
+	{ -2, JPKFBTP_PLAIN_VALUE, JPKFBTP_UNWINDINGS,	
+		__STAT_OFFSET( ExceptionsUnwindings ) },
 };
 
 C_ASSERT( _countof( JpkfbtsCounterMetaData ) == JPKFBTP_PERFDATA_BLOB_COUNTERS );

@@ -43,6 +43,11 @@
 	#endif
 #endif
 
+//
+// # of events to capture before the global counter is updated.
+//
+#define JPKFAG_EVENT_CAPTURE_DELTA 1000
+
 //#if defined( JPFBT_TARGET_KERNELMODE )
 //#undef ASSERT
 //#define ASSERT( Expr ) \
@@ -268,6 +273,12 @@ typedef struct _JPFBT_THREAD_DATA
 	// between exception handling and unwinding.
 	//
 	ULONG PendingException;
+
+	//
+	// Events captured since last having updated the global 
+	// EventsCaptured counter.
+	//
+	ULONG EventsCaptured;
 
 	JPFBT_THUNK_STACK ThunkStack;
 } JPFBT_THREAD_DATA, *PJPFBT_THREAD_DATA;
@@ -582,6 +593,8 @@ typedef struct _JPFBT_GLOBAL_DATA
 		volatile LONG FailedAllocationsFromPreallocatedPool;
 		volatile LONG NumberOfBuffersCollected;
 		volatile LONG ReentrantThunkExecutionsDetected;
+		volatile LONG EventsCaptured;
+		volatile LONG ExceptionsUnwindings;
 	} Counters;
 
 	PVOID UserPointer;

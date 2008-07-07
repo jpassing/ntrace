@@ -53,4 +53,7 @@ typedef struct _JPKFBT_STATISTICS
 		ULONG ImageInfoEventsDropped;
 		ULONG FailedChunkFlushes;
 	} Tracing;
+
+	ULONG EventsCaptured;
+	ULONG ExceptionsUnwindings;
 } JPKFBT_STATISTICS, *PJPKFBT_STATISTICS;

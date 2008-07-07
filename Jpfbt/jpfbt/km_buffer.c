@@ -333,8 +333,9 @@ PJPFBT_THREAD_DATA JpfbtpAllocateThreadDataForCurrentThread()
 	//
 	if ( ThreadData != NULL )
 	{
-		ThreadData->Signature = JPFBT_THREAD_DATA_SIGNATURE;
-		ThreadData->Association.Thread = PsGetCurrentThread();
+		ThreadData->Signature			= JPFBT_THREAD_DATA_SIGNATURE;
+		ThreadData->Association.Thread	= PsGetCurrentThread();
+		ThreadData->EventsCaptured		= 0;
 		Status = JpfbtpSetFbtDataThread( ThreadData->Association.Thread, ThreadData );
 
 		if ( ! NT_SUCCESS( Status ) )
