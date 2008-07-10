@@ -160,7 +160,7 @@ static HRESULT JptrcrsPerformFileInventory(
 			//
 			// Trace chunk - register for later retrieval.
 			//
-			TRACE( ( L"Trace chunk @ %I64u\n", CurrentOffset ) );
+			//TRACE( ( L"Trace chunk @ %I64u\n", CurrentOffset ) );
 			
 			Hr = JptrcrsRegisterTraceBuffer( 
 				File,
@@ -480,9 +480,9 @@ HRESULT JptrcrpMap(
 		File->CurrentMapping.Offset		= MapIndex * 
 			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE );
 		
-		SizeToMap = min( 
-			( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE ),
-			( ULONG ) ( File->File.Size - File->CurrentMapping.Offset ) );
+		SizeToMap = ( ULONG ) min( 
+			( ULONGLONG ) ( JPTRC_SEGMENT_SIZE * JPTRCRP_SEGMENTS_MAP_AT_ONCE ),
+			( File->File.Size - File->CurrentMapping.Offset ) );
 
 		Li.QuadPart = File->CurrentMapping.Offset;
 		File->CurrentMapping.MappedAddress = 
