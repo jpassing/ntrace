@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fbt.Trace.Analysis", "Fbt.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fbt.Trace.Reader", "Fbt.Trace.Reader\Fbt.Trace.Reader.csproj", "{DF94880E-F4E1-448D-93DE-D16A71A491C3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fbt.Benchmark", "Fbt.Benchmark\Fbt.Benchmark.csproj", "{0F1612AD-CB30-4178-AE47-97DF9024A379}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,10 @@ Global
 		{DF94880E-F4E1-448D-93DE-D16A71A491C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF94880E-F4E1-448D-93DE-D16A71A491C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF94880E-F4E1-448D-93DE-D16A71A491C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F1612AD-CB30-4178-AE47-97DF9024A379}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F1612AD-CB30-4178-AE47-97DF9024A379}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F1612AD-CB30-4178-AE47-97DF9024A379}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F1612AD-CB30-4178-AE47-97DF9024A379}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

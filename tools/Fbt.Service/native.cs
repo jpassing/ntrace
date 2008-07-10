@@ -14,6 +14,8 @@ namespace Fbt.Service
      */
     public static class Native
     {
+        public const Int32 JPFSV_KERNEL = -1;
+
         /*------------------------------------------------------------------
          *
          * Structs.
@@ -98,20 +100,10 @@ namespace Fbt.Service
             IntPtr EnumHandle
             );
 
-        //[DllImport("jpfsv.dll")]
-        //private extern static int JpfsvCreateSymbolResolver(
-        //    IntPtr Process,
-        //    string UserSearchPath,
-        //    out IntPtr Resolver
-        //    );
-
-        //[DllImport("jpfsv.dll")]
-        //private extern static int JpfsvCloseSymbolResolver(
-        //    IntPtr Resolver 
-        //    );
-
         [DllImport("jpfsv.dll")]
         private extern static int JpfsvCreateCommandProcessor(
+            IntPtr OutputRoutine,
+            Int32 InitialProcessId,
             out IntPtr Processor
             );
 
@@ -126,8 +118,7 @@ namespace Fbt.Service
         [DllImport("jpfsv.dll", CharSet = CharSet.Unicode)]
         private extern static int JpfsvProcessCommand(
             IntPtr Processor,
-            string Command,
-            IntPtr OutputRoutine
+            string Command
             );
 
         /*------------------------------------------------------------------
@@ -138,10 +129,17 @@ namespace Fbt.Service
         public class CommandProcessor : IDisposable
         {
             private IntPtr m_proc;
+            private OutputDelegate outputDelegate;
 
-            public CommandProcessor()
+            public CommandProcessor(
+                OutputDelegate outputDelegate,
+                int initialProcessId)
             {
+                this.outputDelegate = outputDelegate;
+
                 int hr = JpfsvCreateCommandProcessor(
+                    Marshal.GetFunctionPointerForDelegate(this.outputDelegate),
+                    initialProcessId,
                     out m_proc);
                 if (hr < 0)
                 {
@@ -149,12 +147,11 @@ namespace Fbt.Service
                 }
             }
 
-            public void ProcessCommand(string cmd, OutputDelegate od)
+            public void ProcessCommand(string cmd)
             {
                 int hr = JpfsvProcessCommand(
                     m_proc,
-                    cmd,
-                    Marshal.GetFunctionPointerForDelegate(od));
+                    cmd);
                 if (hr < 0)
                 {
                     Marshal.ThrowExceptionForHR(hr);

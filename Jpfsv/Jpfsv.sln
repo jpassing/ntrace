@@ -5,15 +5,30 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jpfsv", "Jpfsv.vcproj", "{2
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug with ctrc|Any CPU = Debug with ctrc|Any CPU
+		Debug with ctrc|Mixed Platforms = Debug with ctrc|Mixed Platforms
 		Debug with ctrc|Win32 = Debug with ctrc|Win32
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
 		Debug|Win32 = Debug|Win32
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug with ctrc|Any CPU.ActiveCfg = Debug with ctrc|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug with ctrc|Mixed Platforms.ActiveCfg = Debug with ctrc|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug with ctrc|Mixed Platforms.Build.0 = Debug with ctrc|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug with ctrc|Win32.ActiveCfg = Debug with ctrc|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug with ctrc|Win32.Build.0 = Debug with ctrc|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Mixed Platforms.Build.0 = Debug|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Win32.ActiveCfg = Debug|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Debug|Win32.Build.0 = Debug|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Release|Any CPU.ActiveCfg = Release|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Release|Win32.ActiveCfg = Release|Win32
 		{2CCB9FC9-715F-4735-9FAD-CB786C89A0A0}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection

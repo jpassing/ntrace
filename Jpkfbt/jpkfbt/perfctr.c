@@ -204,7 +204,7 @@ static NTSTATUS JpkfbtsQueryPerformanceData(
 	//
 	// Query data.
 	//
-	Status = JpkfbtQueryStatistics( JpkfbtsPerformanceSession, &Statistics );
+	Status = JpkfbtQueryStatistics( SessionHandle, &Statistics );
 	if ( ! NT_SUCCESS( Status ) )
 	{
 		//
