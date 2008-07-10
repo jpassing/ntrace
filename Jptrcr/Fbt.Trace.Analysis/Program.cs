@@ -137,12 +137,12 @@ namespace Fbt.Trace.Analysis
             string command = args[0];
             string file = args[1];
 
-            if (!File.Exists(file))
-            {
-                Console.WriteLine("File not found");
-                Environment.ExitCode = 1;
-                return;
-            }
+            //if (!File.Exists(file))
+            //{
+            //    Console.WriteLine("File not found");
+            //    Environment.ExitCode = 1;
+            //    return;
+            //}
 
             try
             {
