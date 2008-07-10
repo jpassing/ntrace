@@ -56,4 +56,5 @@ typedef struct _JPKFBT_STATISTICS
 
 	ULONG EventsCaptured;
 	ULONG ExceptionsUnwindings;
+	ULONG ThreadTeardowns;
 } JPKFBT_STATISTICS, *PJPKFBT_STATISTICS;

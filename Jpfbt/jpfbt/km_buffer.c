@@ -363,7 +363,12 @@ VOID JpfbtpFreeThreadData(
 	if ( ThreadData->Association.Thread != NULL )
 	{
 		( VOID ) JpfbtpSetFbtDataThread( ThreadData->Association.Thread, NULL );
+		ThreadData->Association.Thread = NULL;
 	}
+
+#if DBG
+	ThreadData->EventsCaptured = 0xDEAD;
+#endif
 
 	if ( ThreadData->AllocationType == JpfbtpPoolAllocated )
 	{

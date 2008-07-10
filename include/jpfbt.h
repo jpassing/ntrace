@@ -77,6 +77,7 @@ typedef struct _JPFBT_STATISTICS
 	ULONG ReentrantThunkExecutionsDetected;
 	ULONG EventsCaptured;
 	ULONG ExceptionsUnwindings;
+	ULONG ThreadTeardowns;
 } JPFBT_STATISTICS, *PJPFBT_STATISTICS;
 
 /*++

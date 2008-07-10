@@ -287,6 +287,8 @@ typedef struct _JPFBT_THREAD_DATA
 	Routine Description:
 		Get or lazily allocate per-thread data for the current thread.
 
+		Callable at any IRQL.
+
 	Return Value:
 		Thread Data or NULL if allocation failed.
 --*/
@@ -510,7 +512,8 @@ typedef struct _JPFBT_GLOBAL_DATA
 		// List of JPFBT_THREAD_DATA structs.
 		//
 		// In kernel mode, the list MUST be modified with ExInterlocked* 
-		// routines. The patch database lock is not required.
+		// routines (IRQL may be elevated!). The patch database lock is 
+		// not required.
 		//
 		// In user mode, the patch database lock must be held.
 		//
@@ -595,6 +598,7 @@ typedef struct _JPFBT_GLOBAL_DATA
 		volatile LONG ReentrantThunkExecutionsDetected;
 		volatile LONG EventsCaptured;
 		volatile LONG ExceptionsUnwindings;
+		volatile LONG ThreadTeardowns;
 	} Counters;
 
 	PVOID UserPointer;

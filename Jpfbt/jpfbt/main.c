@@ -316,5 +316,8 @@ NTSTATUS JpfbtQueryStatistics(
 	Statistics->ExceptionsUnwindings = 
 		JpfbtpGlobalState->Counters.ExceptionsUnwindings;
 
+	Statistics->ThreadTeardowns = 
+		JpfbtpGlobalState->Counters.ThreadTeardowns;
+
 	return STATUS_SUCCESS;
 }

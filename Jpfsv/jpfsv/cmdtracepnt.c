@@ -82,8 +82,8 @@ static BOOL JpfsvsCheckTracabilityFilter(
 		 0 == wcscmp( SymInfo->Name, L"KeBugCheck2" ) ||
 		 0 == wcscmp( SymInfo->Name, L"KeBugCheckEx" ) ||
 		 0 == wcscmp( SymInfo->Name, L"RtlAssert" ) ||
-		 0 == wcscmp( SymInfo->Name, L"ObfDereferenceObject" ) ||	//?
-		 0 == wcscmp( SymInfo->Name, L"MmAccessFault" ) ||			//?
+		 //0 == wcscmp( SymInfo->Name, L"ObfDereferenceObject" ) ||	//?
+		 //0 == wcscmp( SymInfo->Name, L"MmAccessFault" ) ||			//?
 		 0 == wcscmp( SymInfo->Name, L"RtlDispatchException" ) ||			//?
 		 0 == wcscmp( SymInfo->Name, L"RtlRaiseStatus" ) ||			// must!
 		 0 == wcscmp( SymInfo->Name, L"RtlUnwind" ) ||				// must!

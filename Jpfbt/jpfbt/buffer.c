@@ -358,9 +358,11 @@ PJPFBT_THREAD_DATA JpfbtpGetCurrentThreadData()
 			&ThreadData->u.ListEntry,
 			&JpfbtpGlobalState->PatchDatabase.ThreadData.Lock );
 #else
+		JpfbtpAcquirePatchDatabaseLock();
 		InsertTailList( 
 			&JpfbtpGlobalState->PatchDatabase.ThreadData.ListHead,
 			&ThreadData->u.ListEntry );
+		JpfbtpReleasePatchDatabaseLock();
 #endif
 	}
 
@@ -589,13 +591,27 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 {
 	PJPFBT_THREAD_DATA ThreadData;
 
-	ASSERT_IRQL_LTE( APC_LEVEL );
-
 #if defined( JPFBT_TARGET_USERMODE )
 	UNREFERENCED_PARAMETER( Thread );
 	ASSERT( Thread == NULL );
 	JpfbtpGetCurrentThreadDataIfAvailable( &ThreadData );
 #else
+	KIRQL OldIrql;
+
+	ASSERT_IRQL_LTE( APC_LEVEL );
+
+	//
+	// Just because the thread is about to exit does not mean there
+	// cannot still be interrupts dispatched while this thread is
+	// running. Therefore, before tearing down our structures, acquire
+	// this thread. This has the consequence of blocking all tracing
+	// activity on this thread -- and, in particular, avoids this
+	// thread from being re-associated a buffer etc.
+	//
+	// N.B. We leave the thread acquired.
+	//
+	JpfbtpAcquireCurrentThread();
+
 	ASSERT( Thread != NULL );
 	ThreadData = ( PJPFBT_THREAD_DATA ) 
 		JpfbtpGetFbtDataThread( ( PETHREAD ) Thread );
@@ -616,12 +632,42 @@ VOID JpfbtpTeardownThreadDataForExitingThread(
 			ThreadData->CurrentBuffer = NULL;
 		}
 
+#if defined( JPFBT_TARGET_USERMODE )
+		JpfbtpAcquirePatchDatabaseLock();
+		RemoveEntryList( &ThreadData->u.ListEntry );
+		JpfbtpReleasePatchDatabaseLock();
+#else
 		//
-		// There is no way to safely remove this entry from the 
-		// linked list. Therefore, do not free the structure - 
-		// JpfbtUninitialize will do it later. However, as the ETHREAD
-		// will be gone by then, disassociate now.
+		// Remove ThreadData from list. What we actually needed is
+		// ExInterlockedRemoveEntryList, which does not exist for a
+		// reason that does not apply to us in this very situation:
+		// it is assured that no other party will ever remove this
+		// very ThreadData from the list. Thus, there is no race to be
+		// feared.
 		//
-		ThreadData->Association.Thread = NULL;
+		// We need to protect against 
+		//  1. concurrent list modification
+		//  2. reentrant list modification
+		//
+		// 2. is avoided by having acquired the thread. 1. can be avoided
+		// by acquiring the spinlock (Mind you, this is not the same as 
+		// using ExInterlockedRemoveEntryList, which would, besides spinning, 
+		// disable/enable interrupts rather than just raising the IRQL to 
+		// DISPATCH_LEVEL).
+		//
+		KeAcquireSpinLock( 
+			&JpfbtpGlobalState->PatchDatabase.ThreadData.Lock, 
+			&OldIrql );
+
+		RemoveEntryList( &ThreadData->u.ListEntry );
+
+		KeReleaseSpinLock( 
+			&JpfbtpGlobalState->PatchDatabase.ThreadData.Lock, 
+			OldIrql );
+#endif
+
+		JpfbtpFreeThreadData( ThreadData );
+
+		InterlockedIncrement( &JpfbtpGlobalState->Counters.ThreadTeardowns );
 	}
 }

@@ -10,31 +10,7 @@
 #include "perfctr.h"
 #include <winperf.h>
 
-#define JPKFBTP_PERFDATA_BLOB_COUNTERS	( sizeof( JPKFBT_STATISTICS ) / sizeof( ULONG ) )
-
 #define JPKFBTP_PERF_SUBKEY L"SYSTEM\\CurrentControlSet\\Services\\jpkfar\\performance"
-
-/*++
-	Structure Description:
-		Composite structure for performance data. Note that all
-		counters are ULONGs.
---*/
-typedef struct _JPKFBTP_PERFDATA_BLOB
-{
-	PERF_OBJECT_TYPE Type;
-	PERF_COUNTER_DEFINITION CounterDefinition[ JPKFBTP_PERFDATA_BLOB_COUNTERS ];
-	PERF_COUNTER_BLOCK CounterBlock;
-	ULONG Data[ JPKFBTP_PERFDATA_BLOB_COUNTERS ];
-} JPKFBTP_PERFDATA_BLOB, *PJPKFBTP_PERFDATA_BLOB;
-
-#define SIZEOF_JPKFBTP_PERFDATA_BLOB RTL_SIZEOF_THROUGH_FIELD( \
-				JPKFBTP_PERFDATA_BLOB, Data[ JPKFBTP_PERFDATA_BLOB_COUNTERS - 1 ] )
-
-C_ASSERT( FIELD_OFFSET( JPKFBTP_PERFDATA_BLOB, CounterDefinition ) == 
-		 sizeof( PERF_OBJECT_TYPE ) );
-C_ASSERT( FIELD_OFFSET( JPKFBTP_PERFDATA_BLOB, CounterBlock ) == 
-		 sizeof( PERF_OBJECT_TYPE ) + 
-		 sizeof( PERF_COUNTER_DEFINITION ) * JPKFBTP_PERFDATA_BLOB_COUNTERS );
 
 //
 // Counter metadata.
@@ -84,13 +60,13 @@ static struct
 	{ -1, JPKFBTP_PLAIN_VALUE, JPKFBTP_FAILEDPREALLOCATIONPOOLALLOCATIONS,	
 		__STAT_OFFSET( ThreadData.FailedPreallocationPoolAllocations ) },
 
-	{ -4, JPKFBTP_PLAIN_VALUE, JPKFBTP_REENTRANTTHUNKEXECUTIONSDETECTED,	
+	{ -5, JPKFBTP_DELTA_COUNTER, JPKFBTP_REENTRANTTHUNKEXECUTIONSDETECTED,	
 		__STAT_OFFSET( ReentrantThunkExecutionsDetected ) },
 
 	//
 	// Tracing.
 	//
-	{ -1, JPKFBTP_DELTA_COUNTER, JPKFBTP_ENTRYEVENTSDROPPED,	 			
+	{ -4, JPKFBTP_DELTA_COUNTER, JPKFBTP_ENTRYEVENTSDROPPED,	 			
 		__STAT_OFFSET( Tracing.EntryEventsDropped ) },
 	{ -1, JPKFBTP_DELTA_COUNTER, JPKFBTP_EXITEVENTSDROPPED,		 			
 		__STAT_OFFSET( Tracing.ExitEventsDropped ) },
@@ -103,11 +79,38 @@ static struct
 
 	{ -5, JPKFBTP_PLAIN_VALUE, JPKFBTP_EVENTSCAPTURED,	
 		__STAT_OFFSET( EventsCaptured ) },
+	{ -5, JPKFBTP_DELTA_COUNTER, JPKFBTP_EVENTSCAPTUREDDELTA,	
+		__STAT_OFFSET( EventsCaptured ) },
 	{ -2, JPKFBTP_PLAIN_VALUE, JPKFBTP_UNWINDINGS,	
 		__STAT_OFFSET( ExceptionsUnwindings ) },
+	{ -2, JPKFBTP_PLAIN_VALUE, JPKFBTP_THREADTEARDOWNS,	
+		__STAT_OFFSET( ThreadTeardowns ) },
 };
 
-C_ASSERT( _countof( JpkfbtsCounterMetaData ) == JPKFBTP_PERFDATA_BLOB_COUNTERS );
+#define JPKFBTP_PERFDATA_BLOB_COUNTERS _countof( JpkfbtsCounterMetaData )
+
+
+/*++
+	Structure Description:
+		Composite structure for performance data. Note that all
+		counters are ULONGs.
+--*/
+typedef struct _JPKFBTP_PERFDATA_BLOB
+{
+	PERF_OBJECT_TYPE Type;
+	PERF_COUNTER_DEFINITION CounterDefinition[ JPKFBTP_PERFDATA_BLOB_COUNTERS ];
+	PERF_COUNTER_BLOCK CounterBlock;
+	ULONG Data[ JPKFBTP_PERFDATA_BLOB_COUNTERS ];
+} JPKFBTP_PERFDATA_BLOB, *PJPKFBTP_PERFDATA_BLOB;
+
+#define SIZEOF_JPKFBTP_PERFDATA_BLOB RTL_SIZEOF_THROUGH_FIELD( \
+				JPKFBTP_PERFDATA_BLOB, Data[ JPKFBTP_PERFDATA_BLOB_COUNTERS - 1 ] )
+
+C_ASSERT( FIELD_OFFSET( JPKFBTP_PERFDATA_BLOB, CounterDefinition ) == 
+		 sizeof( PERF_OBJECT_TYPE ) );
+C_ASSERT( FIELD_OFFSET( JPKFBTP_PERFDATA_BLOB, CounterBlock ) == 
+		 sizeof( PERF_OBJECT_TYPE ) + 
+		 sizeof( PERF_COUNTER_DEFINITION ) * JPKFBTP_PERFDATA_BLOB_COUNTERS );
 
 //
 // Session for performance data collection.

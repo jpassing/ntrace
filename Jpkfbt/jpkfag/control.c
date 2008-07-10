@@ -668,6 +668,7 @@ NTSTATUS JpkfagpQueryStatisticsIoctl(
 		Response->Data.Tracing.FailedChunkFlushes	 = DevExtension->Statistics.FailedChunkFlushes;
 		Response->Data.EventsCaptured				 = Statistics.EventsCaptured;
 		Response->Data.ExceptionsUnwindings			 = Statistics.ExceptionsUnwindings;
+		Response->Data.ThreadTeardowns				 = Statistics.ThreadTeardowns;
 
 		*BytesWritten = sizeof( JPKFAG_IOCTL_QUERY_STATISTICS_RESPONSE );
 	}
