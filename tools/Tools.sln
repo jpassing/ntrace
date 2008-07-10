@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fbt.Service", "Fbt.Service\Fbt.Service.csproj", "{1956155E-5D88-474C-90B5-B981489B7D08}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fbt.Trace.Analysis", "Fbt.Trace.Analysis\Fbt.Trace.Analysis.csproj", "{7A2728BB-5BFE-42D3-A6FD-714AA29A7D92}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fbt.Trace.Reader", "Fbt.Trace.Reader\Fbt.Trace.Reader.csproj", "{DF94880E-F4E1-448D-93DE-D16A71A491C3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1956155E-5D88-474C-90B5-B981489B7D08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1956155E-5D88-474C-90B5-B981489B7D08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1956155E-5D88-474C-90B5-B981489B7D08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1956155E-5D88-474C-90B5-B981489B7D08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A2728BB-5BFE-42D3-A6FD-714AA29A7D92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A2728BB-5BFE-42D3-A6FD-714AA29A7D92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A2728BB-5BFE-42D3-A6FD-714AA29A7D92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A2728BB-5BFE-42D3-A6FD-714AA29A7D92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF94880E-F4E1-448D-93DE-D16A71A491C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF94880E-F4E1-448D-93DE-D16A71A491C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF94880E-F4E1-448D-93DE-D16A71A491C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF94880E-F4E1-448D-93DE-D16A71A491C3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
