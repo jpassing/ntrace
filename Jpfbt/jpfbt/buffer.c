@@ -165,6 +165,15 @@ static PJPFBT_BUFFER JpfbtsGetBuffer(
 			NewBuffer->ProcessId		= JpfbtpGetCurrentProcessId();
 			NewBuffer->ThreadId			= JpfbtpGetCurrentThreadId();
 
+#if defined( JPFBT_TARGET_KERNELMODE )
+			if ( NewBuffer->ThreadId == 0 )
+			{
+				//
+				// There are multiple idle threads, use an artificial ID.
+				//
+				NewBuffer->ThreadId = ( ULONG ) ( ULONG_PTR ) PsGetCurrentThread();
+			}
+#endif
 #if defined( JPFBT_TARGET_KERNELMODE ) && defined( DBG )
 			NewBuffer->OwningThread		= PsGetCurrentThread();
 			NewBuffer->OwningThreadData = ThreadData;
@@ -176,8 +185,8 @@ static PJPFBT_BUFFER JpfbtsGetBuffer(
 
 	if ( ThreadData->CurrentBuffer != NULL )
 	{
-		ASSERT( ThreadData->CurrentBuffer->ProcessId < 0xffff );
-		ASSERT( ThreadData->CurrentBuffer->ThreadId < 0xffff );
+		ASSERT( ( ThreadData->CurrentBuffer->ProcessId % 4 ) == 0 );
+		ASSERT( ( ThreadData->CurrentBuffer->ThreadId % 4 ) == 0 );
 	}
 
 	return ThreadData->CurrentBuffer;
@@ -285,8 +294,8 @@ VOID JpfbtpInitializeBuffersGlobalState(
 		//
 		// Initialize and push onto free list.
 		//
-		CurrentBuffer->ThreadId = 0;				// initialized later
-		CurrentBuffer->ProcessId = 0;				// initialized later
+		CurrentBuffer->ThreadId = 0xDEADBEEF;				// initialized later
+		CurrentBuffer->ProcessId = 0xDEADBEEF;				// initialized later
 		CurrentBuffer->BufferSize = BufferSize;
 		CurrentBuffer->UsedSize = 0;
 
@@ -551,8 +560,8 @@ NTSTATUS JpfbtProcessBuffers(
 	
 		Buffer = CONTAINING_RECORD( ListEntry, JPFBT_BUFFER, ListEntry );
 
-		ASSERT( Buffer->ProcessId < 0xffff );
-		ASSERT( Buffer->ThreadId < 0xffff );
+		ASSERT( ( Buffer->ProcessId % 4 ) == 0 );
+		ASSERT( ( Buffer->ThreadId % 4 ) == 0 );
 
 		( ProcessBufferRoutine )(
 			Buffer->UsedSize,

@@ -137,14 +137,14 @@ static HRESULT JptrcrsPerformFileInventory(
 			//
 			// Just skip over this one.
 			//
-			TRACE( ( L"Pad chunk @ %I64u\n", CurrentOffset ) );
+			//TRACE( ( L"Pad chunk @ %I64u\n", CurrentOffset ) );
 			break;
 
 		case JPTRC_CHUNK_TYPE_IMAGE_INFO:
 			//
 			// Subsequent chunks may refer to this image - load.
 			//
-			TRACE( ( L"Image chunk @ %I64u\n", CurrentOffset ) );
+			//TRACE( ( L"Image chunk @ %I64u\n", CurrentOffset ) );
 
 			Hr = JptrcrsLoadModuleForImage( 
 				File,

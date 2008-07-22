@@ -214,7 +214,7 @@ static NTSTATUS JpkfbtsQueryPerformanceData(
 		return STATUS_SUCCESS;
 	}
 
-	//
+	// 
 	// Populate Type.
 	//
 	PerfData->Type.TotalByteLength		= 
