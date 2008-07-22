@@ -352,6 +352,7 @@ VOID CallStdcallRecursive()
 #pragma warning( push )
 #pragma warning( disable: 4702 )
 __declspec(naked)
+__declspec(noinline)
 VOID Raise()
 {
 	_asm
@@ -379,6 +380,28 @@ VOID Raise()
 }
 #pragma warning( push )
 
+__declspec(naked)
+__declspec(noinline)
+VOID RaiseIndirect()
+{
+	_asm
+	{
+		mov edi, edi;
+		push ebp;
+		mov ebp, esp;
+	}
+
+	Raise();
+
+	_asm 
+	{
+		mov esp, ebp;
+		pop ebp;
+		ret;
+	}
+}
+
+__declspec(noinline)
 VOID SetupDummySehFrameAndCallRaise()
 {
 	__try

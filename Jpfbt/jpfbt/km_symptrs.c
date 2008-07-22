@@ -49,6 +49,20 @@ static JPFBTP_SYMBOL_SET JpfbtsSymbolSets[] =
 	},
 
 	//
+	// WRK wrkx86hp.
+	//
+	{ 
+		// {6B58DBF7-1008-4F85-A428-214CDB30ABC6}
+		{ 0x6B58DBF7, 0x1008, 0x4F85, 
+			{ 0xA4, 0x28, 0x21, 0x4C, 0xDB, 0x30, 0xAB, 0xC6 } },
+		0x244, 
+		0x248, 
+		0x646da, 
+		0x64858, 
+		0x8541c 
+	},
+
+	//
 	// Vista Gold.
 	//
 	{

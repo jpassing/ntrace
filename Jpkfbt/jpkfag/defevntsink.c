@@ -295,6 +295,7 @@ static PIMAGE_DATA_DIRECTORY JpkfagsGetDebugDataDirectory(
  *
  */
 
+#ifndef JPFBT_NO_TRACING
 static VOID JpkfagsOnImageLoadDefEventSink(
 	__in ULONGLONG ImageLoadAddress,
 	__in ULONG ImageSize,
@@ -612,6 +613,69 @@ static VOID JpkfagsOnProcessBufferDefEventSink(
 		Buffer,
 		( ULONG ) BufferSize );
 }
+#else  // JPFBT_NO_TRACING
+static VOID JpkfagsOnImageLoadDefEventSink(
+	__in ULONGLONG ImageLoadAddress,
+	__in ULONG ImageSize,
+	__in PANSI_STRING Path,
+	__in PJPKFAGP_EVENT_SINK This
+	)
+{
+	UNREFERENCED_PARAMETER( ImageLoadAddress );
+	UNREFERENCED_PARAMETER( ImageSize );
+	UNREFERENCED_PARAMETER( Path );
+	UNREFERENCED_PARAMETER( This );
+}
+
+static VOID JpkfagsOnProcedureEntryDefEventSink(
+	__in CONST PJPFBT_CONTEXT Context,
+	__in PVOID Procedure,
+	__in_opt PVOID This
+	)
+{
+	UNREFERENCED_PARAMETER( Context );
+	UNREFERENCED_PARAMETER( Procedure );
+	UNREFERENCED_PARAMETER( This );
+}
+
+static VOID JpkfagsOnProcedureUnwindDefEventSink(
+	__in ULONG ExceptionCode,
+	__in PVOID Procedure,
+	__in_opt PVOID This
+	)
+{
+	UNREFERENCED_PARAMETER( ExceptionCode );
+	UNREFERENCED_PARAMETER( Procedure );
+	UNREFERENCED_PARAMETER( This );
+}
+
+static VOID JpkfagsOnProcedureExitDefEventSink(
+	__in CONST PJPFBT_CONTEXT Context,
+	__in PVOID Procedure,
+	__in_opt PVOID This
+	)
+{
+	UNREFERENCED_PARAMETER( Context );
+	UNREFERENCED_PARAMETER( Procedure );
+	UNREFERENCED_PARAMETER( This );
+}
+
+static VOID JpkfagsOnProcessBufferDefEventSink(
+	__in SIZE_T BufferSize,
+	__in_bcount( BufferSize ) PUCHAR Buffer,
+	__in ULONG ProcessId,
+	__in ULONG ThreadId,
+	__in_opt PVOID This
+	)
+{
+	UNREFERENCED_PARAMETER( BufferSize );
+	UNREFERENCED_PARAMETER( Buffer );
+	UNREFERENCED_PARAMETER( ProcessId );
+	UNREFERENCED_PARAMETER( ThreadId );
+	UNREFERENCED_PARAMETER( This );
+}
+
+#endif // JPFBT_NO_TRACING
 
 static VOID JpkfagsDeleteDefEventSink(
 	__in PJPKFAGP_EVENT_SINK This

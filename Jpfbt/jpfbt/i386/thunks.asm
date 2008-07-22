@@ -47,7 +47,7 @@ ProcedureOffset					EQU 0
 ReturnAddressOffset				EQU 4
 SehRecordOffset					EQU 8
 
-SizeofStackFrame				EQU 16
+SizeofStackFrame				EQU 20
 
 STATUS_FBT_NO_THUNKSTACK		EQU 80049200h
 STATUS_FBT_REENTRANT_EXIT		EQU 80049214h

@@ -28,8 +28,8 @@
 	#include <aux_klib.h>
 
 	#define INFINITE ( ( ULONG ) -1 )
-	//#define TRACE KdPrint
-	#define TRACE( x )
+	#define TRACE KdPrint
+	//#define TRACE( x )
 	#define ASSERT_IRQL_LTE( Irql ) ASSERT( KeGetCurrentIrql() <= ( Irql ) )
 #else
 	#error Unknown mode (User/Kernel)
@@ -116,10 +116,33 @@ typedef struct _JPFBT_THUNK_STACK_FRAME
 		//
 		PEXCEPTION_REGISTRATION_RECORD RegistrationRecord;
 
-		//
-		// Pointer to original handler that has been replaced.
-		//
-		PEXCEPTION_ROUTINE OriginalHandler;
+		union
+		{
+			//
+			// If RegistrationRecord != NULL, this field is set.
+			//
+			struct
+			{
+				//
+				// Pointer to original handler that has been replaced.
+				//
+				PEXCEPTION_ROUTINE OriginalHandler;
+
+				//
+				// Number of frames to pop in case of an unwind.
+				//
+				ULONG FrameCount;
+			} Registration;
+
+			//
+			// If RegistrationRecord == NULL, this field
+			// refers to the frame that has installed the handler.
+			//
+			// If this field is NULL as well, no handler has been
+			// installed.
+			//
+			struct _JPFBT_THUNK_STACK_FRAME *RegisteringFrame;
+		} u;
 	} Seh;
 } JPFBT_THUNK_STACK_FRAME, *PJPFBT_THUNK_STACK_FRAME;
 
@@ -269,10 +292,11 @@ typedef struct _JPFBT_THREAD_DATA
 	} Association;
 
 	//
-	// Used by JpfbtpThunkExceptionHandler to store exception code
+	// Used by JpfbtpThunkExceptionHandler to store information
 	// between exception handling and unwinding.
 	//
 	ULONG PendingException;
+	ULONG PendingFramePops;
 
 	//
 	// Events captured since last having updated the global 

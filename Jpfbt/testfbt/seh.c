@@ -83,6 +83,18 @@ static void CallRaiseAndHandleException()
 	}
 }
 
+static void CallRaiseIndirectAndHandleException()
+{
+	__try
+	{
+		RaiseIndirect();
+	}
+	__except( ExcpFilter( GetExceptionCode() ) )
+	{
+		CFIX_LOG( L"Excp caught" );
+	}
+}
+
 static void CallRaiseAndHandleExceptionWithSehFrameUnderneath()
 {
 	__try
@@ -124,7 +136,7 @@ static void CallRaiseAndContinueExecution()
 
 static void TestSehThunkStackCleanup()
 {
-	JPFBT_PROCEDURE Procs[ 2 ];
+	JPFBT_PROCEDURE Procs[ 3 ];
 	JPFBT_PROCEDURE FailedProc;
 
 	TEST_SUCCESS( JpfbtInitializeEx( 
@@ -140,6 +152,7 @@ static void TestSehThunkStackCleanup()
 
 	Procs[ 0 ].u.Procedure = ( PVOID ) Raise;
 	Procs[ 1 ].u.Procedure = ( PVOID ) SetupDummySehFrameAndCallRaise;
+	Procs[ 2 ].u.Procedure = ( PVOID ) RaiseIndirect;
 	TEST_SUCCESS( JpfbtInstrumentProcedure( 
 		JpfbtAddInstrumentation, 
 		_countof( Procs ), 
@@ -172,6 +185,17 @@ static void TestSehThunkStackCleanup()
 	TEST( EntryCalls == 1 );	
 	TEST( ExitCalls == 0 );	
 	TEST( ExceptionCalls == 1 );	
+
+	EntryCalls = 0;
+	ExitCalls = 0;
+	ExceptionCalls = 0;
+
+	CallRaiseIndirectAndHandleException();
+	CallRaiseIndirectAndHandleException();
+
+	//TEST( EntryCalls == 1 );	
+	//TEST( ExitCalls == 0 );	
+	//TEST( ExceptionCalls == 1 );	
 
 	EntryCalls = 0;
 	ExitCalls = 0;

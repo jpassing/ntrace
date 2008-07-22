@@ -89,6 +89,45 @@ VOID __stdcall JpfbtpProcedureExit(
 
 /*++
 	Routine Description:
+		Lookup the thunk stack frame corresponding that has 
+		registered our handler in the given registration record.
+
+		N.B. This is not always the topmost frame that refers to
+		a registration. If the original handler of the topmost
+		registration rejects to handle the exception, then this
+		routine may be invoked again and it will not be the topmost
+		registration record that is to be looked up.
+--*/
+static VOID JpfbtsLookupFrameForRegistrationRecord(
+	__in PJPFBT_THUNK_STACK ThunkStack,
+	__in PEXCEPTION_REGISTRATION_RECORD Record,
+	__out PJPFBT_THUNK_STACK_FRAME *ThunkStackFrame
+	)
+{
+	PJPFBT_THUNK_STACK_FRAME Frame = ThunkStack->StackPointer;
+	PJPFBT_THUNK_STACK_FRAME Bottom = 
+		&ThunkStack->Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ];
+
+	//
+	// Seek the matching thunk stack frame.
+	//
+	while ( Frame != Bottom )
+	{
+		if ( Frame->Seh.RegistrationRecord == Record )
+		{
+			*ThunkStackFrame = Frame;
+			return;
+		}
+
+		Frame++;
+	} 
+	
+	ASSERT( !"Frame not found" );
+	return ;
+}
+
+/*++
+	Routine Description:
 		Installs the own exception handler. Assumes that 
 		a thunk stack frame has already been allocated.
 
@@ -107,19 +146,12 @@ BOOLEAN __stdcall JpfbtpInstallExceptionHandler(
 {
 	if ( ( ULONG_PTR ) ( PVOID ) TopRecord == ( ULONG_PTR ) -1 )
 	{
-		////
-		//// No top record (Head of chain).
-		////
-		//InterlockedIncrement( 
-		//	&JpfbtpGlobalState->Counters.FailedExceptionHandlerInstallations );
-
-		//return FALSE;
-
 		//
 		// No existing frame -> no chance of being unwound. 
 		// Install our SEH handler is not neccessary.
 		//
-		Frame->Seh.RegistrationRecord = NULL;
+		Frame->Seh.RegistrationRecord	= NULL;
+		Frame->Seh.u.RegisteringFrame	= NULL;
 		return TRUE;
 	}
 
@@ -133,20 +165,59 @@ BOOLEAN __stdcall JpfbtpInstallExceptionHandler(
 	}
 #endif
 
-	//
-	// Remember the location of the registration record.
-	//
-	Frame->Seh.RegistrationRecord = TopRecord;
+	if ( TopRecord->Handler == ( PEXCEPTION_ROUTINE ) JpfbtpThunkExceptionHandlerThunk )
+	{
+		//
+		// We have already hijacked this record. To avoid recursion,
+		// lookup the corresponding thunk stack frame and increment the 
+		// number of frames to pop in case of an unwind.
+		//
+		PJPFBT_THUNK_STACK_FRAME HijackingFrame;
+		PJPFBT_THREAD_DATA ThreadData;
 
-	//
-	// Replace handler routine.
-	//
-	Frame->Seh.OriginalHandler = TopRecord->Handler;
+		ThreadData = JpfbtpGetCurrentThreadData();
+		ASSERT( ThreadData != NULL );
+		__assume( ThreadData != NULL );
+
+		JpfbtsLookupFrameForRegistrationRecord(
+			&ThreadData->ThunkStack,
+			TopRecord,
+			&HijackingFrame );
+
+		ASSERT( HijackingFrame != NULL );
+		ASSERT( HijackingFrame != Frame );
+		ASSERT( HijackingFrame->Seh.u.Registration.FrameCount >= 1 );
+
+		HijackingFrame->Seh.u.Registration.FrameCount++;
+
+		//
+		// No own handler, refer to frame that installed the handler.
+		//
+		Frame->Seh.RegistrationRecord	= NULL;
+		Frame->Seh.u.RegisteringFrame	= HijackingFrame;
+
+		//TRACE( ( "JPFBT: Installed EH (reusing reg %x) for ERR %x\n", 
+		//	HijackingFrame, TopRecord ) );
+	}
+	else
+	{
+		//
+		// Record has not been touched yet. Hijack.
+		//
+		// Remember the location of the registration record and
+		// install own handler.
+		//
+		Frame->Seh.RegistrationRecord				= TopRecord;
+		Frame->Seh.u.Registration.OriginalHandler	= TopRecord->Handler;
+		Frame->Seh.u.Registration.FrameCount		= 1;
 
 #pragma warning( push )
 #pragma warning( disable: 4113 )
-	TopRecord->Handler = JpfbtpThunkExceptionHandlerThunk;
+		TopRecord->Handler = JpfbtpThunkExceptionHandlerThunk;
 #pragma warning( pop )
+
+		//TRACE( ( "JPFBT: Installed EH (own reg) for ERR %x\n", TopRecord ) );
+	}
 
 	return TRUE;
 }
@@ -160,39 +231,52 @@ VOID __stdcall JpfbtpUninstallExceptionHandler(
 	__in PJPFBT_THUNK_STACK_FRAME Frame
 	)
 {
-	//
-	// Restore the original handler.
-	//
 	if ( Frame->Seh.RegistrationRecord != NULL )
 	{
-		Frame->Seh.RegistrationRecord->Handler = Frame->Seh.OriginalHandler;
-	}
-}
+		ASSERT( Frame->Seh.u.Registration.FrameCount == 1 );
 
-static PEXCEPTION_ROUTINE JpfbtsLookupOriginalExceptionHandler(
-	__in PJPFBT_THUNK_STACK ThunkStack,
-	__in PEXCEPTION_REGISTRATION_RECORD Record
-	)
-{
-	PJPFBT_THUNK_STACK_FRAME Frame = ThunkStack->StackPointer;
-	PJPFBT_THUNK_STACK_FRAME Bottom = 
-		&ThunkStack->Stack[ JPFBT_THUNK_STACK_LOCATIONS - 1 ];
-
-	//
-	// Seek the matching thunk stack frame.
-	//
-	while ( Frame != Bottom )
-	{
-		if ( Frame->Seh.RegistrationRecord == Record )
+		//
+		// This frame has installed a handler -> Restore the original handler.
+		//
+		if ( Frame->Seh.RegistrationRecord != NULL )
 		{
-			return Frame->Seh.OriginalHandler;
+			Frame->Seh.RegistrationRecord->Handler = 
+				Frame->Seh.u.Registration.OriginalHandler;
 		}
 
-		Frame++;
-	} 
-	
-	ASSERT( !"Frame not found" );
-	return NULL;
+		//TRACE( ( "JPFBT: Uninstalled EH (own reg) for ERR %x\n", 
+		//	Frame->Seh.RegistrationRecord ) );
+	}
+	else if ( Frame->Seh.u.RegisteringFrame != NULL )
+	{
+		//
+		// Some frame underneath registered the handler. Decrement.
+		//
+#if defined(JPFBT_TARGET_KERNELMODE)
+		ASSERT( MmIsAddressValid( Frame->Seh.u.RegisteringFrame ) );
+#endif
+		ASSERT( Frame->Seh.u.RegisteringFrame->Seh.RegistrationRecord != NULL );
+		ASSERT( Frame->Seh.u.RegisteringFrame->Seh.u.Registration.FrameCount > 1 );
+
+		Frame->Seh.u.RegisteringFrame->Seh.u.Registration.FrameCount--;
+
+		//TRACE( ( "JPFBT: Uninstalled EH (reusing reg %x) for ERR %x. Cnt now %d\n", 
+		//	Frame->Seh.u.RegisteringFrame,
+		//	Frame->Seh.RegistrationRecord,
+		//	Frame->Seh.u.RegisteringFrame->Seh.u.Registration.FrameCount ) );
+	}
+	else
+	{
+		//
+		// No handler has been installed.
+		//
+	}
+
+#if DBG
+		Frame->Seh.RegistrationRecord				= NULL;
+		Frame->Seh.u.Registration.OriginalHandler	= NULL;
+		Frame->Seh.u.Registration.FrameCount		= 0xDEADBEEF;
+#endif
 }
 
 /*++
@@ -213,7 +297,7 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 	UNREFERENCED_PARAMETER( ContextRecord );
 	UNREFERENCED_PARAMETER( DispatcherContext );
 	
-	//TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
+	TRACE( ( "JPFBT: Unwind for exception %x\n", ExceptionRecord->ExceptionCode ) );
 
 	#define EH_UNWINDING 2
 	
@@ -255,12 +339,14 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 			JpfbtpGlobalState->UserPointer );
 	}
 
-	ThreadData->PendingException = 0;
-
 	//
 	// Pop top frame. ThunkStack should never be NULL.
 	//
-	ThreadData->ThunkStack.StackPointer++;
+	ASSERT( ThreadData->PendingFramePops >= 1 );
+	ThreadData->ThunkStack.StackPointer += ThreadData->PendingFramePops;
+
+	ThreadData->PendingException = 0;
+	ThreadData->PendingFramePops = 0;
 
 	TRACE( ( "JPFBT: Unwinding completed\n" ) );
 	return ExceptionContinueSearch;
@@ -297,6 +383,7 @@ static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 		mov [TopRecord], eax;
 	}
 	
+	ASSERT( TopRecord != &DummyRecord );
 
 	DummyRecord.Handler = JpfbtpUnwindThunkstackThunk;
 	DummyRecord.Next = TopRecord;
@@ -319,6 +406,8 @@ static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 		mov fs:[0], eax;
 	}
 
+	ASSERT( TopRecord->Next != TopRecord );
+
 	return Disposition;
 }
 #pragma warning( pop )
@@ -334,7 +423,7 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
     __inout PVOID DispatcherContext
 	)
 {
-	PEXCEPTION_ROUTINE OriginalHandler;
+	PJPFBT_THUNK_STACK_FRAME Frame;
 	PJPFBT_THREAD_DATA ThreadData;
 		
 	UNREFERENCED_PARAMETER( ContextRecord );
@@ -344,17 +433,35 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 	
 	//TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
 
+	//
+	// Lookup the handler we have replaced.
+	//
+	JpfbtsLookupFrameForRegistrationRecord( 
+		&ThreadData->ThunkStack,
+		EstablisherFrame,
+		&Frame );
+	ASSERT( Frame->Seh.u.Registration.OriginalHandler != NULL );
+	ASSERT( Frame->Seh.u.Registration.FrameCount >= 1 );
+
+	//
+	// Make number of frames to pop available to 
+	// JpfbtpUnwindThunkstack.
+	//
+	ASSERT( Frame->Seh.RegistrationRecord != NULL );
+	ThreadData->PendingFramePops = Frame->Seh.u.Registration.FrameCount;
+
 	if ( ExceptionRecord->ExceptionFlags & EH_UNWINDING )
 	{
-		//
-		// Call the handler we have replaced.
-		//
-		OriginalHandler = JpfbtsLookupOriginalExceptionHandler( 
-			&ThreadData->ThunkStack,
-			EstablisherFrame );
-		ASSERT( OriginalHandler != NULL );
+		TRACE( ( "JPFBT: Regular unwind for exception %x\n", 
+			ExceptionRecord->ExceptionCode ) );
 
-		return ( OriginalHandler )( 
+		( VOID ) JpfbtpUnwindThunkstack(
+			ExceptionRecord,
+			EstablisherFrame,
+			ContextRecord,
+			DispatcherContext );
+
+		return ( Frame->Seh.u.Registration.OriginalHandler )( 
 			ExceptionRecord,
 			EstablisherFrame,
 			ContextRecord,
@@ -377,20 +484,12 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 		ThreadData->PendingException = ExceptionRecord->ExceptionCode;
 	
 		//
-		// Get the pointer to the handler we have replaced.
-		//
-		OriginalHandler = JpfbtsLookupOriginalExceptionHandler( 
-			&ThreadData->ThunkStack,
-			EstablisherFrame );
-		ASSERT( OriginalHandler != NULL );
-
-		//
 		// Delegate to the original exception handler. If this call
 		// returns, it either means we may expect classic unwinding or
 		// no unwinding will occur at all.
 		//
 		Disposition = JpfbtpCallOriginalExceptionHandler( 
-			OriginalHandler,
+			Frame->Seh.u.Registration.OriginalHandler,
 			ExceptionRecord,
 			EstablisherFrame,
 			ContextRecord,
@@ -402,96 +501,4 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 		return Disposition;
 	}
 }
-//EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
-//	__in PEXCEPTION_RECORD ExceptionRecord,
-//    __in PVOID EstablisherFrame,
-//    __inout PCONTEXT ContextRecord,
-//    __inout PVOID DispatcherContext
-//	)
-//{
-//	PEXCEPTION_ROUTINE OriginalHandler;
-//	PJPFBT_THREAD_DATA ThreadData;
-//
-//	//
-//	// Some routine has thrown an exception. 2 situations may now occur:
-//	// 1) Some exception handler beneth us will return 
-//	//    EXCEPTION_CONTINUE_EXECUTION. The stack will remain intact and
-//	//    life is good.
-//	// 2) Some exception handler beneth us will return 
-//	//    EXCEPTION_EXECUTE_HANDLER. Stack unwinding will occur and we
-//	//    have to perform proper cleanup as the exit thunk will never
-//	//    be called.
-//	//
-//	UNREFERENCED_PARAMETER( EstablisherFrame );
-//	UNREFERENCED_PARAMETER( ContextRecord );
-//	UNREFERENCED_PARAMETER( DispatcherContext );
-//	
-//	//TRACE( ( "JPFBT: Caught exception %x\n", ExceptionRecord->ExceptionCode ) );
-//
-//	#define EH_UNWINDING 2
-//
-//	ThreadData = JpfbtpGetCurrentThreadData();
-//	
-//	//
-//	// N.B. ThreadData should never be NULL as it contains the exception
-//	// registration record that brought us here in the first place!
-//	//
-//	ASSERT( ThreadData != NULL );
-//	__assume( ThreadData != NULL );
-//
-//
-//	if ( ExceptionRecord->ExceptionFlags & EH_UNWINDING )
-//	{
-//		//
-//		// Case 2) has occured.
-//		//
-//		
-//		//TRACE( ( "JPFBT: About to unwind for %x\n", ExceptionRecord->ExceptionCode ) );
-//
-//		//
-//		// Report event.
-//		//
-//		// N.B. ExceptionRecord->ExceptionCode is now STATUS_UNWIND,
-//		// therefore use exception code stashed away previously.
-//		//
-//		if ( JpfbtpGlobalState->Routines.ExceptionEvent != NULL )
-//		{
-//			( JpfbtpGlobalState->Routines.ExceptionEvent )(
-//				ThreadData->PendingException,
-//				( PVOID ) ThreadData->ThunkStack.StackPointer->Procedure,
-//				JpfbtpGlobalState->UserPointer );
-//		}
-//
-//		ThreadData->PendingException = 0;
-//
-//		//
-//		// Pop top frame. ThunkStack should never be NULL.
-//		//
-//		ThreadData->ThunkStack.StackPointer++;
-//
-//		TRACE( ( "JPFBT: Unwinding completed\n" ) );
-//	}
-//	else
-//	{
-//		//
-//		// Stash away exception code until unwinding.
-//		//
-//		ThreadData->PendingException = ExceptionRecord->ExceptionCode;
-//	}
-//	
-//	//
-//	// Delegate to the original exception handler.
-//	//
-//	OriginalHandler = JpfbtsLookupOriginalExceptionHandler( 
-//		&ThreadData->ThunkStack,
-//		EstablisherFrame );
-//
-//	ASSERT( OriginalHandler != NULL );
-//
-//	return JpfbtpCallOriginalExceptionHandler( 
-//		OriginalHandler,
-//		ExceptionRecord,
-//		EstablisherFrame,
-//		ContextRecord,
-//		DispatcherContext );
-//}
+

@@ -363,7 +363,9 @@ NTSTATUS JpkfagpInitializeTracingIoctl(
 			return STATUS_INVALID_PARAMETER;
 		}
 
+#ifndef JPFBT_NO_TRACING
 		InitFlags |= JPFBT_FLAG_AUTOCOLLECT;
+#endif
 
 		LogFilePath.MaximumLength	= Request->Log.FilePathLength * sizeof( WCHAR );
 		LogFilePath.Length			= Request->Log.FilePathLength * sizeof( WCHAR );
