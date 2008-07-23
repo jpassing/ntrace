@@ -402,7 +402,7 @@ static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 
 	_asm 
 	{
-		lea eax, [TopRecord];
+		mov eax, [TopRecord];
 		mov fs:[0], eax;
 	}
 
@@ -452,8 +452,13 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 
 	if ( ExceptionRecord->ExceptionFlags & EH_UNWINDING )
 	{
+		PEXCEPTION_ROUTINE OriginalHandler;
+
 		TRACE( ( "JPFBT: Regular unwind for exception %x\n", 
 			ExceptionRecord->ExceptionCode ) );
+
+		OriginalHandler = Frame->Seh.u.Registration.OriginalHandler;
+		ASSERT( OriginalHandler != NULL );
 
 		( VOID ) JpfbtpUnwindThunkstack(
 			ExceptionRecord,
@@ -461,7 +466,7 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 			ContextRecord,
 			DispatcherContext );
 
-		return ( Frame->Seh.u.Registration.OriginalHandler )( 
+		return ( OriginalHandler )( 
 			ExceptionRecord,
 			EstablisherFrame,
 			ContextRecord,
