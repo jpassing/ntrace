@@ -297,8 +297,6 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 	UNREFERENCED_PARAMETER( ContextRecord );
 	UNREFERENCED_PARAMETER( DispatcherContext );
 	
-	TRACE( ( "JPFBT: Unwind for exception %x\n", ExceptionRecord->ExceptionCode ) );
-
 	#define EH_UNWINDING 2
 	
 	//
@@ -321,6 +319,11 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 	// unwinding.
 	//
 	ASSERT ( ExceptionRecord->ExceptionFlags & EH_UNWINDING );
+
+	TRACE( ( "JPFBT: Unwinding %d frames for exception %x (ERR %p)\n", 
+		ThreadData->PendingFramePops,
+		ExceptionRecord->ExceptionCode,
+		EstablisherFrame ) );
 
 	InterlockedIncrement(
 		&JpfbtpGlobalState->Counters.ExceptionsUnwindings );
@@ -353,7 +356,7 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 }
 
 #pragma warning( push )
-#pragma warning( disable: 4113 )	// Function Poiinter Casting
+#pragma warning( disable: 4113 )	// Function Pointer Casting
 #pragma warning( disable: 4733 )	// FS:0 assignment
 static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 	__in PEXCEPTION_ROUTINE OriginalHandler,
@@ -363,36 +366,55 @@ static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
     __inout PVOID DispatcherContext
 	)
 {
+	PEXCEPTION_REGISTRATION_RECORD ChainHead;
 	EXCEPTION_DISPOSITION Disposition;
 	EXCEPTION_REGISTRATION_RECORD DummyRecord;
-	PEXCEPTION_REGISTRATION_RECORD TopRecord;
-
+	PEXCEPTION_REGISTRATION_RECORD PrevRecord;
+	
 	//
 	// N.B. The original handler is most likely __except_handler4. If we 
 	// just delegated the call to this routine, it would do all further
-	// exception handling and unwinding itself. It will not return and
+	// exception handling and unwinding, i.e. it will never return and
 	// our handler will not be called during unwinding.
 	//
 	// By injecting an artifical frame here, we make sure that we will
 	// be norified about unwinding still.
 	//
+	// In order to keep the order of unwindings correct in case some
+	// other EH above us has returned ExceptionContinueSearch before,
+	// we may not install our handler at the top of the chain. Rather,
+	// we install the handler just before the registration record
+	// that is currently being used by RtlDispatchException/RtlUnwind.
+	//
+#if defined( JPFBT_TARGET_KERNELMODE )
+	#define SELF_NT_TIB_OFFSET	0x1c		// Use SelfPcr, SelfTib is NULL.
+#else
+	#define SELF_NT_TIB_OFFSET	0x18
+#endif
 
 	_asm 
 	{
-		mov eax, fs:[0];
-		mov [TopRecord], eax;
+		mov eax, fs:[ SELF_NT_TIB_OFFSET ];	// eax = NtTib->Self
+		mov [ChainHead], eax;	// cast PNT_TIB to PEXCEPTION_REGISTRATION_RECORD
+								// (we only need the Next field, so this is ok)
 	}
-	
-	ASSERT( TopRecord != &DummyRecord );
 
+	//
+	// Seek registration record that sits right before the one
+	// currenlty being assessed. This might be the TIB.
+	//
+	PrevRecord = ChainHead;
+	while ( PrevRecord->Next != EstablisherFrame )
+	{
+		PrevRecord = PrevRecord->Next;
+	}
+
+	//
+	// Inject.
+	//
 	DummyRecord.Handler = JpfbtpUnwindThunkstackThunk;
-	DummyRecord.Next = TopRecord;
-
-	_asm 
-	{
-		lea eax, [DummyRecord];
-		mov fs:[0], eax;
-	}
+	DummyRecord.Next = PrevRecord->Next;
+	PrevRecord->Next = &DummyRecord;
 
 	Disposition = ( OriginalHandler ) (
 		ExceptionRecord,
@@ -400,13 +422,7 @@ static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 		ContextRecord,
 		DispatcherContext );
 
-	_asm 
-	{
-		mov eax, [TopRecord];
-		mov fs:[0], eax;
-	}
-
-	ASSERT( TopRecord->Next != TopRecord );
+	PrevRecord->Next = DummyRecord.Next;
 
 	return Disposition;
 }
