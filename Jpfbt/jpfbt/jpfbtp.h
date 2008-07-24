@@ -296,7 +296,6 @@ typedef struct _JPFBT_THREAD_DATA
 	// between exception handling and unwinding.
 	//
 	ULONG PendingException;
-	ULONG PendingFramePops;
 
 	//
 	// Events captured since last having updated the global 

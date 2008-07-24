@@ -320,8 +320,7 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 	//
 	ASSERT ( ExceptionRecord->ExceptionFlags & EH_UNWINDING );
 
-	TRACE( ( "JPFBT: Unwinding %d frames for exception %x (ERR %p)\n", 
-		ThreadData->PendingFramePops,
+	TRACE( ( "JPFBT: Unwinding for exception %x (ERR %p)\n", 
 		ExceptionRecord->ExceptionCode,
 		EstablisherFrame ) );
 
@@ -343,13 +342,31 @@ EXCEPTION_DISPOSITION JpfbtpUnwindThunkstack(
 	}
 
 	//
-	// Pop top frame. ThunkStack should never be NULL.
+	// Pop frames up to and including the first frame containing
+	// an own registration.
 	//
-	ASSERT( ThreadData->PendingFramePops >= 1 );
-	ThreadData->ThunkStack.StackPointer += ThreadData->PendingFramePops;
+	while ( ThreadData->ThunkStack.StackPointer->Seh.RegistrationRecord == NULL )
+	{
+		TRACE( ( "JPFBT: Unwinding frame %p (no own reg) for exception %x\n", 
+			ThreadData->ThunkStack.StackPointer,
+			ExceptionRecord->ExceptionCode ) );
+
+		//
+		// Frame referring to an ERR underneath. Pop.
+		//
+		ThreadData->ThunkStack.StackPointer++;
+	}
+
+	TRACE( ( "JPFBT: Unwinding frame %p (own reg) for exception %x\n", 
+			ThreadData->ThunkStack.StackPointer,
+			ExceptionRecord->ExceptionCode ) );
+
+	//
+	// Now pop the actual frame containing the ERR.
+	//
+	ThreadData->ThunkStack.StackPointer++;
 
 	ThreadData->PendingException = 0;
-	ThreadData->PendingFramePops = 0;
 
 	TRACE( ( "JPFBT: Unwinding completed\n" ) );
 	return ExceptionContinueSearch;
@@ -464,7 +481,6 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 	// JpfbtpUnwindThunkstack.
 	//
 	ASSERT( Frame->Seh.RegistrationRecord != NULL );
-	ThreadData->PendingFramePops = Frame->Seh.u.Registration.FrameCount;
 
 	if ( ExceptionRecord->ExceptionFlags & EH_UNWINDING )
 	{
