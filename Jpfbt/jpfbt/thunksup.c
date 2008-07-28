@@ -98,7 +98,7 @@ VOID __stdcall JpfbtpProcedureExit(
 		routine may be invoked again and it will not be the topmost
 		registration record that is to be looked up.
 --*/
-static VOID JpfbtsLookupFrameForRegistrationRecord(
+static BOOLEAN JpfbtsLookupFrameForRegistrationRecord(
 	__in PJPFBT_THUNK_STACK ThunkStack,
 	__in PEXCEPTION_REGISTRATION_RECORD Record,
 	__out PJPFBT_THUNK_STACK_FRAME *ThunkStackFrame
@@ -116,14 +116,14 @@ static VOID JpfbtsLookupFrameForRegistrationRecord(
 		if ( Frame->Seh.RegistrationRecord == Record )
 		{
 			*ThunkStackFrame = Frame;
-			return;
+			return TRUE;
 		}
 
 		Frame++;
 	} 
 	
 	ASSERT( !"Frame not found" );
-	return ;
+	return FALSE;
 }
 
 /*++
@@ -259,11 +259,6 @@ VOID __stdcall JpfbtpUninstallExceptionHandler(
 		ASSERT( Frame->Seh.u.RegisteringFrame->Seh.u.Registration.FrameCount > 1 );
 
 		Frame->Seh.u.RegisteringFrame->Seh.u.Registration.FrameCount--;
-
-		//TRACE( ( "JPFBT: Uninstalled EH (reusing reg %x) for ERR %x. Cnt now %d\n", 
-		//	Frame->Seh.u.RegisteringFrame,
-		//	Frame->Seh.RegistrationRecord,
-		//	Frame->Seh.u.RegisteringFrame->Seh.u.Registration.FrameCount ) );
 	}
 	else
 	{
@@ -449,6 +444,13 @@ static EXCEPTION_DISPOSITION JpfbtpCallOriginalExceptionHandler(
 	Routine Description:
 		SEH Exception Handler installed by thunks.
 --*/
+
+//
+// For some strange reason, the optimizer generates code that yields
+// an unbalanced stack for this function. Thus, turn off optimization.
+//
+#pragma optimize( "", off )
+
 EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 	__in PEXCEPTION_RECORD ExceptionRecord,
     __in PVOID EstablisherFrame,
@@ -538,4 +540,5 @@ EXCEPTION_DISPOSITION JpfbtpThunkExceptionHandler(
 		return Disposition;
 	}
 }
+#pragma optimize( "", on )
 

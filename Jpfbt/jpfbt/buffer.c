@@ -444,7 +444,9 @@ PUCHAR JpfbtGetBuffer(
 	Buffer = JpfbtsGetBuffer( CurrentThreadData, GrossSize );
 	if ( Buffer )
 	{
+#if DBG
 		ASSERT( Buffer->Guard == 0xDEADBEEF );
+#endif
 
 #if defined( JPFBT_TARGET_KERNELMODE ) && defined( DBG )
 		ASSERT( Buffer->OwningThread == PsGetCurrentThread() );

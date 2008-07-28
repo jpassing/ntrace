@@ -28,15 +28,16 @@
 	#include <aux_klib.h>
 
 	#define INFINITE ( ( ULONG ) -1 )
-	#define TRACE KdPrint
-	//#define TRACE( x )
+	//#define TRACE( x )  DbgPrint x
+	//#define TRACE KdPrint
+	#define TRACE( x )
 	#define ASSERT_IRQL_LTE( Irql ) ASSERT( KeGetCurrentIrql() <= ( Irql ) )
 #else
 	#error Unknown mode (User/Kernel)
 #endif
 
 #ifndef VERIFY
-	#if defined( DBG ) || defined( DBG )
+	#if defined( DBG ) || defined( _DEBUG )
 		#define VERIFY ASSERT
 	#else
 		#define VERIFY( x ) ( VOID ) ( x )
