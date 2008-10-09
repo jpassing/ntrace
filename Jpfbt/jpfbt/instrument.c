@@ -206,7 +206,8 @@ static NTSTATUS JpfbtsValidateCodePatch(
 		// The affected module may have been unloaded. Thus, recheck
 		// address.
 		//
-		if ( JpfbtpIsCodeAddressValid( Patch->u.Procedure.u.Procedure ) )
+		if ( JpfbtpIsCodeAddressValid( Patch->u.Procedure.u.Procedure ) &&
+			 JpfbtsIsAlreadyPatched( Patch->u.Procedure ) )
 		{
 			Status = STATUS_SUCCESS;
 		}
@@ -524,6 +525,10 @@ static NTSTATUS JpfbtsUninstrumentProcedure(
 			}
 			goto Cleanup;
 		}
+
+		//
+		// TODO: use nop sled or jmp $+5 rather than original code.
+		//
 	}
 
 	Status = JpfbtsUnpatchAndUnregister(

@@ -1,64 +1,30 @@
 TODO
 
-BUGS
- * MmIsAddValid-freezes
- * Unpatching routines of a driver that has been unloaded --> bsod
- * suspicious status?
- * premature unloading sometimes bugchecks
-
-
-
 jpfbt
 ------------------------------------------------------------------------
-  * Naming: Thunk vs. Proxy
- 
  Kernel
    * MmGetSystemAddressForMdlSafe may return NULL
    
- * SymPtr: use GUID instead of BuildNr
- * Better Exception-Alg.?
  * NTSTATUS vs. Driver Verifier
 
  UM: detect alloc reentrance
- 
- KM: stop lazy allocation as soon as ntos code is instrumented:
- 
- 00 fa0db68c 80821c96 nt!RtlpBreakWithStatusInstruction [D:\uni\wrk\src\branches\cl14\BASE\NTOS\rtl\i386\debug2.asm @ 47]
-01 fa0db6dc 808226ef nt!KiBugCheckDebugBreak+0x1c [d:\uni\wrk\src\branches\cl14\base\ntos\ke\bugcheck.c @ 252]
-02 fa0dba78 80883363 nt!KeBugCheck2+0x5ad [d:\uni\wrk\src\branches\cl14\base\ntos\ke\bugcheck.c @ 860]
-03 fa0dba78 80a48b12 nt!_KiTrap0E+0x2a7 [D:\uni\wrk\src\branches\cl14\BASE\NTOS\ke\i386\trap.asm @ 5739]
-04 fa0dbb0c 808519e7 HALACPIM!KeAcquireQueuedSpinLock+0x3a
-05 fa0dbb24 8088e14c nt!MiTrimSegmentCache+0x19 [d:\uni\wrk\src\branches\cl14\base\ntos\mm\allocpag.c @ 499]
-06 fa0dbbe4 8088bc34 nt!MiAllocatePoolPages+0x146 [d:\uni\wrk\src\branches\cl14\base\ntos\mm\allocpag.c @ 1491]
-07 fa0dbc34 f6aace6b nt!ExAllocatePoolWithTag+0xbe [d:\uni\wrk\src\branches\cl14\base\ntos\ex\pool.c @ 1919]
-08 fa0dbc50 f6aac0c4 jpkfar32!JpfbtpAllocateNonPagedMemory+0x4b [d:\dev\wdev\fbt\jpfbt\jpfbt\km_memalloc.c @ 48]
-09 fa0dbc90 f6aab30c jpkfar32!JpfbtpAllocateThreadDataForCurrentThread+0x74 [d:\dev\wdev\fbt\jpfbt\jpfbt\km_buffer.c @ 327]
-0a fa0dbca4 f6aad25b jpkfar32!JpfbtpGetCurrentThreadData+0x5c [d:\dev\wdev\fbt\jpfbt\jpfbt\buffer.c @ 333]
-0b fa0dbcb0 f6aacf1c jpkfar32!JpfbtpGetCurrentThunkStack+0xb [d:\dev\wdev\fbt\jpfbt\jpfbt\thunksup.c @ 15]
-0c fa0dbcc4 808336ff jpkfar32!JpfbtpFunctionEntryThunk+0x17 [d:\dev\wdev\fbt\jpfbt\jpfbt\i386\thunks.asm @ 115]
-0d fa0dbcf0 80833bf6 nt!MiComputeSystemTrimCriteria+0xb3 [d:\uni\wrk\src\branches\cl14\base\ntos\mm\wsmanage.c @ 783]
-0e fa0dbd10 8087ecda nt!MmWorkingSetManager+0x32 [d:\uni\wrk\src\branches\cl14\base\ntos\mm\wsmanage.c @ 645]
-0f fa0dbda8 8093291c nt!KeBalanceSetManager+0xca [d:\uni\wrk\src\branches\cl14\base\ntos\ke\balmgr.c @ 285]
-10 fa0dbddc 80884a62 nt!PspSystemThreadStartup+0x2e [d:\uni\wrk\src\branches\cl14\base\ntos\ps\create.c @ 2215]
-11 00000000 00000000 nt!KiThreadStartup+0x16 [D:\uni\wrk\src\branches\cl14\BASE\NTOS\ke\i386\threadbg.asm @ 78]
 
+ Uninstrumentation:
+   trampoline should be overwritten with NOP-sled: Possible that thread is
+   interrupted after having executed jmp $-7, but before trampoline is executed.
+   --> could bugcheck if trampoline is swapped back in and contains 0xCC opcodes.
+
+ event counter: update on thread teardown
  
 jpufbt
 ------------------------------------------------------------------------
- * VS_VERSION_INFO jpufag
  * Force ufag unload
- * Check for shared memory overflow (large messages)
  
  
 jpkfbt
 ------------------------------------------------------------------------
- * multiple instrumentability checks per IOCTL
- 
- * log stats at end of file/repeatedly
-  
- * only admin may access device
- 
- 
+ * multiple instrumentability checks per IOCTL 
+ * device ACL
  
 jpfsv
 ------------------------------------------------------------------------
@@ -67,10 +33,5 @@ jpfsv
  * symsetopt( undnames )
  * symbol load status callback -> show on console
  
- * mask out nt-bit for message resolution? --> do in cdiag
- 
  * allow second instance of ctrc
- 
- * Vista symsrv
- 
  * declspec dllexport/import
