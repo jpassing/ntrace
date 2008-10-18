@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\cfix\include
+INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;$(CFIX_HOME)\include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -23,7 +23,7 @@ UMENTRY=wmain
 
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(SDK_LIB_PATH)\shlwapi.lib \
-		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfix.lib \
+		   $(CFIX_HOME)\lib\$(TARGET_DIRECTORY)\cfix.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jptrcr.lib
 
 
