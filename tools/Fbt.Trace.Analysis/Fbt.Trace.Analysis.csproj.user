@@ -1,6 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <EnableUnmanagedDebugging>true</EnableUnmanagedDebugging>
+    <StartArguments>prefix D:\dev\wdev\Fbt\Jptrcr\testtrcr\data\ntos.jtrc</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <StartArguments>top D:\dev\wdev\Fbt\Jptrcr\testtrcr\data\ntos.jtrc</StartArguments>

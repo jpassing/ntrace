@@ -1,0 +1,182 @@
+                      Ex    82096083
+                      Mi    77482851
+                      Io    39583652
+                      Cc    26209515
+                      Se    25753867
+                     Obp    21334655
+                     Iop    21135884
+                     Obf    14358472
+                     Sep    14246980
+                      Fs    10094099
+                      Ob    10064565
+                      Ke    9829789
+                     Rtl    9337584
+                     Iof    8512101
+                      Ps    6202883
+                     Exp    5513770
+                    Iopf    3838200
+                   LZNT1    3139230
+                      Ki    2610196
+                      Nt    2468106
+                     Pop    1981148
+                      Mm    1734679
+                   Probe    1152829
+                     Psp    843951
+                     Cmp    572534
+                    Vacb    270137
+                    Find    243970
+                     Exf    157450
+                     Set    155254
+               Reference    139165
+                  Delete    121800
+                      Is    90046
+                 Promote    59095
+                    Rtlp    58509
+               Rebalance    42315
+                    Lpcp    34277
+                     Get    31536
+                  fputwc    26992
+                    Wmip    23212
+                     Hvp    23160
+                    Swap    14378
+                  String    11404
+                  Enlist    6869
+                  wcslen    5562
+                  Delist    5276
+                       _    5127
+                 Apphelp    4779
+                      Hv    2558
+                      Kx    2539
+                  mbtowc    2528
+                _woutput    2528
+             _vsnwprintf    1416
+                swprintf    1112
+                  wcscpy    860
+                     Sdb    856
+                    Dbgk    700
+              Initialize    694
+                     Wmi    603
+                      Po    351
+                  wcschr    209
+                     Lpc    139
+                _wcsicmp    65
+                    Real    33
+                 Compare    5
+                 Compute    1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
