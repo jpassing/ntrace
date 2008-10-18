@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\Jpht\Include;$(CFIX_HOME)\include
+INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\Jpht\Include;$(CFIX_HOME)\include
 
 C_DEFINES=/D_UNICODE /DUNICODE
 

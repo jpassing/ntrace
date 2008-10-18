@@ -3,7 +3,7 @@
 #		2008, Johannes Passing (passing at users.sourceforge.net)
 #
 
-INCLUDES=..\..\..\include;..\..\include;..\..\..\..\Jpht\Include;$(SDK_INC_PATH)\..\mfc42
+INCLUDES=..\..\..\include;..\..\include;..\..\..\Jpht\Include;$(SDK_INC_PATH)\..\mfc42
 
 MSC_WARNING_LEVEL=/W4 /WX /Wp64
 
@@ -13,7 +13,7 @@ TARGETNAME=jpkfaw32
 !endif
 
 TARGETLIBS=$(WRKBASE)\BASE\NTOS\BUILD\EXE\wrkx86wm.lib \
-		   $(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
+		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_km_wrk.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwrkstb.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwmkstb.lib \

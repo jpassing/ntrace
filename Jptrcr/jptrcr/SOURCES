@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(SDKBASE)\Include;..\..\..\Jpht\Include;..\..\include;$(SDK_INC_PATH)\..\mfc42
+INCLUDES=$(SDKBASE)\Include;..\..\Jpht\Include;..\..\include;$(SDK_INC_PATH)\..\mfc42
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -20,7 +20,7 @@ USE_LIBCMT=1
 
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(MAKEDIR)\..\..\bin\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib \
-		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib
+		   $(MAKEDIR)\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib
 		   
 
 TARGETNAME=jptrcr

@@ -20,7 +20,7 @@ USE_LIBCMT=1
 
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpqlpc.lib \
-		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
+		   $(MAKEDIR)\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_um.lib
 
 TARGETNAME=jpufag

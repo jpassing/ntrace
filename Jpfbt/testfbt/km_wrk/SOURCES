@@ -1,7 +1,7 @@
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(DDK_INC_PATH);..\;..\..\..\include;..\..\..\..\cfix\include;;..\..\..\..\Jpht\include
+INCLUDES=$(DDK_INC_PATH);..\;..\..\..\include;$(CFIX_HOME)\include;;..\..\..\Jpht\include
 
 C_DEFINES=/D_UNICODE /DUNICODE /DCFIX_KERNELMODE /DJPFBT_TARGET_KERNELMODE /DJPFBT_WRK
 
@@ -12,8 +12,8 @@ UMENTRY=wmain
 
 TARGETLIBS=$(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_km_wrk.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpwrkstb.lib \
-		   $(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
-		   $(MAKEDIR)\..\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfixkdrv.lib \
+		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
+		   $(CFIX_HOME)\lib\$(TARGET_DIRECTORY)\cfixkdrv.lib \
 		   $(DDK_LIB_PATH)\aux_klib.lib
 
 

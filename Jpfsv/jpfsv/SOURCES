@@ -6,7 +6,7 @@ BSCMAKE_FLAGS=$(BSCMAKE_FLAGS) /n
 
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\..\Jpht\Include;..\..\..\cfix\include;$(SDK_INC_PATH)\..\mfc42
+INCLUDES=$(SDKBASE)\Include;..\include;..\..\include;..\..\Jpht\Include;$(CFIX_HOME)\include;$(SDK_INC_PATH)\..\mfc42
 
 C_DEFINES=/D_UNICODE /DUNICODE
 
@@ -22,10 +22,10 @@ TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(SDK_LIB_PATH)\shell32.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpufbt.lib \
 		   $(MAKEDIR)\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpkfbt.lib \
-		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
+		   $(MAKEDIR)\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
 		   $(SDK_LIB_PATH)\psapi.lib \
 		   $(MAKEDIR)\..\..\bin\redist\$(TARGET_DIRECTORY)\lib\dbghelp.lib \
-		   $(MAKEDIR)\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cdiag.lib
+		   $(CFIX_HOME)\lib\$(TARGET_DIRECTORY)\cdiag.lib
 
 
 TARGETNAME=jpfsv

@@ -1,6 +1,6 @@
 MSC_WARNING_LEVEL=/W4 /Wp64
 
-INCLUDES=..\;..\..\..\include;..\..\..\..\cfix\include
+INCLUDES=..\;..\..\..\include;$(CFIX_HOME)\include
 
 C_DEFINES=/D_UNICODE /DUNICODE /DJPFBT_TARGET_USERMODE
 
@@ -17,8 +17,8 @@ UMENTRY=wmain
 
 TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   $(MAKEDIR)\..\..\..\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpfbt_um.lib \
-		   $(MAKEDIR)\..\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
-		   $(MAKEDIR)\..\..\..\..\cfix\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\cfix.lib
+		   $(MAKEDIR)\..\..\..\Jpht\bin\$(DDKBUILDENV)\$(TARGET_DIRECTORY)\jpht.lib \
+		   $(CFIX_HOME)\lib\$(TARGET_DIRECTORY)\cfix.lib
 
 
 TARGETNAME=testfbt_um
