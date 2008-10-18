@@ -20,10 +20,8 @@ jpufbt
 ------------------------------------------------------------------------
  * Force ufag unload
  
- 
-jpkfbt
+ jpkfbt
 ------------------------------------------------------------------------
- * multiple instrumentability checks per IOCTL 
  * device ACL
  
 jpfsv
