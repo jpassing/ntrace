@@ -8,4 +8,6 @@ Required:
  * WRK 1.2
    * Env. Variable WRKBASE must point to base directory of the WRK.
  
+N.B. The build files use the compiler option /analyze. This requires Visual Studio 2005 Team Edition to be installed on your machine and be listed in your PATH -- otherwise, you will get build warnings. You will also get code analysis warnings when you have Visual Studio 2008 Team Edition installed on your machine -- if this is the case, please remove the Visual Studio 2008 installation from your PATH before building NTrace.
+ 
 Run buildall.cmd to perform a build.
